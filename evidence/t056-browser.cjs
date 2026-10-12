@@ -1,0 +1,21 @@
+const fs=require('node:fs');const assert=require('node:assert/strict');const ts=require('typescript');const {chromium}=require('playwright');
+(async()=>{const browser=await chromium.launch({headless:true,channel:'msedge'});try{
+const page=await browser.newPage({viewport:{width:1600,height:1000}});
+await page.route('**/api/source-answers',r=>r.fulfill({status:200,json:{answers:[],model:'mock-caption-ui-only'}}));
+await page.goto('http://localhost:3000/');await page.locator('input[type=file]').setInputFiles('D:/0-Project/10-Obsidian/quizflow/tmp/บทที่ 7 ชุดที่ 2 เรื่อง การแยกสาร.pdf');
+await page.getByRole('textbox',{name:'ข้อความ OCR สำหรับตรวจแก้'}).waitFor({timeout:90000});
+const original=page.locator('[data-workspace="source"] img').first();await original.evaluate(img=>img.decode());const src=await original.getAttribute('src');
+await page.getByRole('button',{name:'แคปภาพเฉพาะจุด'}).click();const box=await original.boundingBox();await page.mouse.move(box.x+90,box.y+100);await page.mouse.down();await page.mouse.move(box.x+250,box.y+220,{steps:10});await page.mouse.up();
+const modal=page.getByRole('dialog',{name:'แทรกภาพที่ตัดจากต้นฉบับ'});await modal.waitFor();await modal.locator('select').selectOption('2');await modal.getByRole('button',{name:'แทรกเป็นรูปโจทย์'}).click();await modal.waitFor({state:'hidden'});
+const editor=page.locator('[contenteditable=true]');await editor.waitFor();assert.equal(await editor.locator('[data-item-id="2"] img').evaluate(img=>img.previousElementSibling.textContent),'[รูปโจทย์]');
+const pixel='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg==';
+await editor.locator('[data-item-id="2"] span.font-light').first().click();page.once('dialog',d=>d.accept(pixel));await page.getByRole('button',{name:'แทรกรูป',exact:true}).click();
+await editor.locator('[data-item-id="2"]').evaluate((el,url)=>{const img=document.createElement('img');img.src=url;el.append(img);},pixel);await page.waitForTimeout(100);
+assert.equal(await editor.locator('[data-item-id="2"] img').count(),3);
+for(const image of await editor.locator('[data-item-id="2"] img').all()) assert.equal(await image.evaluate(img=>img.previousElementSibling.textContent),'[รูปโจทย์]');
+const script=ts.transpileModule(fs.readFileSync('lib/export-document.ts','utf8').replace(/export /g,''),{compilerOptions:{target:ts.ScriptTarget.ES2020}}).outputText;
+const snapshot=await editor.evaluate((el,code)=>new Function('editor',code+';return snapshotDocument(editor,"caption-test");')(el),script);
+const texts=snapshot.paragraphs.flatMap(p=>p.runs).map(r=>r.text||'').join('\n');assert.ok(texts.includes('[รูปโจทย์]'));assert.ok(snapshot.paragraphs.flatMap(p=>p.runs).some(r=>r.image));
+assert.equal(await original.getAttribute('src'),src);await page.screenshot({path:'evidence/t056-caption.png'});
+fs.writeFileSync('evidence/t056-result.json',JSON.stringify({cropCaption:true,toolbarCaption:true,domPasteCaption:true,exportSnapshotCaption:true,exportSnapshotImages:true,sourceUnchanged:true,provider:'mock-UI-only; no Gemini accuracy claim'},null,2));console.log('T-056 crop/link/DOM paste/export snapshot passed');
+}finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

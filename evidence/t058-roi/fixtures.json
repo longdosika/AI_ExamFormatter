@@ -1,0 +1,686 @@
+{
+  "truthProvenance": "Owner confirmed teacher-rechecked answers on2026-10-12; visual labels transcribed from these images only",
+  "fixtures": [
+    {
+      "caseId": "q1",
+      "page": 1,
+      "file": "evidence/t058-roi/q01.png",
+      "sourceFile": "evidence/t038-page1-1.png",
+      "sourceBox": [
+        90,
+        380,
+        930,
+        480
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "819e44cdb9a17405beaa77ab3b8ca1888fe835cf11a26d259db232434b9f80fe",
+      "truth": {
+        "1": "ก"
+      },
+      "questions": [
+        {
+          "id": 1,
+          "questionNumber": 1,
+          "questionText": "สารในคู่ใดที่ดูลักษณะภายนอกคล้ายกันมากจึงต้องระเหยจนแห้งใช้บอกความแตกต่างของสารคู่นี้",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        }
+      ],
+      "sha256": "16809cd2dd25e06c43464ddbf0c80c6feaf75faa0b5924975f075f657c39c989"
+    },
+    {
+      "caseId": "q2",
+      "page": 1,
+      "file": "evidence/t058-roi/q02.png",
+      "sourceFile": "evidence/t038-page1-1.png",
+      "sourceBox": [
+        90,
+        485,
+        930,
+        575
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "819e44cdb9a17405beaa77ab3b8ca1888fe835cf11a26d259db232434b9f80fe",
+      "truth": {
+        "2": "ก"
+      },
+      "questions": [
+        {
+          "id": 2,
+          "questionNumber": 2,
+          "questionText": "ผลึกเกิดขึ้นได้จากสารในข้อใด",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        }
+      ],
+      "sha256": "e9c06dc1553807fb888a4351ed288e1848a69759030888df9cd7406d8bda5d13"
+    },
+    {
+      "caseId": "q3",
+      "page": 1,
+      "file": "evidence/t058-roi/q03.png",
+      "sourceFile": "evidence/t038-page1-1.png",
+      "sourceBox": [
+        90,
+        575,
+        930,
+        702
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "819e44cdb9a17405beaa77ab3b8ca1888fe835cf11a26d259db232434b9f80fe",
+      "truth": {
+        "3": "ง"
+      },
+      "questions": [
+        {
+          "id": 3,
+          "questionNumber": 3,
+          "questionText": "ถ้าต้องการแยกเอาเกลือออกจากน้ำทะเลควรใช้วิธีใด\n1. การกรอง\n2. การกลั่น\n3. การระเหิด\n4. การสกัดด้วยไอน้ำ\n5. การใช้แม่เหล็กดูด\n6. การระเหยจนแห้ง",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        }
+      ],
+      "sha256": "dc923b03d5f1e29968c99a943a0b5cab12a42a73690aa429a060c545249ff459"
+    },
+    {
+      "caseId": "q4",
+      "page": 1,
+      "file": "evidence/t058-roi/q04.png",
+      "sourceFile": "evidence/t038-page1-1.png",
+      "sourceBox": [
+        90,
+        703,
+        930,
+        795
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "819e44cdb9a17405beaa77ab3b8ca1888fe835cf11a26d259db232434b9f80fe",
+      "truth": {
+        "4": "ค"
+      },
+      "questions": [
+        {
+          "id": 4,
+          "questionNumber": 4,
+          "questionText": "ความสัมพันธ์ใดไม่ถูกต้อง",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        }
+      ],
+      "sha256": "e8ab5276fd891fed314e23af4562f4142d9d13d7d1491eb0c215437409f81eeb"
+    },
+    {
+      "caseId": "q5",
+      "page": 1,
+      "file": "evidence/t058-roi/q05.png",
+      "sourceFile": "evidence/t038-page1-1.png",
+      "sourceBox": [
+        90,
+        797,
+        930,
+        1158
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "819e44cdb9a17405beaa77ab3b8ca1888fe835cf11a26d259db232434b9f80fe",
+      "truth": {
+        "5": "ง"
+      },
+      "questions": [
+        {
+          "id": 5,
+          "questionNumber": 5,
+          "questionText": "การทำนาเกลือ มีขั้นตอนดังนี้\n1. ระบายน้ำจากวังขังน้ำเข้านาตาก\n2. ระบายน้ำจากนาตากเข้านาเชื้อ\n3. ระบายน้ำจากนาเชื้อเข้านาปลง\nขั้นตอนใดใช้หลักการระเหยและการตกผลึก",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        }
+      ],
+      "sha256": "568e634d61658387b33e9984b32e5ef6574da14f2e036ad2e9f9a258725d5a06"
+    },
+    {
+      "caseId": "q6",
+      "page": 1,
+      "file": "evidence/t058-roi/q06.png",
+      "sourceFile": "evidence/t038-page1-1.png",
+      "sourceBox": [
+        90,
+        1160,
+        930,
+        1310
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "819e44cdb9a17405beaa77ab3b8ca1888fe835cf11a26d259db232434b9f80fe",
+      "truth": {
+        "6": "ง"
+      },
+      "questions": [
+        {
+          "id": 6,
+          "questionNumber": 6,
+          "questionText": "นำของเหลวชนิดหนึ่งไประเหยแห้ง พบว่าไม่มีสารใดหลงเหลืออยู่ในภาชนะ จากข้อมูล ข้อสรุปเกี่ยวกับของเหลวชนิดนี้คือข้อใด",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        }
+      ],
+      "sha256": "03d00929d2141027980b84de3f35f6096676c67a92e4991c2e261307e16e492c"
+    },
+    {
+      "caseId": "q7",
+      "page": 2,
+      "file": "evidence/t058-roi/q07.png",
+      "sourceFile": "evidence/pdf-review/page-2.png",
+      "sourceBox": [
+        125,
+        190,
+        850,
+        430
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "03a5c1497f151f1ccb23e3ec7b2d2fe1b4ab700aa92ec75b35cd952e1ba52659",
+      "truth": {
+        "7": "ค"
+      },
+      "questions": [
+        {
+          "id": 7,
+          "questionNumber": 7,
+          "questionText": "การจำแนกสารในข้อใดถูกต้อง",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        }
+      ],
+      "sha256": "f959fe5316b0b07cb8b6d2955262823200a71e103852c786b3b29f4e509da678"
+    },
+    {
+      "caseId": "q8",
+      "page": 2,
+      "file": "evidence/t058-roi/q08.png",
+      "sourceFile": "evidence/pdf-review/page-2.png",
+      "sourceBox": [
+        125,
+        439,
+        850,
+        909
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "03a5c1497f151f1ccb23e3ec7b2d2fe1b4ab700aa92ec75b35cd952e1ba52659",
+      "truth": {
+        "8": "ค"
+      },
+      "questions": [
+        {
+          "id": 8,
+          "questionNumber": 8,
+          "questionText": "จากแผนภาพการจำแนกสารต่อไปนี้ ข้อใดถูกต้อง",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        }
+      ],
+      "sha256": "79087fcf056a342afe96be780467143f8fa97b00ce0c57cd0e4921282867491f"
+    },
+    {
+      "caseId": "q9",
+      "page": 2,
+      "file": "evidence/t058-roi/q09.png",
+      "sourceFile": "evidence/pdf-review/page-2.png",
+      "sourceBox": [
+        125,
+        916,
+        900,
+        1070
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "03a5c1497f151f1ccb23e3ec7b2d2fe1b4ab700aa92ec75b35cd952e1ba52659",
+      "truth": {
+        "9": "ข"
+      },
+      "questions": [
+        {
+          "id": 9,
+          "questionNumber": 9,
+          "questionText": "สารในข้อใดที่ไม่น่าจะแยกออกจากกันได้",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        }
+      ],
+      "sha256": "8be6815b67a03308275035e6bdeb3328ab4073a9e32f1f48445d4d39127e44e9"
+    },
+    {
+      "caseId": "q10",
+      "page": 2,
+      "file": "evidence/t058-roi/q10.png",
+      "sourceFile": "evidence/pdf-review/page-2.png",
+      "sourceBox": [
+        120,
+        1073,
+        930,
+        1310
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "03a5c1497f151f1ccb23e3ec7b2d2fe1b4ab700aa92ec75b35cd952e1ba52659",
+      "truth": {
+        "10": "ข"
+      },
+      "questions": [
+        {
+          "id": 10,
+          "questionNumber": 10,
+          "questionText": "จากเกณฑ์การจัดจำแนกสาร ข้อใดถูกต้อง",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        }
+      ],
+      "sha256": "81ee9b7f814bc4f59d5cf7fb08e23897c09f75625737e0afeac76e89b41f9d7d"
+    },
+    {
+      "caseId": "q11",
+      "page": 3,
+      "file": "evidence/t058-roi/q11.png",
+      "sourceFile": "evidence/pdf-review/page-3.png",
+      "sourceBox": [
+        90,
+        182,
+        930,
+        278
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "137500fe07c52b11d2c9c63538a43ce6f22a6f5e9f4694e56160a337a10d034b",
+      "truth": {
+        "11": "ง"
+      },
+      "questions": [
+        {
+          "id": 11,
+          "questionNumber": 11,
+          "questionText": "วิธีการผ่านไอน้ำที่มีอุณหภูมิสูงไปบนส่วนของพืชที่ต้องการสกัดกลิ่นหอมให้ติดมากับไอน้ำ เรียกว่าอะไร",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        }
+      ],
+      "sha256": "cd5616462b0c80142b6f5f9ba559c9712f844c5d568801de5f238fb2352c9844"
+    },
+    {
+      "caseId": "q12",
+      "page": 3,
+      "file": "evidence/t058-roi/q12.png",
+      "sourceFile": "evidence/pdf-review/page-3.png",
+      "sourceBox": [
+        90,
+        282,
+        930,
+        340
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "137500fe07c52b11d2c9c63538a43ce6f22a6f5e9f4694e56160a337a10d034b",
+      "truth": {
+        "12": "ง"
+      },
+      "questions": [
+        {
+          "id": 12,
+          "questionNumber": 12,
+          "questionText": "การแยกสารทำได้โดยวิธีใด",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        }
+      ],
+      "sha256": "7183f0388a08353f3c55003408e153709c7394475c2037efaf94e66f53b504c3"
+    },
+    {
+      "caseId": "q13",
+      "page": 3,
+      "file": "evidence/t058-roi/q13.png",
+      "sourceFile": "evidence/pdf-review/page-3.png",
+      "sourceBox": [
+        50,
+        342,
+        930,
+        400
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "137500fe07c52b11d2c9c63538a43ce6f22a6f5e9f4694e56160a337a10d034b",
+      "truth": {
+        "13": null
+      },
+      "questions": [
+        {
+          "id": 13,
+          "questionNumber": 13,
+          "questionText": "แดงทำผงถ่านตกลงในข้าวสารที่บ้าน จะมีวิธีแยกถ่านออกจากข้าวสารโดยวิธีใด",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        }
+      ],
+      "sha256": "c3a614238d3885f4bf0460efe4382d14a91bf124ee2091e9979e716e887af5a4"
+    },
+    {
+      "caseId": "q14",
+      "page": 3,
+      "file": "evidence/t058-roi/q14.png",
+      "sourceFile": "evidence/pdf-review/page-3.png",
+      "sourceBox": [
+        90,
+        405,
+        930,
+        497
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "137500fe07c52b11d2c9c63538a43ce6f22a6f5e9f4694e56160a337a10d034b",
+      "truth": {
+        "14": "ก"
+      },
+      "questions": [
+        {
+          "id": 14,
+          "questionNumber": 14,
+          "questionText": "ในการกลั่น สารที่มีคุณสมบัติในข้อใดจะระเหยเป็นไอออกมาก่อน",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        }
+      ],
+      "sha256": "ed10f413546ded8ec420ddf478bb5d32e82e8e0916a58fc5667d8558a112a319"
+    },
+    {
+      "caseId": "q15",
+      "page": 3,
+      "file": "evidence/t058-roi/q15.png",
+      "sourceFile": "evidence/pdf-review/page-3.png",
+      "sourceBox": [
+        90,
+        504,
+        930,
+        593
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "137500fe07c52b11d2c9c63538a43ce6f22a6f5e9f4694e56160a337a10d034b",
+      "truth": {
+        "15": "ข"
+      },
+      "questions": [
+        {
+          "id": 15,
+          "questionNumber": 15,
+          "questionText": "สารในคู่ใดแยกจากกันได้ด้วยการกลั่นลำดับส่วน",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        }
+      ],
+      "sha256": "d0341f9b424fcc847f6bdda985adb51884c36ecfc39baaea0deb1bb41255820c"
+    },
+    {
+      "caseId": "q16",
+      "page": 3,
+      "file": "evidence/t058-roi/q16.png",
+      "sourceFile": "evidence/pdf-review/page-3.png",
+      "sourceBox": [
+        90,
+        597,
+        930,
+        894
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "137500fe07c52b11d2c9c63538a43ce6f22a6f5e9f4694e56160a337a10d034b",
+      "truth": {
+        "16": "ก"
+      },
+      "questions": [
+        {
+          "id": 16,
+          "questionNumber": 16,
+          "questionText": "จากตารางสมบัติของสาร ดังนี้  สาร A: จุดเดือด 938 °C; จุดหลอมเหลว 98 °C; ไม่ละลายน้ำ สาร B: จุดเดือด 2040 °C; จุดหลอมเหลว 672 °C; ละลายน้ำ สาร C: จุดเดือด 361 °C; จุดหลอมเหลว 7 °C; ละลายน้ำ ถ้าต้องการแยกของผสมระหว่างสารทั้ง 3 ชนิด ซึ่งไม่ละลายซึ่งกันและกัน ควรทำอย่างไรตามลำดับ",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        }
+      ],
+      "sha256": "005f3ea31c948f6b0f7077737f38c88bf0418216a24ef78558bbc11de3359ca4"
+    },
+    {
+      "caseId": "q17",
+      "page": 3,
+      "file": "evidence/t058-roi/q17.png",
+      "sourceFile": "evidence/pdf-review/page-3.png",
+      "sourceBox": [
+        90,
+        896,
+        930,
+        987
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "137500fe07c52b11d2c9c63538a43ce6f22a6f5e9f4694e56160a337a10d034b",
+      "truth": {
+        "17": "ข"
+      },
+      "questions": [
+        {
+          "id": 17,
+          "questionNumber": 17,
+          "questionText": "วิธีการแยกสารตามข้อใดต้องใช้การระเหิด",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        }
+      ],
+      "sha256": "5980c86894d87915d475899dd726048619fa0f29489963411db87cc96ce0c210"
+    },
+    {
+      "caseId": "q18",
+      "page": 3,
+      "file": "evidence/t058-roi/q18.png",
+      "sourceFile": "evidence/pdf-review/page-3.png",
+      "sourceBox": [
+        90,
+        990,
+        930,
+        1049
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "137500fe07c52b11d2c9c63538a43ce6f22a6f5e9f4694e56160a337a10d034b",
+      "truth": {
+        "18": "ง"
+      },
+      "questions": [
+        {
+          "id": 18,
+          "questionNumber": 18,
+          "questionText": "ผลิตภัณฑ์ปิโตรเลียมชนิดใดไม่ได้มาจากการกลั่นน้ำมันปิโตรเลียมโดยตรง",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        }
+      ],
+      "sha256": "699016e1c500200b985c043858189c10616bb179936508ec5126feedd55d96c4"
+    },
+    {
+      "caseId": "q19",
+      "page": 3,
+      "file": "evidence/t058-roi/q19.png",
+      "sourceFile": "evidence/pdf-review/page-3.png",
+      "sourceBox": [
+        90,
+        1053,
+        930,
+        1145
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "137500fe07c52b11d2c9c63538a43ce6f22a6f5e9f4694e56160a337a10d034b",
+      "truth": {
+        "19": "ค"
+      },
+      "questions": [
+        {
+          "id": 19,
+          "questionNumber": 19,
+          "questionText": "สารที่ต้องนำมาแยกโดยวิธีการกรองควรมีสมบัติอย่างไร",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        }
+      ],
+      "sha256": "d8853e2faf2e3d5c642204f30b08e2fcb4eec59d26d7703bdf2ad47b223bb534"
+    },
+    {
+      "caseId": "q20",
+      "page": 3,
+      "file": "evidence/t058-roi/q20.png",
+      "sourceFile": "evidence/pdf-review/page-3.png",
+      "sourceBox": [
+        90,
+        1147,
+        930,
+        1310
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "137500fe07c52b11d2c9c63538a43ce6f22a6f5e9f4694e56160a337a10d034b",
+      "truth": {
+        "20": "ก"
+      },
+      "questions": [
+        {
+          "id": 20,
+          "questionNumber": 20,
+          "questionText": "จากการทดลองแยกสีเขียวชนิดหนึ่งด้วยวิธีโครมาโทกราฟีได้ผลดังรูป ข้อใดเรียงลำดับความสามารถในการละลายจากน้อยไปมากได้ถูกต้อง",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        }
+      ],
+      "sha256": "a2a483279e23df18b91a3d35589b46ce849436e9a812b713c2ea25efcb95ce43"
+    }
+  ],
+  "prompt": "Read EXISTING handwritten answer marks from this exam image. The owner confirmed these marks are a teacher-rechecked answer key for this fixture. Do not solve questions. A unique red circle or red cross over a choice letter denotes the existing answer. Ignore unrelated red writing (such as Free), logos, underline and question numbers. If no selection or multiple marks, omit that question. Match only the provided ids. Return {answers:[{id,key,confidence,evidence,bbox}]}. key is the Thai choice letter. confidence0..1, evidence short English description of actual mark, bbox[top,left,bottom,right] normalized0..1000. Never guess an answer. No explanations outside JSON."
+}

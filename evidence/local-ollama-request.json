@@ -1,0 +1,21 @@
+{
+  "max_tokens": 16,
+  "model": "scb10x/typhoon-ocr1.5-3b",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "text": "ตอบคำว่า OK เท่านั้น",
+          "type": "text"
+        },
+        {
+          "image_url": {
+            "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+          },
+          "type": "image_url"
+        }
+      ]
+    }
+  ]
+}

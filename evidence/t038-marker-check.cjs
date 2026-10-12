@@ -1,0 +1,1 @@
+const fs=require('fs'); const body=JSON.parse(fs.readFileSync('evidence/t038-provider-real-page1.json','utf8')).body; const t=body.choices[0].message.content.replace(/\\([\\`*_[\]{}()#+.!-])/g,'$1'); console.log((t.match(/^\s*(?:\*\*)?\d+[.)](?:\*\*)?/gm)||[]).length)

@@ -1,0 +1,28 @@
+const fs=require('node:fs');
+const {comparable}=require('./local-vision-metrics.cjs');
+const root=process.env.BENCH_INPUT_MODE==='roi'?'evidence/t058-roi':'evidence/t058-local';
+const models=['qwen3-vl:2b','qwen3-vl:4b'];
+const reports=models.map(model=>{const file=root+'/'+model.replace(':','-')+'.json';return fs.existsSync(file)?{model,data:JSON.parse(fs.readFileSync(file,'utf8'))}:{model};});
+const attempted=data=>data?.fixtures?.length>0 && data?.runs?.length===data.fixtures.length+1 && data.runs.every((run,i)=>{const f=data.fixtures[i%data.fixtures.length];return run.model===data.modelIdentity?.name && run.page===f.page && run.caseId===f.caseId && run.sourceSha256===f.sha256 && JSON.stringify(run.truth)===JSON.stringify(f.truth) && Number.isFinite(run.wallSeconds);});
+const pct=n=>Number.isFinite(n)?(n*100).toFixed(1)+'%':'—';
+const sec=n=>Number.isFinite(n)?n.toFixed(1)+' วินาที':'—';
+const gib=n=>Number.isFinite(n)&&n>0?(n/2**30).toFixed(2)+' GiB':'ยังไม่สังเกตได้';
+const aggregate=runs=>runs.reduce((sum,run)=>{for(const key of ['correct','wrong','missing','falsePositive','marked'])sum[key]+=(run.acceptedScore?.[key]||0);return sum;},{correct:0,wrong:0,missing:0,falsePositive:0,marked:0});
+const manifest=reports.find(report=>report.data)?.data?.fixtures||[];
+const uniqueQuestions=manifest.flatMap(fixture=>Object.keys(fixture.truth)).length;
+const markedQuestions=manifest.flatMap(fixture=>Object.values(fixture.truth)).filter(key=>key!==null).length;
+let lines=['# เปรียบเทียบ Vision บนเครื่อง: T-058','','เครื่องทดสอบ: Intel i5-1235U / RAM15.7GB / Intel Iris Xe','',
+`ขอบเขต: อ่านเฉลยครูที่ผู้ใช้ยืนยันว่าตรวจซ้ำแล้วจากภาพ ไม่ให้โมเดลแก้โจทย์เอง และไม่ใช่คะแนน OCR ทั้งเอกสาร ชุดทดลอง${uniqueQuestions}ข้อจาก${new Set(manifest.map(f=>f.page)).size}หน้า:${markedQuestions}ข้อมีรอยเฉลยและ${uniqueQuestions-markedQuestions}ข้อไม่มีรอยเลือกตัวเลือกเดียว คะแนนหลักนับแต่ละกรณีเพียงครั้งเดียว; รอบสุดท้ายอ่านกรณีแรกซ้ำเพื่อตรวจเวลาเมื่อโมเดลโหลดอยู่และความสม่ำเสมอ ไม่เพิ่มจำนวนข้ออิสระ`,'',
+comparable(reports)?'สถานะ: ผลทั้งสองรุ่นครบและใช้ prompt/settings/runtime/source hashes เดียวกัน เปรียบเทียบในขอบเขต pilot ได้':'สถานะ: ยังทดสอบไม่ครบ หรือเงื่อนไขสองรุ่นต่างกัน งดจัดอันดับจนตรวจครบ','',
+`| รุ่น | อ่านถูกหลังตัวกรอง /${markedQuestions} | อ่านผิด | เดาข้อไม่มีรอย/เลขข้อเกิน | เว้นไว้/ผลใช้ไม่ได้ | เวลาเริ่มโหลดกรณีแรก | เวลาโมเดลโหลดอยู่ กรณีแรก | ขนาดโมเดลในหน่วยความจำที่สังเกต |`,'|---|---:|---:|---:|---:|---|---|---|'];
+for(const {model,data}of reports){if(!attempted(data)){lines.push(`| ${model} | ยังไม่มีผลครบ / มีข้อผิดพลาด | — | — | — | — | — | — |`);continue;}const runs=data.runs;const first=runs.slice(0,data.fixtures.length);const sum=aggregate(first);lines.push(`| ${model} | ${sum.correct}/${sum.marked} | ${sum.wrong} | ${sum.falsePositive} | ${sum.missing} | ${sec(runs[0]?.wallSeconds)} | ${sec(runs.at(-1)?.wallSeconds)} | ${gib(Math.max(...runs.map(r=>r.peakModelResidentBytes||0)))} |`);lines.push();}
+lines.push('','จำนวนรอบที่ใช้ไม่ได้เพราะ JSON/transport/token limit: '+reports.map(({model,data})=>model+' '+(data?.runs?.filter(r=>r.error||r.parseError||r.doneReason==='length').length??'ยังไม่เริ่ม')).join('; '),'คะแนนตารางหลักรวมกรณีผลใช้ไม่ได้เป็นเว้นไว้ด้วย denominator เดิม ไม่ตัดกรณีล้มเหลวออก และไม่จัดอันดับความพร้อม production','', '## รายละเอียดแต่ละรอบ','','| รุ่น/รอบ | หน้า | ก่อนตัวกรอง: ถูก/ผิด/เว้น/เดาเพิ่ม | หลังตัวกรอง: ถูก/ผิด/เว้น/เดาเพิ่ม | Precision / Recall หลังตัวกรอง | เวลา | ช่องข้อมูล | ผลจบ |','|---|---:|---|---|---|---|---|---|');
+for(const{model,data}of reports)for(const run of data?.runs||[]){const a=run.rawScore,b=run.acceptedScore;const count=s=>s?`${s.correct}/${s.wrong}/${s.missing}/${s.falsePositive} (ผิดรูปแบบ ${s.invalid})`:'—';lines.push(`| ${model} รอบ${run.run} | ${run.page} | ${count(a)} | ${count(b)} | ${pct(b?.precision)} / ${pct(b?.recall)} | ${sec(run.wallSeconds)} | ${run.outputChannel||"—"} | ${run.error||run.parseError||run.doneReason||'—'} |`);}
+lines.push('','## ข้อจำกัดและเกณฑ์ตัดสินใจ','',
+'- Runtime Ollama0.34.2 ส่ง schema JSON ใน thinking แม้ thinkfalse; ผล ROI นี้ใช้ strict JSON จากช่องดังกล่าวเพื่อวินิจฉัยเท่านั้น ไม่ถือเป็นคำตอบ content ที่พร้อมใช้ production และไม่เปลี่ยน provider หลัก',
+'- ค่าความมั่นใจเป็นค่าที่โมเดลบอกเอง ต้องดูคะแนนเทียบภาพ ไม่ถือว่า confidence0.95หมายถึงแม่น95%','- หน่วยความจำวัดจาก Ollama /api/ps เป็นขนาด model residency และ VRAM ที่สังเกต ไม่ใช่ peak RAM ของทั้งระบบหรือทั้งโปรเซส','- ตรวจความถูกต้องของตัวเลือกและเงื่อนไข bbox แต่ยังไม่ได้ให้คะแนนความตรงของกรอบพิกัดกับรอยจริง; ต้องตรวจภาพก่อนใช้กรอบเป็นหลักฐานอัตโนมัติ','- การทดสอบบนไม่กี่หน้าและ1ข้อไม่มีรอยเลือกยังน้อย ต้องเพิ่มไฟล์ที่ไม่เคยเห็นและกรณีรอยแก้/หลายรอย/ภาพจาง ก่อนใช้โดยไม่ให้คนตรวจ','- ถ้าอ่านผิดหรือเดาข้อที่ไม่มีรอยแม้เพียงข้อเดียว ยังไม่แนะนำให้ใช้เฉลยอัตโนมัติโดยไม่ตรวจ','- หากทั้งสองรุ่นอ่านถูกใกล้กันและไม่เดา เลือกรุ่นเร็วและใช้หน่วยความจำน้อยกว่าเป็นตัวทดลอง; หาก4Bลดข้อผิด/เว้นได้จริง ให้ชั่งกับเวลาที่เพิ่มขึ้น','- ระบบหลักยังใช้ Gemini; ผลทดลองนี้ไม่ได้เปลี่ยน provider หรือรับรองGoogle Docs export','',
+'## เปรียบเทียบกับบริการเดิม','',
+'Geminiเคยอ่านได้21คำตอบจากไฟล์25ข้อ แต่ติดเพดานโควตา5คำขอ/นาทีและ20คำขอ/วันตามภาพผู้ใช้ การทดสอบเดิมใช้promptและขอบเขตต่างกัน จึงไม่ใช้ตัวเลขนั้นจัดอันดับความแม่นยำแข่งกับผล local โดยตรง Localตัดโควตาบริการภายนอกออก แต่ยังจำกัดด้วยCPU/RAMและเวลาคิว','',
+'ผลดิบและตัวตนโมเดลอยู่ในไฟล์ JSON ข้างรายงาน เก็บsource hash,prompt,settings,load/prompt/generation timeและคำตอบดิบครบ รายงานนี้สร้างจากผลจริงเท่านั้น ช่องไม่มีผลคือยังไม่ได้วัด');
+fs.writeFileSync(root+'/comparison.md',lines.join('\n')+'\n');console.log('Wrote '+root+'/comparison.md');
+

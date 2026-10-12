@@ -1,0 +1,14 @@
+{
+  "benchmarkStatus": "not-run",
+  "date": "2026-10-12",
+  "cpu": "Intel Core i5-1235U",
+  "ramGB": 15.7,
+  "localAnswerVisionInstalled": false,
+  "recommendation": "Compare qwen3-vl:2b and4b on real source annotations before switching; one page/model at a time",
+  "installedModels": [
+    "scb10x/typhoon-ocr1.5-3b:latest",
+    "qwen2.5-coder:1.5b",
+    "llama3.2:latest"
+  ],
+  "gpu": "Intel Iris Xe"
+}

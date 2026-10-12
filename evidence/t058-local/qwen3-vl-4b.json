@@ -1,0 +1,321 @@
+{
+  "date": "2026-10-12T01:26:46.838Z",
+  "runtime": {
+    "version": "0.34.2"
+  },
+  "modelIdentity": {
+    "name": "qwen3-vl:4b",
+    "model": "qwen3-vl:4b",
+    "modified_at": "2026-10-12T08:16:20.3896416+07:00",
+    "size": 3295636135,
+    "digest": "1343d82ebee38e26a4dd6b0180b915eb91550184e67c505dea97509571c8f683",
+    "details": {
+      "parent_model": "",
+      "format": "gguf",
+      "family": "qwen3vl",
+      "families": [
+        "qwen3vl"
+      ],
+      "parameter_size": "4.4B",
+      "quantization_level": "Q4_K_M",
+      "context_length": 262144,
+      "embedding_length": 2560
+    },
+    "capabilities": [
+      "completion",
+      "vision",
+      "tools",
+      "thinking"
+    ]
+  },
+  "settings": {
+    "num_ctx": 4096,
+    "num_predict": 1024,
+    "num_thread": 6,
+    "temperature": 0,
+    "seed": 7,
+    "think": false
+  },
+  "fixtures": [
+    {
+      "page": 1,
+      "file": "evidence/t038-page1-1.png",
+      "truth": {
+        "1": "ก",
+        "2": "ก",
+        "3": "ง",
+        "4": "ค",
+        "5": "ง",
+        "6": "ง"
+      },
+      "kind": "red crosses, nested numeric list, table choices",
+      "questions": [
+        {
+          "id": 1,
+          "questionNumber": 1,
+          "questionText": "สารในคู่ใดที่ดูลักษณะภายนอกคล้ายกันมากจึงต้องระเหยจนแห้งใช้บอกความแตกต่างของสารคู่นี้",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        },
+        {
+          "id": 2,
+          "questionNumber": 2,
+          "questionText": "ผลึกเกิดขึ้นได้จากสารในข้อใด",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        },
+        {
+          "id": 3,
+          "questionNumber": 3,
+          "questionText": "ถ้าต้องการแยกเอาเกลือออกจากน้ำทะเลควรใช้วิธีใด\n1. การกรอง\n2. การกลั่น\n3. การระเหิด\n4. การสกัดด้วยไอน้ำ\n5. การใช้แม่เหล็กดูด\n6. การระเหยจนแห้ง",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        },
+        {
+          "id": 4,
+          "questionNumber": 4,
+          "questionText": "ความสัมพันธ์ใดไม่ถูกต้อง",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        },
+        {
+          "id": 5,
+          "questionNumber": 5,
+          "questionText": "การทำนาเกลือ มีขั้นตอนดังนี้\n1. ระบายน้ำจากวังขังน้ำเข้านาตาก\n2. ระบายน้ำจากนาตากเข้านาเชื้อ\n3. ระบายน้ำจากนาเชื้อเข้านาปลง\nขั้นตอนใดใช้หลักการระเหยและการตกผลึก",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        },
+        {
+          "id": 6,
+          "questionNumber": 6,
+          "questionText": "นำของเหลวชนิดหนึ่งไประเหยแห้ง พบว่าไม่มีสารใดหลงเหลืออยู่ในภาชนะ จากข้อมูล ข้อสรุปเกี่ยวกับของเหลวชนิดนี้คือข้อใด",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        }
+      ],
+      "sha256": "819e44cdb9a17405beaa77ab3b8ca1888fe835cf11a26d259db232434b9f80fe"
+    },
+    {
+      "page": 2,
+      "file": "evidence/pdf-review/page-2.png",
+      "truth": {
+        "7": "ค",
+        "8": "ค",
+        "9": "ข",
+        "10": "ข"
+      },
+      "kind": "crosses in two multi-column tables, classification diagram and a circle",
+      "questions": [
+        {
+          "id": 7,
+          "questionNumber": 7,
+          "questionText": "การจำแนกสารในข้อใดถูกต้อง",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        },
+        {
+          "id": 8,
+          "questionNumber": 8,
+          "questionText": "จากแผนภาพการจำแนกสารต่อไปนี้ ข้อใดถูกต้อง",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        },
+        {
+          "id": 9,
+          "questionNumber": 9,
+          "questionText": "สารในข้อใดที่ไม่น่าจะแยกออกจากกันได้",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        },
+        {
+          "id": 10,
+          "questionNumber": 10,
+          "questionText": "จากเกณฑ์การจัดจำแนกสาร ข้อใดถูกต้อง",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        }
+      ],
+      "sha256": "03a5c1497f151f1ccb23e3ec7b2d2fe1b4ab700aa92ec75b35cd952e1ba52659"
+    },
+    {
+      "page": 3,
+      "file": "evidence/pdf-review/page-3.png",
+      "truth": {
+        "11": "ง",
+        "12": "ง",
+        "13": null,
+        "14": "ก",
+        "15": "ข",
+        "16": "ก",
+        "17": "ข",
+        "18": "ง",
+        "19": "ค",
+        "20": "ก"
+      },
+      "kind": "circles, unmarked question13 with unrelated handwritten Free",
+      "questions": [
+        {
+          "id": 11,
+          "questionNumber": 11,
+          "questionText": "วิธีการผ่านไอน้ำที่มีอุณหภูมิสูงไปบนส่วนของพืชที่ต้องการสกัดกลิ่นหอมให้ติดมากับไอน้ำ เรียกว่าอะไร",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        },
+        {
+          "id": 12,
+          "questionNumber": 12,
+          "questionText": "การแยกสารทำได้โดยวิธีใด",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        },
+        {
+          "id": 13,
+          "questionNumber": 13,
+          "questionText": "แดงทำผงถ่านตกลงในข้าวสารที่บ้าน จะมีวิธีแยกถ่านออกจากข้าวสารโดยวิธีใด",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        },
+        {
+          "id": 14,
+          "questionNumber": 14,
+          "questionText": "ในการกลั่น สารที่มีคุณสมบัติในข้อใดจะระเหยเป็นไอออกมาก่อน",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        },
+        {
+          "id": 15,
+          "questionNumber": 15,
+          "questionText": "สารในคู่ใดแยกจากกันได้ด้วยการกลั่นลำดับส่วน",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        },
+        {
+          "id": 16,
+          "questionNumber": 16,
+          "questionText": "จากตารางสมบัติของสาร ดังนี้  สาร A: จุดเดือด 938 °C; จุดหลอมเหลว 98 °C; ไม่ละลายน้ำ สาร B: จุดเดือด 2040 °C; จุดหลอมเหลว 672 °C; ละลายน้ำ สาร C: จุดเดือด 361 °C; จุดหลอมเหลว 7 °C; ละลายน้ำ ถ้าต้องการแยกของผสมระหว่างสารทั้ง 3 ชนิด ซึ่งไม่ละลายซึ่งกันและกัน ควรทำอย่างไรตามลำดับ",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        },
+        {
+          "id": 17,
+          "questionNumber": 17,
+          "questionText": "วิธีการแยกสารตามข้อใดต้องใช้การระเหิด",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        },
+        {
+          "id": 18,
+          "questionNumber": 18,
+          "questionText": "ผลิตภัณฑ์ปิโตรเลียมชนิดใดไม่ได้มาจากการกลั่นน้ำมันปิโตรเลียมโดยตรง",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        },
+        {
+          "id": 19,
+          "questionNumber": 19,
+          "questionText": "สารที่ต้องนำมาแยกโดยวิธีการกรองควรมีสมบัติอย่างไร",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        },
+        {
+          "id": 20,
+          "questionNumber": 20,
+          "questionText": "จากการทดลองแยกสีเขียวชนิดหนึ่งด้วยวิธีโครมาโทกราฟีได้ผลดังรูป ข้อใดเรียงลำดับความสามารถในการละลายจากน้อยไปมากได้ถูกต้อง",
+          "keys": [
+            "ก",
+            "ข",
+            "ค",
+            "ง"
+          ]
+        }
+      ],
+      "sha256": "137500fe07c52b11d2c9c63538a43ce6f22a6f5e9f4694e56160a337a10d034b"
+    }
+  ],
+  "prompt": "Read EXISTING handwritten answer marks from this exam image. The owner confirmed these marks are a teacher-rechecked answer key for this fixture. Do not solve questions. A unique red circle or red cross over a choice letter denotes the existing answer. Ignore unrelated red writing (such as Free), logos, underline and question numbers. If no selection or multiple marks, omit that question. Match only the provided ids. Return {answers:[{id,key,confidence,evidence,bbox}]}. key is the Thai choice letter. confidence0..1, evidence short English description of actual mark, bbox[top,left,bottom,right] normalized0..1000. Never guess an answer. No explanations outside JSON.",
+  "runs": [
+    {
+      "model": "qwen3-vl:4b",
+      "run": 1,
+      "page": 1,
+      "error": "fetch failed",
+      "wallSeconds": 308.249
+    }
+  ]
+}

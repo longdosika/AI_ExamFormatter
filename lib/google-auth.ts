@@ -1,0 +1,59 @@
+import { createCipheriv, createDecipheriv, createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import { OAuth2Client } from "google-auth-library";
+
+export const SESSION_COOKIE = "quizflow_google";
+export const STATE_COOKIE = "quizflow_google_state";
+export const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
+export interface GoogleSession { token: string; expires: number }
+export function googleConfig() {
+  const appUrl = process.env.APP_URL || "http://localhost:3000";
+  const url = new URL(appUrl);
+  if (url.origin !== appUrl || (url.protocol !== "https:" && !["localhost", "127.0.0.1"].includes(url.hostname))) throw new Error("APP_URL ต้องเป็น origin HTTPS หรือ localhost");
+  const clientId = process.env.GOOGLE_CLIENT_ID || "";
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET || "";
+  const sessionSecret = process.env.GOOGLE_SESSION_SECRET || "";
+  const apiKey = process.env.GOOGLE_PICKER_API_KEY || "";
+  const projectNumber = process.env.GOOGLE_CLOUD_PROJECT_NUMBER || "";
+  return { appUrl, clientId, clientSecret, sessionSecret, apiKey, projectNumber, ready: Boolean(clientId && clientSecret && sessionSecret.length >= 32 && apiKey && /^\d+$/.test(projectNumber)), secure: url.protocol === "https:" };
+}
+function key() {
+  const secret = googleConfig().sessionSecret;
+  if (secret.length < 32) throw new Error("ยังไม่ได้ตั้งค่าการเชื่อม Google");
+  return createHash("sha256").update(secret).digest();
+}
+export function sealCookie(value: object, purpose: string): string {
+  const iv = randomBytes(12), cipher = createCipheriv("aes-256-gcm", key(), iv);
+  cipher.setAAD(Buffer.from(purpose));
+  const bytes = Buffer.concat([cipher.update(JSON.stringify(value), "utf8"), cipher.final()]);
+  return Buffer.concat([iv, cipher.getAuthTag(), bytes]).toString("base64url");
+}
+export function openCookie(value: string | undefined, purpose: string): unknown {
+  if (!value || value.length > 4000) return null;
+  try {
+    const bytes = Buffer.from(value, "base64url");
+    const decipher = createDecipheriv("aes-256-gcm", key(), bytes.subarray(0, 12));
+    decipher.setAAD(Buffer.from(purpose)); decipher.setAuthTag(bytes.subarray(12, 28));
+    return JSON.parse(Buffer.concat([decipher.update(bytes.subarray(28)), decipher.final()]).toString("utf8"));
+  } catch { return null; }
+}
+export function getGoogleSession(value: string | undefined): GoogleSession | null {
+  const session = openCookie(value, SESSION_COOKIE) as GoogleSession | null;
+  return session && typeof session.token === "string" && session.token.length > 0 && Number.isFinite(session.expires) && session.expires > Date.now() + 30000 ? session : null;
+}
+export function cookieOptions(maxAge: number) { return { httpOnly: true, sameSite: "lax" as const, secure: googleConfig().secure, path: "/", maxAge }; }
+export function assertSameOrigin(request: Request): void {
+  if (request.headers.get("origin") !== googleConfig().appUrl) throw new Error("คำขอนี้ไม่ได้มาจากเว็บแอป");
+}
+export function oauthClient() {
+  const config = googleConfig();
+  if (!config.ready) throw new Error("ยังไม่ได้ตั้งค่าการเชื่อม Google");
+  return new OAuth2Client(config.clientId, config.clientSecret, `${config.appUrl}/api/google/callback`);
+}
+export function canonicalAuthRedirect(requestUrl: string): string | null {
+  const appUrl = googleConfig().appUrl;
+  return new URL(requestUrl).origin === appUrl ? null : `${appUrl}/api/google/auth`;
+}
+export function equalState(left: string, right: string) {
+  const a = Buffer.from(left), b = Buffer.from(right);
+  return a.length === b.length && timingSafeEqual(a, b);
+}

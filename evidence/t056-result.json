@@ -1,0 +1,9 @@
+{
+  "cropCaption": true,
+  "toolbarCaption": true,
+  "domPasteCaption": true,
+  "exportSnapshotCaption": true,
+  "exportSnapshotImages": true,
+  "sourceUnchanged": true,
+  "provider": "mock-UI-only; no Gemini accuracy claim"
+}

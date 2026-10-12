@@ -1,0 +1,16 @@
+{
+  "model": "gemini-3.8-flash",
+  "status": 200,
+  "usage": {
+    "promptTokenCount": 4,
+    "totalTokenCount": 32,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 4
+      }
+    ],
+    "thoughtsTokenCount": 28,
+    "serviceTier": "standard"
+  }
+}

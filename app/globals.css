@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #f7f6f2;
+  --foreground: #28332d;
+  --font-sarabun: 'Sarabun', sans-serif;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-sarabun), 'Sarabun', sans-serif;
+}
+
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible,
+textarea:focus-visible, [contenteditable="true"]:focus-visible {
+  outline: 3px solid #b3996a;
+  outline-offset: 3px;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+@keyframes ocr-scan {
+  from { transform: translateY(0); }
+  to { transform: translateY(76px); }
+}
+.ocr-scan-line { animation: ocr-scan 1.8s ease-in-out infinite alternate; }
+@media (prefers-reduced-motion: reduce) {
+  .ocr-scan-line { animation: none; transform: translateY(36px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

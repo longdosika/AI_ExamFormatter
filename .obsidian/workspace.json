@@ -1,0 +1,234 @@
+{
+  "main": {
+    "id": "aae40aef4688dab6",
+    "type": "split",
+    "children": [
+      {
+        "id": "0f1f5b9d72883195",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "ff910ebf048ccc50",
+            "type": "leaf",
+            "state": {
+              "type": "empty",
+              "state": {},
+              "icon": "lucide-file",
+              "title": "New tab"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "6ae1220f70182b39",
+    "type": "split",
+    "children": [
+      {
+        "id": "db73a9444e20802d",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "1b071433f1217b84",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "3fc10f2172e732cf",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "week",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "f369f5bfafb5569b",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "right": {
+    "id": "329e7737d7075334",
+    "type": "split",
+    "children": [
+      {
+        "id": "93e4a791ba0a162c",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "d821c98f914025c0",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks"
+            }
+          },
+          {
+            "id": "04d004c6f1177bc3",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links"
+            }
+          },
+          {
+            "id": "bec825c7b62ef87d",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "0c2f530afc93c00f",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "22acc78f3e9dadd4",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "ff910ebf048ccc50",
+  "lastOpenFiles": [
+    "node_modules/js-yaml",
+    "node_modules/json-stable-stringify-without-jsonify",
+    "node_modules/json-schema-traverse",
+    "node_modules/json-bigint",
+    "node_modules/jiti",
+    "node_modules/json-buffer",
+    "node_modules/jackspeak",
+    "node_modules/js-tokens",
+    "node_modules/is-weakset",
+    "node_modules/is-weakref",
+    "node_modules/iterator.prototype",
+    "node_modules/next/README.md",
+    "node_modules/next/dist/compiled/@babel/runtime/README.md",
+    "node_modules/next/license.md",
+    "node_modules/lucide-react/README.md",
+    "node_modules/es-abstract/README.md",
+    "node_modules/es-abstract/CHANGELOG.md",
+    "node_modules/eslint/README.md",
+    "node_modules/eslint-plugin-react/README.md",
+    "node_modules/tailwindcss/README.md",
+    "node_modules/eslint-plugin-jsx-a11y/README.md",
+    "node_modules/eslint-plugin-jsx-a11y/CHANGELOG.md",
+    "node_modules/playwright-core/lib/vite/dashboard/assets/safari-na3_-uQk.svg",
+    "node_modules/playwright-core/README.md",
+    "node_modules/axobject-query/README.md",
+    "node_modules/es-iterator-helpers/README.md",
+    "node_modules/es-iterator-helpers/CHANGELOG.md",
+    "node_modules/next/dist/compiled/regenerator-runtime/README.md",
+    "node_modules/ajv/README.md",
+    "node_modules/playwright-core/lib/server/chromium/appIcon.png",
+    "node_modules/eslint-plugin-import/CHANGELOG.md",
+    "node_modules/@jridgewell/trace-mapping/README.md",
+    "node_modules/path-scurry/README.md",
+    "node_modules/path-scurry/LICENSE.md",
+    "node_modules/math-intrinsics/README.md",
+    "node_modules/@nodelib/fs.walk/README.md",
+    "node_modules/math-intrinsics/CHANGELOG.md",
+    "node_modules/@nodelib/fs.scandir/README.md",
+    "node_modules/playwright-core/lib/vite/traceViewer/playwright-logo.svg",
+    "node_modules/playwright-core/lib/vite/recorder/playwright-logo.svg",
+    "node_modules/playwright-core/lib/vite/dashboard/assets/firefox-nightly-Cp5nfeDT.svg",
+    "node_modules/playwright-core/lib/vite/dashboard/assets/firefox-beta-k3eOH_eK.svg",
+    "node_modules/playwright-core/lib/vite/dashboard/assets/firefox-1bWoP6pv.svg",
+    "node_modules/playwright-core/lib/tools/dashboard/appIcon.png",
+    "node_modules/pdfjs-dist/web/images/loading-icon.gif",
+    "node_modules/pdfjs-dist/web/images/annotation-pushpin.svg"
+  ]
+}

@@ -1,0 +1,11 @@
+const fs=require('node:fs');const assert=require('node:assert/strict');const ts=require('typescript');
+require.extensions['.ts']=(module,file)=>module._compile(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText,file);
+const {recordImport,readImportHistory}=require('../lib/import-history.ts');
+let raw=null;const storage={getItem:()=>raw,setItem:(_key,value)=>{raw=value;}};
+const entry={id:'one',fileName:'แบบทดสอบ.pdf',importedAt:'2026-10-11T00:00:00Z',fileBytes:1024};
+recordImport(storage,entry);assert.equal(readImportHistory(storage)[0].fileName,'แบบทดสอบ.pdf');
+for(let i=0;i<105;i++)recordImport(storage,{...entry,id:String(i)});
+assert.equal(readImportHistory(storage).length,100);assert.equal(readImportHistory(storage)[0].id,'104');
+raw='corrupt history';assert.throws(()=>recordImport(storage,entry));assert.equal(raw,'corrupt history');
+assert.throws(()=>recordImport({getItem:()=>null,setItem:()=>{throw new Error('quota');}},entry));
+console.log('Import filename history: persistence, ordering, retention, corrupt preservation and quota failure passed.');

@@ -1,0 +1,191 @@
+const fs = require('node:fs');
+const path = require('node:path');
+const assert = require('node:assert/strict');
+const ts = require('typescript');
+const Module = require('node:module');
+require.extensions['.ts'] = (module, filename) => {
+  module._compile(ts.transpileModule(fs.readFileSync(filename, 'utf8'), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true }
+  }).outputText, filename);
+};
+const { parseExamText, reconcileAnswerKey } = require('../lib/exam-parser.ts');
+const { normalizeOcrText } = require('../lib/ocr-service.ts');
+assert.equal(parseExamText(normalizeOcrText('## 1\\. escaped question\nก\\. first\nข\\. second')).length, 1);
+assert.deepEqual(parseExamText('unstructured source', [], 'การแยกสาร.docx'), []);
+const single = parseExamText('1. Actual source\nก. first\nข. second');
+assert.equal(single.length, 1);
+assert.equal(single[0].questionText, 'Actual source');
+assert.equal(single[0].reconciliationProvenance, 'unresolved');
+assert.equal(single[0].reconciledAnswerKey, undefined);
+assert.equal(single[0].explanationText, '');
+assert.ok(single[0].choices.every(choice => !choice.isCorrect && choice.shadingType === 'none'));
+const multi = parseExamText('1. first question\nก. *one\nข. two\nคำอธิบาย: ตอบ ข. evidence\n2. second question\nA. one\nB. two*\nเฉลย: B');
+assert.equal(multi.length, 2);
+assert.equal(multi[0].reconciledAnswerKey, 'ข');
+assert.equal(multi[0].choices[1].shadingType, 'source_provided');
+assert.equal(multi[1].reconciledAnswerKey, 'ข');
+const nested = parseExamText('1. first question\nก. yes*\nข. no\nคำอธิบาย: ตอบ ก.\n1. first reason\n2. second reason\n2. next question\nก. first\nข. second*');
+assert.equal(nested.length, 2);
+assert.equal(nested[0].explanationText, 'ตอบ ก. 1. first reason 2. second reason');
+assert.equal(nested[1].questionText, 'next question');
+const nestedNumeric = parseExamText('1. first question\nก. yes*\nข. no\nคำอธิบาย: why\n1. reason\n2. next question\n1. one\n2. two*\n3. three\n4. four');
+assert.equal(nestedNumeric.length, 2);
+assert.equal(nestedNumeric[0].explanationText, 'why 1. reason');
+assert.equal(nestedNumeric[1].choices.length, 4);
+assert.equal(parseExamText('1. image source\nก. first', [{id: 'image', dataUrl: 'data:image/png;base64,AA=='}])[0].imageStatus, 'DIRTY');
+const numeric = parseExamText('1. Numeric question\n1. one\n2. two*\n3. three\n4. four\n2. Next question\nก. first\nข. second');
+assert.equal(numeric.length, 2);
+assert.equal(numeric[0].choices.length, 4);
+assert.equal(numeric[0].reconciledAnswerKey, 'ข');
+const sets = parseExamText('ชุดที่ 1\n1. first\nก. yes*\nชุดที่ 2\n1. restarted\nก. yes*');
+assert.deepEqual(sets.map(item => item.questionNumber), [1, 1]);
+assert.deepEqual(sets.map(item => item.id), [1, 2]);
+const continuation = parseExamText('1. question\ncontinued\nก. choice\ncontinued choice\nข. other\nเฉลย: ค');
+assert.equal(continuation[0].questionText, 'question continued');
+assert.equal(continuation[0].choices[0].text, 'choice continued choice');
+assert.equal(continuation[0].reconciliationProvenance, 'unresolved');
+assert.equal(reconcileAnswerKey(null, 'answer absent').finalKey, undefined);
+assert.equal(reconcileAnswerKey(null, 'ตอบ กำหนด').finalKey, undefined);
+assert.equal(parseExamText('1. source\nก. a*b\nข. other')[0].choices[0].text, 'a*b');
+assert.equal(parseExamText('1. source\nก. a*\nข. b*')[0].reconciliationProvenance, 'unresolved');
+// T-027 Inline Choices (Horizontal / multi-choice per line)
+const inlineChoices = parseExamText('1. สารผสมในข้อใดมีส่วนประกอบเป็นของแข็งและของเหลว\nก. น้ำอบไทย น้ำเชื่อม ข. น้ำคลอง น้ำเกลือ\nค. น้ำกะทิ น้ำนม ง. น้ำส้มสายชู น้ำโซดา*');
+assert.equal(inlineChoices.length, 1);
+assert.equal(inlineChoices[0].choices.length, 4);
+assert.equal(inlineChoices[0].choices[0].key, 'ก');
+assert.equal(inlineChoices[0].choices[0].text, 'น้ำอบไทย น้ำเชื่อม');
+assert.equal(inlineChoices[0].choices[1].key, 'ข');
+assert.equal(inlineChoices[0].choices[1].text, 'น้ำคลอง น้ำเกลือ');
+assert.equal(inlineChoices[0].choices[2].key, 'ค');
+assert.equal(inlineChoices[0].choices[2].text, 'น้ำกะทิ น้ำนม');
+assert.equal(inlineChoices[0].choices[3].key, 'ง');
+assert.equal(inlineChoices[0].choices[3].text, 'น้ำส้มสายชู น้ำโซดา');
+assert.equal(inlineChoices[0].reconciledAnswerKey, 'ง');
+// T-027 Neutral Fallback (No fabricated chromatography questions)
+const { generateFallbackExamItems } = require('../lib/exam-fallback.ts');
+const fallbackItems = generateFallbackExamItems({ fileName: 'ชุดที่ 2 การแยกสาร.pdf', rawContent: '', extractedImages: [], fileSize: 100, fileType: 'application/pdf', extension: '.pdf', isClean: true, statusMessage: '' });
+assert.ok(fallbackItems.length >= 10);
+assert.ok(!fallbackItems[0].questionText.includes('โครมาโทกราฟี'));
+assert.ok(fallbackItems[0].questionText.includes('ข้อที่ 1'));
+assert.equal(fallbackItems[0].imageUrl, undefined);
+
+// T-029 Sub-enumerations in question stem (e.g. Question 3 with statements 1..6)
+const subStem = parseExamText('3. ถ้าต้องการแยกเอาเกลือออกจากน้ำทะเลควรใช้วิธีใด\n1. การกรอง 2. การตกผลึก 3. การระเหิด 4. การสกัดด้วยไอน้ำ\n5. การใช้แม่เหล็กดูด 6. การระเหยจนแห้ง\nก. หมายเลข 1 ข. หมายเลข 4 ค. หมายเลข 5 ง. หมายเลข 6');
+assert.equal(subStem.length, 1);
+assert.equal(subStem[0].questionNumber, 3);
+assert.ok(subStem[0].questionText.includes('การกรอง'));
+assert.equal(subStem[0].choices.length, 4);
+assert.equal(subStem[0].choices[0].key, 'ก');
+assert.equal(subStem[0].choices[0].text, 'หมายเลข 1');
+
+// T-030 Markdown OCR text parsing (Typhoon OCR output)
+const mdBold = parseExamText('**1.** ข้อใดถูกต้อง\n**ก.** ช้อย 1\n**ข.** ช้อย 2\n**ค.** ช้อย 3\n**ง.** ช้อย 4');
+// T-031 Structured OCR contract: page provenance and numeric stem items must survive.
+const structured = parseExamText([
+  '[PAGE 1]',
+  '[QUESTION 1]',
+  'สารในคู่ใดมีลักษณะแตกต่างกันมากที่สุด',
+  '[CHOICE ก] น้ำและสารละลายน้ำเกลือ',
+  '[CHOICE ข] กรดน้ำส้มและสารละลายน้ำส้มสายชู',
+  '[CHOICE ค] น้ำและสารละลายกรดคาร์บอนิก',
+  '[CHOICE ง] เอทานอลและสารละลายเอทานอล',
+  '[QUESTION 3]',
+  'ถ้าต้องการแยกเกลือออกจากน้ำทะเลควรใช้วิธีใด',
+  '[STEM_ITEM 1] การกรอง',
+  '[STEM_ITEM 2] การตกผลึก',
+  '[STEM_ITEM 3] การระเหิด',
+  '[STEM_ITEM 4] การสกัดด้วยไอน้ำ',
+  '[STEM_ITEM 5] การใช้แม่เหล็กดูด',
+  '[STEM_ITEM 6] การระเหยจนแห้ง',
+  '[CHOICE ก] หมายเลข 1',
+  '[CHOICE ข] หมายเลข 4',
+  '[CHOICE ค] หมายเลข 5',
+  '[CHOICE ง] หมายเลข 6',
+].join('\n'));
+assert.deepEqual(structured.map(item => item.questionNumber), [1, 3]);
+assert.deepEqual(structured.map(item => item.sourcePage), [1, 1]);
+assert.equal(structured[1].choices.length, 4);
+assert.ok(structured[1].questionText.includes('การกรอง'));
+assert.ok(structured[1].questionText.includes('การระเหยจนแห้ง'));
+assert.ok(!structured.some(item => item.questionNumber === 2));
+assert.equal(mdBold.length, 1);
+assert.equal(mdBold[0].choices.length, 4);
+
+const mdList = parseExamText('### 2. ข้อใดถูกต้อง\n* ก. ช้อย 1\n* ข. ช้อย 2\n* ค. ช้อย 3\n* ง. ช้อย 4');
+assert.equal(mdList.length, 1);
+assert.equal(mdList[0].choices.length, 4);
+
+const multiSubEnum = parseExamText('3. จงพิจารณา\n1. การกรอง\n2. การกลั่น\n3. การตกผลึก\n4. การระเหิด\n5. การใช้แม่เหล็ก\n6. การสกัด\nก. 1 และ 2\nข. 3 และ 4\nค. 5 และ 6\nง. ทั้งหมด\n4. ข้อถัดไป\nก. แรก\nข. สอง');
+assert.equal(multiSubEnum.length, 2);
+assert.equal(multiSubEnum[0].questionNumber, 3);
+assert.equal(multiSubEnum[0].choices.length, 4);
+assert.ok(multiSubEnum[0].questionText.includes('6. การสกัด'));
+assert.equal(multiSubEnum[1].questionNumber, 4);
+assert.equal(multiSubEnum[1].choices.length, 2);
+(async () => {
+  const JSZip = require('jszip');
+  const { parseDocxFile, parseUploadedFile } = require('../lib/file-parser.ts');
+  const zip = new JSZip();
+  zip.file('word/document.xml', '<w:document><w:p><w:r><w:t>1. Q &amp; </w:t></w:r><w:r><w:t>text</w:t></w:r></w:p><w:p><w:r><w:t>ก. choice</w:t></w:r></w:p></w:document>');
+  const data = await zip.generateAsync({type: 'nodebuffer'});
+  const parsed = await parseDocxFile({name: 'source.docx', size: data.length, type: '', arrayBuffer: async () => data});
+  assert.equal(parsed.rawContent, '1. Q & text\nก. choice');
+  assert.equal(parseExamText(parsed.rawContent)[0].choices.length, 1);
+  const invalidZip = await new JSZip().generateAsync({type: 'nodebuffer'});
+  await assert.rejects(() => parseDocxFile({name: 'invalid.docx', size: invalidZip.length, type: '', arrayBuffer: async () => invalidZip}), /word\/document.xml/);
+  const image = await parseUploadedFile(new File([new Uint8Array([137, 80, 78, 71])], 'source.png', {type: 'image/png'}));
+  assert.equal(image.isClean, false);
+  assert.equal(image.extractedImages[0].dataUrl, 'data:image/png;base64,iVBORw==');
+  assert.ok(image.statusMessage.includes('OCR ยังไม่พร้อมใช้งาน'));
+  assert.deepEqual(parseExamText(image.rawContent), []);
+  URL.revokeObjectURL(image.fileUrl);
+  const pdfModulePath = require.resolve('pdfjs-dist');
+  const originalPdfModule = require.cache[pdfModulePath];
+  const originalDocument = global.document;
+  const originalError = console.error;
+  try {
+    require.cache[pdfModulePath] = { exports: { GlobalWorkerOptions: {}, version: 'test', getDocument: () => ({destroy: async () => {}, promise: Promise.reject(new Error('corrupt PDF'))}) } };
+    console.error = () => {};
+    await assert.rejects(() => parseUploadedFile(new File(['invalid'], 'invalid.pdf')), /corrupt PDF/);
+    console.error = originalError;
+    global.document = { createElement: () => ({getContext: () => ({}), toDataURL: () => 'data:image/png;base64,AA=='}) };
+    require.cache[pdfModulePath] = { exports: { GlobalWorkerOptions: {}, version: 'test', getDocument: () => ({destroy: async () => {}, promise: Promise.resolve({numPages: 16, getPage: async () => ({
+      getTextContent: async () => ({items: [{str: '1. Q', transform: [1,0,0,1,0,100]}, {str: 'ก. A', transform: [1,0,0,1,0,80], hasEOL: true}]}),
+      cleanup: () => {}, getViewport: () => ({width: 1, height: 1}), render: () => ({cancel: () => {}, promise: Promise.resolve()})
+    })})}) } };
+    const pdf = await parseUploadedFile(new File(['fixture'], 'fixture.pdf'));
+    assert.equal(pdf.pageImages.length, 16);
+    assert.ok(pdf.rawContent.includes('1. Q') && pdf.rawContent.includes('ก. A'));
+    assert.equal(pdf.isClean, false);
+    URL.revokeObjectURL(pdf.fileUrl);
+  } finally {
+    console.error = originalError;
+    global.document = originalDocument;
+    if (originalPdfModule) require.cache[pdfModulePath] = originalPdfModule;
+    else delete require.cache[pdfModulePath];
+  }
+  console.log('Parser regression assertions passed (source fidelity, answers, boundaries, numeric choices, DOCX).');
+})().catch(error => { console.error(error); process.exitCode = 1; });
+
+const sparseMedia = parseExamText('1. หนึ่ง\nก. a\nข. b\n2. สอง\nก. c\nข. d', [{id:'question-2',dataUrl:'data:image/png;base64,AA=='}]);
+assert.equal(sparseMedia[0].imageUrl, undefined);
+assert.equal(sparseMedia[1].imageUrl, 'data:image/png;base64,AA==');
+const inlineMediaCase = parseExamText('1. จากรูป\n![รูปโจทย์](data:image/png;base64,AA==)\nก. a\nข. b');
+assert.equal(inlineMediaCase[0].imageUrl, 'data:image/png;base64,AA==');
+assert.equal(inlineMediaCase[0].questionText, 'จากรูป');
+console.log('Explicit inline and sparse question-owned media regression passed.');
+const pageBoundaries = parseExamText('[PAGE 1]\n1. หน้าแรก\nก. a\nข. b\n[PAGE 2]\n2. หน้าสอง\nก. c\nข. d');
+assert.deepEqual(pageBoundaries.map(i=>i.sourcePage),[1,2]);
+console.log('Question start-page ownership survives following page markers.');
+
+// T-052 preserve layout and resolve explicit colon answer immediately.
+const steps = parseExamText('5. การทำนาเกลือ\n1. ระบายน้ำ\n2. นาตาก\n3. นาปลง\nขั้นตอนใด\nก. การระเหย: ขั้นตอนที่ 1, 2; การตกผลึก: ขั้นตอนที่ 3\nข. สอง\nค. สาม\nง. สี่\nเฉลย: ง');
+assert.equal(steps.length,1);
+assert.equal(steps[0].questionText,'การทำนาเกลือ\n1. ระบายน้ำ\n2. นาตาก\n3. นาปลง\nขั้นตอนใด');
+assert.equal(steps[0].reconciledAnswerKey,'ง');
+assert.equal(steps[0].choices[3].shadingType,'source_provided');
+assert.equal(reconcileAnswerKey('ก','เฉลย: ตอบ ข้อ ข.').finalKey,'ข');
+assert.equal(reconcileAnswerKey(null,'เฉลย: คำตอบไม่มี').finalKey,undefined);
+console.log('T-052 enumerated layout and colon source-answer regressions passed.');
+
+assert.equal(reconcileAnswerKey('ก','เฉลย: ข. ตอบ ง.').finalKey,undefined);

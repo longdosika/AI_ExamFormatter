@@ -1,0 +1,87 @@
+[
+  {
+    "question_no": 8,
+    "source_page": 2,
+    "bbox": [
+      255,
+      598,
+      1006,
+      844
+    ],
+    "owner_type": "question",
+    "crop_quality": "verified",
+    "verified_by": "Codex visual source comparison"
+  },
+  {
+    "question_no": 16,
+    "source_page": 3,
+    "bbox": [
+      178,
+      803,
+      878,
+      1013
+    ],
+    "owner_type": "question",
+    "crop_quality": "verified",
+    "verified_by": "Codex visual source comparison"
+  },
+  {
+    "question_no": 20,
+    "source_page": 3,
+    "bbox": [
+      204,
+      1481,
+      382,
+      1674
+    ],
+    "owner_type": "question",
+    "crop_quality": "verified",
+    "verified_by": "Codex visual source comparison"
+  },
+  {
+    "question_no": 22,
+    "source_page": 4,
+    "bbox": [
+      280,
+      378,
+      554,
+      556
+    ],
+    "owner_type": "question",
+    "crop_quality": "verified",
+    "verified_by": "Codex visual source comparison"
+  },
+  {
+    "question_no": 25,
+    "source_page": 4,
+    "source_regions": [
+      [
+        0.105,
+        0.583,
+        0.51,
+        0.775
+      ],
+      [
+        0.535,
+        0.589,
+        0.9,
+        0.775
+      ],
+      [
+        0.15,
+        0.775,
+        0.26,
+        0.944
+      ],
+      [
+        0.32,
+        0.793,
+        0.455,
+        0.944
+      ]
+    ],
+    "owner_type": "question",
+    "crop_quality": "verified",
+    "verified_by": "Codex visual source comparison"
+  }
+]

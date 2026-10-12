@@ -1,0 +1,141 @@
+{
+  "schemaVersion": 1,
+  "timingBoundary": "handleFileParsed entry to import result; excludes file reading/PDF rendering before callback, manual review and export",
+  "retention": "latest 200 imports in this browser profile; download to retain/share; not synced across machines",
+  "interpretation": "structural success is not semantic accuracy; compare identical source/mode/model/app/environment cohorts; cancelled/failed runs excluded from duration medians",
+  "runs": [
+    {
+      "id": "1791808181512-l7s4zoc6qtc",
+      "capturedAt": "2026-10-12T12:29:41.512Z",
+      "appVersion": "261011-1240",
+      "sourceHash": "258f293e278926af9c43b3451e6e9b67964eb6d530eaea53adc279b218e06e22",
+      "fileType": "md",
+      "fileBytes": 216,
+      "pages": 0,
+      "durationMs": 4.6,
+      "environment": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0; logicalCpus=12",
+      "semanticAccuracy": null,
+      "mode": "file-text",
+      "status": "structured",
+      "models": [],
+      "questions": 2,
+      "choices": 8,
+      "mediaGroups": 0,
+      "validationIssues": 0
+    },
+    {
+      "id": "1791808182971-hxnmt4avw9e",
+      "capturedAt": "2026-10-12T12:29:42.971Z",
+      "appVersion": "261011-1240",
+      "sourceHash": "258f293e278926af9c43b3451e6e9b67964eb6d530eaea53adc279b218e06e22",
+      "fileType": "md",
+      "fileBytes": 216,
+      "pages": 0,
+      "durationMs": 1,
+      "environment": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0; logicalCpus=12",
+      "semanticAccuracy": null,
+      "mode": "file-text",
+      "status": "structured",
+      "models": [],
+      "questions": 2,
+      "choices": 8,
+      "mediaGroups": 0,
+      "validationIssues": 0
+    },
+    {
+      "id": "1791808194378-a7eae65320d",
+      "capturedAt": "2026-10-12T12:29:54.378Z",
+      "appVersion": "261011-1240",
+      "sourceHash": "258f293e278926af9c43b3451e6e9b67964eb6d530eaea53adc279b218e06e22",
+      "fileType": "md",
+      "fileBytes": 216,
+      "pages": 0,
+      "durationMs": 1,
+      "environment": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0; logicalCpus=12",
+      "semanticAccuracy": null,
+      "mode": "file-text",
+      "status": "structured",
+      "models": [],
+      "questions": 2,
+      "choices": 8,
+      "mediaGroups": 0,
+      "validationIssues": 0
+    },
+    {
+      "id": "1791808195209-mfp669clxth",
+      "capturedAt": "2026-10-12T12:29:55.209Z",
+      "appVersion": "261011-1240",
+      "sourceHash": "661621225da49b5eede951660122280f70be2a081679dc7c0c00fa4b498ca4be",
+      "fileType": "png",
+      "fileBytes": 68,
+      "pages": 1,
+      "durationMs": 351.9,
+      "environment": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0; logicalCpus=12",
+      "semanticAccuracy": null,
+      "mode": "ocr",
+      "status": "structured",
+      "models": [
+        "fixture-transport"
+      ],
+      "questions": 1,
+      "choices": 4,
+      "mediaGroups": 1,
+      "validationIssues": 0
+    },
+    {
+      "id": "1791808195524-rainhb3hsll",
+      "capturedAt": "2026-10-12T12:29:55.524Z",
+      "appVersion": "261011-1240",
+      "sourceHash": "661621225da49b5eede951660122280f70be2a081679dc7c0c00fa4b498ca4be",
+      "fileType": "png",
+      "fileBytes": 68,
+      "pages": 1,
+      "durationMs": 22.5,
+      "environment": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0; logicalCpus=12",
+      "semanticAccuracy": null,
+      "mode": "ocr",
+      "status": "needs-review",
+      "models": [
+        "fixture-transport"
+      ],
+      "questions": 1,
+      "choices": 2,
+      "mediaGroups": 1,
+      "validationIssues": 1
+    }
+  ],
+  "groups": [
+    {
+      "sourceHash": "258f293e278926af9c43b3451e6e9b67964eb6d530eaea53adc279b218e06e22",
+      "mode": "file-text",
+      "appVersion": "261011-1240",
+      "models": [],
+      "pages": 0,
+      "environment": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0; logicalCpus=12",
+      "samples": 3,
+      "structured": 3,
+      "needsReview": 0,
+      "failed": 0,
+      "cancelled": 0,
+      "medianMs": 1,
+      "semanticAccuracy": null
+    },
+    {
+      "sourceHash": "661621225da49b5eede951660122280f70be2a081679dc7c0c00fa4b498ca4be",
+      "mode": "ocr",
+      "appVersion": "261011-1240",
+      "models": [
+        "fixture-transport"
+      ],
+      "pages": 1,
+      "environment": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0; logicalCpus=12",
+      "samples": 2,
+      "structured": 1,
+      "needsReview": 1,
+      "failed": 0,
+      "cancelled": 0,
+      "medianMs": 187.2,
+      "semanticAccuracy": null
+    }
+  ]
+}

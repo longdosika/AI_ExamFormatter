@@ -1,0 +1,44 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Dependencies and local environments
+node_modules/
+.node_modules-*/
+node_modules_stale/
+.pnpm-store/
+.yarn/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+vendor/
+
+# Build, test and cache output
+dist/
+build/
+out/
+coverage/
+.cache/
+.next/
+.next-*/
+.qa-drift-*/
+.nuxt/
+.svelte-kit/
+.turbo/
+target/
+*.tsbuildinfo
+
+# Editor and operating-system files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log
+
+# Web deployment output
+.vercel/
+.netlify/

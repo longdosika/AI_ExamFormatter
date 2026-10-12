@@ -1,0 +1,742 @@
+[
+  {
+    "id": 1,
+    "questionNumber": 1,
+    "sourcePage": 1,
+    "questionText": "สารในคู่ใดที่ดูลักษณะภายนอกคล้ายกันมากจึงต้องระเหยจนแห้งใช้บอกความแตกต่างของสารคู่นี้ ☑ น้ำและสารละลายดินประสิว ☐",
+    "choices": [
+      {
+        "key": "ข",
+        "text": "กรดน้ำส้มและสารละลายน้ำส้มสายชู ☐",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ค",
+        "text": "น้ำและสารละลายกรดคาร์บอนิก ☐",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ง",
+        "text": "เอทานอลและสารละลายเอทานอล",
+        "isCorrect": false,
+        "shadingType": "none"
+      }
+    ],
+    "explanationText": "",
+    "reconciliationProvenance": "unresolved"
+  },
+  {
+    "id": 2,
+    "questionNumber": 2,
+    "sourcePage": 1,
+    "questionText": "ผลึกเกิดขึ้นได้จากสารในข้อใด ☑ สารละลายอิ่มตัว ☐",
+    "choices": [
+      {
+        "key": "ข",
+        "text": "สารละลายระเหย ☐",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ค",
+        "text": "สารประกอบหลอมเหลว ☐",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ง",
+        "text": "สารแขวนลอยตกตะกอน",
+        "isCorrect": false,
+        "shadingType": "none"
+      }
+    ],
+    "explanationText": "",
+    "reconciliationProvenance": "unresolved"
+  },
+  {
+    "id": 3,
+    "questionNumber": 3,
+    "sourcePage": 1,
+    "questionText": "ถ้าต้องการแยกเอาเคลือออกจาคน้ำทะเลควรใช้วิธีใด\n1. การกรอง\n2. การกลั่น\n3. การระเหิด\n4. การสกัดด้วยไอน้ำ\n5. การใช้แม่เหล็กดูด\n6. การระเหยจนแห้ง\n☐ ก. หมายเลข 1\n☐",
+    "choices": [
+      {
+        "key": "ข",
+        "text": "หมายเลข 4 ☐",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ค",
+        "text": "หมายเลข 5 ☑",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ง",
+        "text": "หมายเลข 6",
+        "isCorrect": false,
+        "shadingType": "none"
+      }
+    ],
+    "explanationText": "",
+    "reconciliationProvenance": "unresolved"
+  },
+  {
+    "id": 4,
+    "questionNumber": 4,
+    "sourcePage": 1,
+    "questionText": "ความสัมพันธ์ใดไม่ถูกต้อง ☐ ก. สารละลาย-การกลั่น ☐",
+    "choices": [
+      {
+        "key": "ข",
+        "text": "สารแขวนลอย-การกรอง ☑ สารละลาย-การตกตะกอน ☐",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ง",
+        "text": "สารแขวนลอย-การระเหยแห้ง",
+        "isCorrect": false,
+        "shadingType": "none"
+      }
+    ],
+    "explanationText": "",
+    "reconciliationProvenance": "unresolved"
+  },
+  {
+    "id": 5,
+    "questionNumber": 5,
+    "sourcePage": 1,
+    "questionText": "การทำนาเกลือ มีขั้นตอนดังนี้\n1. ระบายน้ำจากวังขังน้ำเข้านาตาก\n2. ระบายน้ำจากนาตากเข้านาเชื้อ\n3. ระบายน้ำจากนาเชื้อเข้านาปลง\nขั้นตอนใดใช้หลักการระเหยและการตกผลึก\n[ตาราง] ข้อ | การระเหย | การตกผลึก",
+    "choices": [
+      {
+        "key": "ก",
+        "text": "ขั้นตอนที่ 1, 2 | ขั้นตอนที่ 3",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ข",
+        "text": "ขั้นตอนที่ 1, 2 | ขั้นตอนที่ 2, 3",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ค",
+        "text": "ทุกขั้นตอน | ขั้นตอนที่ 3 [ตาราง] ☒ | ทุกขั้นตอน | ขั้นตอนที่ 2, 3",
+        "isCorrect": false,
+        "shadingType": "none"
+      }
+    ],
+    "explanationText": "",
+    "reconciliationProvenance": "unresolved"
+  },
+  {
+    "id": 6,
+    "questionNumber": 6,
+    "sourcePage": 2,
+    "questionText": "นำของเหลวลชนิดหนึ่งไประเหยแห้ง พบว่าไม่มีสารใดหลงเหลืออยู่ในภาชนะ จากข้อมูล ข้อสรุปเกี่ยวกับของเหลวลชนิดนี้คือข้อใด ☐ ก. เป็นสารละลาย ☐",
+    "choices": [
+      {
+        "key": "ข",
+        "text": "เป็นสารบริสุทธิ์ ☐",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ค",
+        "text": "เป็นตัวทำละลาย ☑",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ง",
+        "text": "ไม่มีของแข็งเป็นองค์ประกอบ",
+        "isCorrect": false,
+        "shadingType": "none"
+      }
+    ],
+    "explanationText": "",
+    "reconciliationProvenance": "unresolved"
+  },
+  {
+    "id": 7,
+    "questionNumber": 7,
+    "sourcePage": 2,
+    "questionText": "การจำแนกสารในข้อใดถูกต้อง [ตาราง] ชื่อ | ธาตุ | สารประกอบ | สารละลาย | สารเนื้อผสม",
+    "choices": [
+      {
+        "key": "ก",
+        "text": "ทองเหลือง | ดินประสิว | แก๊สหุงต้ม | แป้งน้ำ",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ข",
+        "text": "ทองแดง | ดินปืน | แก๊สซีวภาพ | คอนกรีต",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ค",
+        "text": "ทองคำขาว | ค่างทับทิม | แก๊สธรรมชาติ | พริกกับเกลือ",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ง",
+        "text": "ทองคำ | ค่างคลี่ | อากาศ | ดิน",
+        "isCorrect": false,
+        "shadingType": "none"
+      }
+    ],
+    "explanationText": "",
+    "reconciliationProvenance": "unresolved"
+  },
+  {
+    "id": 8,
+    "questionNumber": 8,
+    "sourcePage": 2,
+    "questionText": "จากแผนภาพการจำแนกสารต่อไปนี้ ``` สาร / \\ สารเนื้อเดียว   สารเนื้อผสม |    | A C    | \\     | ธาตุ D ``` ข้อใดถูกต้อง [ตาราง] ชื่อ | สาร A | สาร B | สาร C | สาร D",
+    "choices": [
+      {
+        "key": "ก",
+        "text": "ซูโครส | น้ำปลา | น้ำเหม็ก | น้ำ",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ข",
+        "text": "กะทิ | น้ำปลา | น้ำเกลือ | ซูโครส",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ค",
+        "text": "กะทิ | น้ำเกลือ | ซูโครส | น้ำ",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ง",
+        "text": "น้ำเกลือ | น้ำเกลือ | น้ำเชื่อม | ซูโครส",
+        "isCorrect": false,
+        "shadingType": "none"
+      }
+    ],
+    "explanationText": "",
+    "reconciliationProvenance": "unresolved"
+  },
+  {
+    "id": 9,
+    "questionNumber": 9,
+    "sourcePage": 2,
+    "questionText": "สารในข้อใดที่ไม่น่าจะแยกออกจากกันได้",
+    "choices": [
+      {
+        "key": "ก",
+        "text": "แยกผลึกเกลือออกจากน้ำเกลืออิ่มตัวด้วยการกรอง",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ข",
+        "text": "แยกน้ำและน้ำมันพืชออกจากกันด้วยการกลั่นลำดับส่วน",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ค",
+        "text": "แยกคลอร์ไรฟิลด์ออกจากใบไม้โดยการสกัดด้วยตัวทำละลาย",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ง",
+        "text": "แยกผงเหล็กและเม็ดทรายออกจากกันด้วยการใช้แม่เหล็กดูด",
+        "isCorrect": false,
+        "shadingType": "none"
+      }
+    ],
+    "explanationText": "",
+    "reconciliationProvenance": "unresolved"
+  },
+  {
+    "id": 10,
+    "questionNumber": 10,
+    "sourcePage": 3,
+    "questionText": "จากเกณฑ์การจัดจำแนกสาร ข้อใดถูกต้อง [ตาราง] ชื่อ | เกณฑ์การจัดจำแนก | ตัวอย่างสาร",
+    "choices": [
+      {
+        "key": "ก",
+        "text": "สารบริสุทธิ์ | สารส้ม ไบยูเร็ต น้ำมันดีเซล ทองเหลือง",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ข",
+        "text": "การนำไฟฟ้า | ปรอท โคมบอลต์ นิกเกิล น้ำปูนใส",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ค",
+        "text": "pH &gt; 7 | น้ำส้มสายชู กะทิ น้ำมันพืช น้ำคลอง",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ง",
+        "text": "สารเนื้อเดียวที่เป็นธาตุ | สังกะสี ฟอสฟอรัส ในโครงเจนเหลว แก๊สเอทิลีน",
+        "isCorrect": false,
+        "shadingType": "none"
+      }
+    ],
+    "explanationText": "",
+    "reconciliationProvenance": "unresolved"
+  },
+  {
+    "id": 11,
+    "questionNumber": 11,
+    "sourcePage": 3,
+    "questionText": "วิธีการผ่านไอน้ำที่มีอุณหภูมิสูงไปบนส่วนของพืชที่ต้องการสกัดกลิ่นหอมให้ติดมากับไอน้ำ เรียกว่าอะไร",
+    "choices": [
+      {
+        "key": "ก",
+        "text": "การกลั่น",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ข",
+        "text": "การควบแน่น",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ค",
+        "text": "การสกัดกลิ่น",
+        "isCorrect": false,
+        "shadingType": "none"
+      }
+    ],
+    "explanationText": "",
+    "reconciliationProvenance": "unresolved"
+  },
+  {
+    "id": 12,
+    "questionNumber": 3,
+    "sourcePage": 3,
+    "questionText": "การสกัดโดยการกลั่นด้วยไอน้ำ",
+    "choices": [],
+    "explanationText": "",
+    "reconciliationProvenance": "unresolved"
+  },
+  {
+    "id": 13,
+    "questionNumber": 12,
+    "sourcePage": 3,
+    "questionText": "การแยกสารทำได้โดยวิธีใด",
+    "choices": [
+      {
+        "key": "ก",
+        "text": "การกรอง",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ข",
+        "text": "การกลั่น",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ค",
+        "text": "การระเหย",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ง",
+        "text": "ถูกต้องทุกข้อ",
+        "isCorrect": false,
+        "shadingType": "none"
+      }
+    ],
+    "explanationText": "",
+    "reconciliationProvenance": "unresolved"
+  },
+  {
+    "id": 14,
+    "questionNumber": 13,
+    "sourcePage": 3,
+    "questionText": "แดงทำผงถ่านตกลงในข้าวสารที่บ้าน จะมีวิธีแยกถ่านออกจากข้าวสารโดยวิธีใด",
+    "choices": [
+      {
+        "key": "ก",
+        "text": "การใช้มือหยิบออก",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ข",
+        "text": "การกรอง",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ค",
+        "text": "การตกผลึก",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ง",
+        "text": "การระเหย",
+        "isCorrect": false,
+        "shadingType": "none"
+      }
+    ],
+    "explanationText": "",
+    "reconciliationProvenance": "unresolved"
+  },
+  {
+    "id": 15,
+    "questionNumber": 14,
+    "sourcePage": 3,
+    "questionText": "ในการกลั่น สารที่มีคุณสมบัติในข้อใดจะระเหยเป็นไอออกมา่อน",
+    "choices": [
+      {
+        "key": "ก",
+        "text": "สารที่มีจุดเดือดต่ำ",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ข",
+        "text": "สารที่มีจุดเดือดสูง",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ค",
+        "text": "สารที่มีจุดหลอมเหลวดำ",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ง",
+        "text": "สารที่มีจุดหลอมเหลวสูง",
+        "isCorrect": false,
+        "shadingType": "none"
+      }
+    ],
+    "explanationText": "",
+    "reconciliationProvenance": "unresolved"
+  },
+  {
+    "id": 16,
+    "questionNumber": 15,
+    "sourcePage": 3,
+    "questionText": "สารในคู่ใดแยกจากกันได้ด้วยการกลั่นลำดับส่วน",
+    "choices": [
+      {
+        "key": "ก",
+        "text": "น้ำกับน้ำมัน",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ข",
+        "text": "น้ำกับเอทานอล",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ค",
+        "text": "น้ำกับแก๊สแอมโมเนีย",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ง",
+        "text": "ถูกต้องทุกข้อ",
+        "isCorrect": false,
+        "shadingType": "none"
+      }
+    ],
+    "explanationText": "",
+    "reconciliationProvenance": "unresolved"
+  },
+  {
+    "id": 17,
+    "questionNumber": 16,
+    "sourcePage": 3,
+    "questionText": "จากตารางสมบัติของสาร ดังนี้ [ตาราง] สาร | จุดเดือด (°C) | จุดหลอมเหลว (°C) | การละลายน้ำ [ตาราง] A | 938 | 98 | ไม่ละลายน้ำ [ตาราง] B | 2040 | 872 | ละลายน้ำ [ตาราง] C | 361 | 7 | ละลายน้ำ ถ้าต้องการแยกของผสมระหว่างสารทั้ง 3 ชนิด ซึ่งไม่ละลายซึ่งกันและกัน ควรทำอย่างไรตามลำดับ",
+    "choices": [
+      {
+        "key": "ก",
+        "text": "การละลายน้ำ การกรอง การกลั่นลำดับส่วน",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ข",
+        "text": "การละลายน้ำ การกรอง การระเหย",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ค",
+        "text": "การกรอง การละลายน้ำ การใช้กรวยแยก",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ง",
+        "text": "การกลั่นลำดับส่วน",
+        "isCorrect": false,
+        "shadingType": "none"
+      }
+    ],
+    "explanationText": "",
+    "reconciliationProvenance": "unresolved"
+  },
+  {
+    "id": 18,
+    "questionNumber": 17,
+    "sourcePage": 3,
+    "questionText": "วิธีการแยกสารตามข้อใดต้องใช้การระเหิด",
+    "choices": [
+      {
+        "key": "ก",
+        "text": "การแยกเอทานอลออกจากน้ำ",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ข",
+        "text": "การแยกเกลือแกงออกจากลูกเหม็น",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ค",
+        "text": "การแยกผงตะไบเหล็กออกจากกำมะถัน",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ง",
+        "text": "การแยกสีเขียวของใบเตยออกจากใบเตย",
+        "isCorrect": false,
+        "shadingType": "none"
+      }
+    ],
+    "explanationText": "",
+    "reconciliationProvenance": "unresolved"
+  },
+  {
+    "id": 19,
+    "questionNumber": 18,
+    "sourcePage": 3,
+    "questionText": "ผลิตภัณฑ์ปิโตรเลียมชนิดใดไม่ได้มาจากการกลั่นน้ำมันปิโตรเลียมโดยตรง",
+    "choices": [
+      {
+        "key": "ก",
+        "text": "น้ำมันเตา",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ข",
+        "text": "น้ำมันเบนซิน",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ค",
+        "text": "น้ำมันก๊าด",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ง",
+        "text": "แก๊สโซฮอล์",
+        "isCorrect": false,
+        "shadingType": "none"
+      }
+    ],
+    "explanationText": "",
+    "reconciliationProvenance": "unresolved"
+  },
+  {
+    "id": 20,
+    "questionNumber": 19,
+    "sourcePage": 3,
+    "questionText": "สารที่ต้องนำมาแยกโดยวิธีการกรองควรมีสมบัติอย่างไร",
+    "choices": [
+      {
+        "key": "ก",
+        "text": "สารนั้นควรละลายน้ำ",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ข",
+        "text": "สารนั้นควรเป็นของแข็ง",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ค",
+        "text": "สารนั้นควรเป็นสารเนื้อผสม",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ง",
+        "text": "สารนั้นควรเป็นสารละลาย",
+        "isCorrect": false,
+        "shadingType": "none"
+      }
+    ],
+    "explanationText": "",
+    "reconciliationProvenance": "unresolved"
+  },
+  {
+    "id": 21,
+    "questionNumber": 20,
+    "sourcePage": 4,
+    "questionText": "จากการทดลองแยกสีเขียวชนิดหนึ่งด้วยวิธีโครมาโท graph ฟีได้ผลดังรูป ข้อใด เรียงลำดับความสามารถในการละลายจากน้อยไปมากได้ถูกต้อง",
+    "choices": [
+      {
+        "key": "ก",
+        "text": "$Z \\rightarrow Y \\rightarrow X$",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ข",
+        "text": "$X \\rightarrow Y \\rightarrow Z$",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ค",
+        "text": "$XYZ$ เท่ากัน",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ง",
+        "text": "ยังสรุปไม่ได้",
+        "isCorrect": false,
+        "shadingType": "none"
+      }
+    ],
+    "explanationText": "",
+    "reconciliationProvenance": "unresolved"
+  },
+  {
+    "id": 22,
+    "questionNumber": 21,
+    "sourcePage": 4,
+    "questionText": "ข้อใดไม่ใช่วิธีการแยกสารออกจากกันด้วยวิธีโครมาโทกราฟี",
+    "choices": [
+      {
+        "key": "ก",
+        "text": "สารละลายมีสีต่างกัน",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ค",
+        "text": "ถูกดูดซับโดยตัวดูดซับต่างกัน",
+        "isCorrect": false,
+        "shadingType": "none"
+      }
+    ],
+    "explanationText": "",
+    "reconciliationProvenance": "unresolved"
+  },
+  {
+    "id": 23,
+    "questionNumber": 23,
+    "sourcePage": 4,
+    "questionText": "ยาลดกรดประกอบด้วย MgO และ MgCO₃ อัดเป็นเม็ดโดยผสมกับแป้ง เมื่อนำเม็ดยามาบดให้เป็นผง ในภาชนะ A แล้วนำมาละลายด้วยสารละลาย HCl ปริมาณมากเกินพอในภาชนะ B พบว่ามีฟองแก๊สเกิดขึ้น เมื่อกรองแป้งออกแล้วนำสารละลายที่ได้ไปต้มใส่กรดน้ำในภาชนะ C จะเหลือของแข็งสีขาว จากการทดลองนี้ สารใดบ้างที่จัดเป็นสารบริสุทธิ์",
+    "choices": [
+      {
+        "key": "ก",
+        "text": "ยาลดกรด",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ข",
+        "text": "ผงละเอียดในภาชนะ A",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ค",
+        "text": "แก๊สที่เกิดในภาชนะ B",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ง",
+        "text": "ของแข็งสีขาวที่เหลือในภาชนะ C",
+        "isCorrect": false,
+        "shadingType": "none"
+      }
+    ],
+    "explanationText": "",
+    "reconciliationProvenance": "unresolved"
+  },
+  {
+    "id": 24,
+    "questionNumber": 24,
+    "sourcePage": 4,
+    "questionText": "สารที่ได้จากการสกัดโดยการกลั่นด้วยไอน้ำ ควรมีสมบัติตามข้อใด",
+    "choices": [
+      {
+        "key": "ก",
+        "text": "*ไม่ละลายน้ำ** ระเหหย่ง่าย",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ข",
+        "text": "ละลายน้ำ **ระเหหย่ง่าย มีกลิ่นหอม*",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ค",
+        "text": "ไม่ละลายน้ำ จุดเดือดสูง สลายตัวเมื่อได้รับความร้อน",
+        "isCorrect": false,
+        "shadingType": "none"
+      },
+      {
+        "key": "ง",
+        "text": "ละลายน้ำ ละลายในตัวทำละลายอินทรีย์ ระเหหย่ง่าย สลายตัวเมื่อได้รับความร้อน",
+        "isCorrect": false,
+        "shadingType": "none"
+      }
+    ],
+    "explanationText": "",
+    "reconciliationProvenance": "unresolved"
+  },
+  {
+    "id": 25,
+    "questionNumber": 25,
+    "sourcePage": 4,
+    "questionText": "จากรูปอุปกรณ์ในการแยกสารชนิดต่าง ๆ",
+    "choices": [],
+    "explanationText": "",
+    "reconciliationProvenance": "unresolved"
+  }
+]

@@ -1,0 +1,33 @@
+{
+  "status": "passed",
+  "questions": 25,
+  "choices": 100,
+  "images": 5,
+  "owners": [
+    {
+      "question": "Question 8 Figure",
+      "owner": "8"
+    },
+    {
+      "question": "Question 16 Figure",
+      "owner": "16"
+    },
+    {
+      "question": "Question 20 Figure",
+      "owner": "20"
+    },
+    {
+      "question": "Question 22 Figure",
+      "owner": "22"
+    },
+    {
+      "question": "Question 25 Figure",
+      "owner": "25"
+    }
+  ],
+  "importMs": 1123,
+  "docxBytes": 540835,
+  "noBrowserErrors": true,
+  "answerPolicy": "No inferred answer keys; handwritten marks require owner reconciliation.",
+  "access": "http://127.0.0.1:3001/reviewed-separation.html"
+}

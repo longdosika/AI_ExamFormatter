@@ -1,0 +1,186 @@
+{
+  "title": "source-answer — QuizFlow",
+  "paragraphs": [
+    {
+      "runs": [
+        {
+          "text": "1",
+          "bold": true,
+          "italic": false,
+          "underline": false,
+          "color": "F2604D"
+        },
+        {
+          "text": ".",
+          "bold": true,
+          "italic": false,
+          "underline": false,
+          "color": "F2604D"
+        },
+        {
+          "text": " ",
+          "bold": true,
+          "italic": false,
+          "underline": false,
+          "color": "F2604D"
+        },
+        {
+          "text": "โจทย์",
+          "bold": false,
+          "italic": false,
+          "underline": false,
+          "color": "0F172A"
+        }
+      ],
+      "keepWithNext": true
+    },
+    {
+      "runs": [
+        {
+          "text": "ตัวเลือก:",
+          "bold": true,
+          "italic": false,
+          "underline": false,
+          "color": "006D77"
+        }
+      ],
+      "keepWithNext": true
+    },
+    {
+      "runs": [
+        {
+          "text": "ก",
+          "bold": true,
+          "italic": false,
+          "underline": false,
+          "color": "006D77"
+        },
+        {
+          "text": ". ",
+          "bold": true,
+          "italic": false,
+          "underline": false,
+          "color": "006D77"
+        },
+        {
+          "text": "หนึ่ง",
+          "bold": false,
+          "italic": false,
+          "underline": false,
+          "color": "1E293B"
+        }
+      ],
+      "keepWithNext": true
+    },
+    {
+      "runs": [
+        {
+          "text": "ข",
+          "bold": true,
+          "italic": false,
+          "underline": false,
+          "color": "006D77"
+        },
+        {
+          "text": ". ",
+          "bold": true,
+          "italic": false,
+          "underline": false,
+          "color": "006D77"
+        },
+        {
+          "text": "สอง",
+          "bold": false,
+          "italic": false,
+          "underline": false,
+          "color": "1E293B"
+        }
+      ],
+      "keepWithNext": true
+    },
+    {
+      "runs": [
+        {
+          "text": "ค",
+          "bold": true,
+          "italic": false,
+          "underline": false,
+          "color": "006D77"
+        },
+        {
+          "text": ". ",
+          "bold": true,
+          "italic": false,
+          "underline": false,
+          "color": "006D77"
+        },
+        {
+          "text": "สาม",
+          "bold": false,
+          "italic": false,
+          "underline": false,
+          "color": "1E293B"
+        }
+      ],
+      "keepWithNext": true
+    },
+    {
+      "runs": [
+        {
+          "text": "ง",
+          "bold": true,
+          "italic": false,
+          "underline": false,
+          "color": "006D77"
+        },
+        {
+          "text": ". ",
+          "bold": true,
+          "italic": false,
+          "underline": false,
+          "color": "006D77"
+        },
+        {
+          "text": "สี่",
+          "bold": false,
+          "italic": false,
+          "underline": false,
+          "color": "022C22"
+        },
+        {
+          "text": " *",
+          "bold": true,
+          "italic": false,
+          "underline": false,
+          "color": "F2604D"
+        }
+      ],
+      "keepWithNext": true
+    },
+    {
+      "runs": [
+        {
+          "text": "คำอธิบาย:",
+          "bold": true,
+          "italic": false,
+          "underline": false,
+          "color": "006D77"
+        },
+        {
+          "text": " ",
+          "bold": true,
+          "italic": false,
+          "underline": false,
+          "color": "006D77"
+        },
+        {
+          "text": "เฉลย: ง",
+          "bold": false,
+          "italic": false,
+          "underline": false,
+          "color": "334155"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,405 @@
+{
+  "truthProvenance": "Owner confirmed teacher-rechecked answers; crops visually reviewed before inference",
+  "fixtures": [
+    {
+      "caseId": "q1",
+      "page": 1,
+      "file": "evidence/t058-roi/q01.png",
+      "sourceFile": "evidence/t038-page1-1.png",
+      "sourceBox": [
+        90,
+        380,
+        930,
+        480
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "819e44cdb9a17405beaa77ab3b8ca1888fe835cf11a26d259db232434b9f80fe",
+      "truth": {
+        "1": "ก"
+      }
+    },
+    {
+      "caseId": "q2",
+      "page": 1,
+      "file": "evidence/t058-roi/q02.png",
+      "sourceFile": "evidence/t038-page1-1.png",
+      "sourceBox": [
+        90,
+        485,
+        930,
+        575
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "819e44cdb9a17405beaa77ab3b8ca1888fe835cf11a26d259db232434b9f80fe",
+      "truth": {
+        "2": "ก"
+      }
+    },
+    {
+      "caseId": "q3",
+      "page": 1,
+      "file": "evidence/t058-roi/q03.png",
+      "sourceFile": "evidence/t038-page1-1.png",
+      "sourceBox": [
+        90,
+        575,
+        930,
+        702
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "819e44cdb9a17405beaa77ab3b8ca1888fe835cf11a26d259db232434b9f80fe",
+      "truth": {
+        "3": "ง"
+      }
+    },
+    {
+      "caseId": "q4",
+      "page": 1,
+      "file": "evidence/t058-roi/q04.png",
+      "sourceFile": "evidence/t038-page1-1.png",
+      "sourceBox": [
+        90,
+        703,
+        930,
+        795
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "819e44cdb9a17405beaa77ab3b8ca1888fe835cf11a26d259db232434b9f80fe",
+      "truth": {
+        "4": "ค"
+      }
+    },
+    {
+      "caseId": "q5",
+      "page": 1,
+      "file": "evidence/t058-roi/q05.png",
+      "sourceFile": "evidence/t038-page1-1.png",
+      "sourceBox": [
+        90,
+        797,
+        930,
+        1158
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "819e44cdb9a17405beaa77ab3b8ca1888fe835cf11a26d259db232434b9f80fe",
+      "truth": {
+        "5": "ง"
+      }
+    },
+    {
+      "caseId": "q6",
+      "page": 1,
+      "file": "evidence/t058-roi/q06.png",
+      "sourceFile": "evidence/t038-page1-1.png",
+      "sourceBox": [
+        90,
+        1160,
+        930,
+        1310
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "819e44cdb9a17405beaa77ab3b8ca1888fe835cf11a26d259db232434b9f80fe",
+      "truth": {
+        "6": "ง"
+      }
+    },
+    {
+      "caseId": "q7",
+      "page": 2,
+      "file": "evidence/t058-roi/q07.png",
+      "sourceFile": "evidence/pdf-review/page-2.png",
+      "sourceBox": [
+        125,
+        190,
+        850,
+        430
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "03a5c1497f151f1ccb23e3ec7b2d2fe1b4ab700aa92ec75b35cd952e1ba52659",
+      "truth": {
+        "7": "ค"
+      }
+    },
+    {
+      "caseId": "q8",
+      "page": 2,
+      "file": "evidence/t058-roi/q08.png",
+      "sourceFile": "evidence/pdf-review/page-2.png",
+      "sourceBox": [
+        125,
+        439,
+        850,
+        909
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "03a5c1497f151f1ccb23e3ec7b2d2fe1b4ab700aa92ec75b35cd952e1ba52659",
+      "truth": {
+        "8": "ค"
+      }
+    },
+    {
+      "caseId": "q9",
+      "page": 2,
+      "file": "evidence/t058-roi/q09.png",
+      "sourceFile": "evidence/pdf-review/page-2.png",
+      "sourceBox": [
+        125,
+        916,
+        900,
+        1070
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "03a5c1497f151f1ccb23e3ec7b2d2fe1b4ab700aa92ec75b35cd952e1ba52659",
+      "truth": {
+        "9": "ข"
+      }
+    },
+    {
+      "caseId": "q10",
+      "page": 2,
+      "file": "evidence/t058-roi/q10.png",
+      "sourceFile": "evidence/pdf-review/page-2.png",
+      "sourceBox": [
+        120,
+        1073,
+        930,
+        1310
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "03a5c1497f151f1ccb23e3ec7b2d2fe1b4ab700aa92ec75b35cd952e1ba52659",
+      "truth": {
+        "10": "ข"
+      }
+    },
+    {
+      "caseId": "q11",
+      "page": 3,
+      "file": "evidence/t058-roi/q11.png",
+      "sourceFile": "evidence/pdf-review/page-3.png",
+      "sourceBox": [
+        90,
+        182,
+        930,
+        278
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "137500fe07c52b11d2c9c63538a43ce6f22a6f5e9f4694e56160a337a10d034b",
+      "truth": {
+        "11": "ง"
+      }
+    },
+    {
+      "caseId": "q12",
+      "page": 3,
+      "file": "evidence/t058-roi/q12.png",
+      "sourceFile": "evidence/pdf-review/page-3.png",
+      "sourceBox": [
+        90,
+        282,
+        930,
+        340
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "137500fe07c52b11d2c9c63538a43ce6f22a6f5e9f4694e56160a337a10d034b",
+      "truth": {
+        "12": "ง"
+      }
+    },
+    {
+      "caseId": "q13",
+      "page": 3,
+      "file": "evidence/t058-roi/q13.png",
+      "sourceFile": "evidence/pdf-review/page-3.png",
+      "sourceBox": [
+        50,
+        342,
+        930,
+        400
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "137500fe07c52b11d2c9c63538a43ce6f22a6f5e9f4694e56160a337a10d034b",
+      "truth": {
+        "13": null
+      }
+    },
+    {
+      "caseId": "q14",
+      "page": 3,
+      "file": "evidence/t058-roi/q14.png",
+      "sourceFile": "evidence/pdf-review/page-3.png",
+      "sourceBox": [
+        90,
+        405,
+        930,
+        497
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "137500fe07c52b11d2c9c63538a43ce6f22a6f5e9f4694e56160a337a10d034b",
+      "truth": {
+        "14": "ก"
+      }
+    },
+    {
+      "caseId": "q15",
+      "page": 3,
+      "file": "evidence/t058-roi/q15.png",
+      "sourceFile": "evidence/pdf-review/page-3.png",
+      "sourceBox": [
+        90,
+        504,
+        930,
+        593
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "137500fe07c52b11d2c9c63538a43ce6f22a6f5e9f4694e56160a337a10d034b",
+      "truth": {
+        "15": "ข"
+      }
+    },
+    {
+      "caseId": "q16",
+      "page": 3,
+      "file": "evidence/t058-roi/q16.png",
+      "sourceFile": "evidence/pdf-review/page-3.png",
+      "sourceBox": [
+        90,
+        597,
+        930,
+        894
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "137500fe07c52b11d2c9c63538a43ce6f22a6f5e9f4694e56160a337a10d034b",
+      "truth": {
+        "16": "ก"
+      }
+    },
+    {
+      "caseId": "q17",
+      "page": 3,
+      "file": "evidence/t058-roi/q17.png",
+      "sourceFile": "evidence/pdf-review/page-3.png",
+      "sourceBox": [
+        90,
+        896,
+        930,
+        987
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "137500fe07c52b11d2c9c63538a43ce6f22a6f5e9f4694e56160a337a10d034b",
+      "truth": {
+        "17": "ข"
+      }
+    },
+    {
+      "caseId": "q18",
+      "page": 3,
+      "file": "evidence/t058-roi/q18.png",
+      "sourceFile": "evidence/pdf-review/page-3.png",
+      "sourceBox": [
+        90,
+        990,
+        930,
+        1049
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "137500fe07c52b11d2c9c63538a43ce6f22a6f5e9f4694e56160a337a10d034b",
+      "truth": {
+        "18": "ง"
+      }
+    },
+    {
+      "caseId": "q19",
+      "page": 3,
+      "file": "evidence/t058-roi/q19.png",
+      "sourceFile": "evidence/pdf-review/page-3.png",
+      "sourceBox": [
+        90,
+        1053,
+        930,
+        1145
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "137500fe07c52b11d2c9c63538a43ce6f22a6f5e9f4694e56160a337a10d034b",
+      "truth": {
+        "19": "ค"
+      }
+    },
+    {
+      "caseId": "q20",
+      "page": 3,
+      "file": "evidence/t058-roi/q20.png",
+      "sourceFile": "evidence/pdf-review/page-3.png",
+      "sourceBox": [
+        90,
+        1147,
+        930,
+        1310
+      ],
+      "sourceImageSize": [
+        993,
+        1404
+      ],
+      "sourceOriginalSha256": "137500fe07c52b11d2c9c63538a43ce6f22a6f5e9f4694e56160a337a10d034b",
+      "truth": {
+        "20": "ก"
+      }
+    }
+  ]
+}

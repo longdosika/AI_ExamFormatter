@@ -1,0 +1,30 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const ts = require('typescript');
+const Module = require('node:module');
+const filename = require('node:path').resolve('lib/case-ledger.ts');
+const compiled = ts.transpileModule(fs.readFileSync(filename, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS } });
+const moduleInstance = new Module(filename, module);
+moduleInstance._compile(compiled.outputText, filename);
+const { CASE_STORAGE_KEY, loadCaseEntries, saveCaseEntries, validateCaseEntries } = moduleInstance.exports;
+const values = new Map();
+const storage = { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value) };
+const initial = loadCaseEntries(storage);
+assert.equal(initial.length, 3);
+const entry = { ...initial[0], id: 'CASE-user', topic: 'User decision', status: 'NEEDS_REVIEW' };
+saveCaseEntries(storage, [entry, ...initial]);
+assert.deepEqual(loadCaseEntries(storage), [entry, ...initial]);
+assert.equal(JSON.parse(values.get(CASE_STORAGE_KEY)).version, 1);
+assert.equal(validateCaseEntries([{ ...entry, topic: '  ' }]), false);
+assert.equal(validateCaseEntries([entry, entry]), false);
+assert.equal(validateCaseEntries([{ ...entry, status: 'FAKE' }]), false);
+for (const corrupt of ['{broken', JSON.stringify({ version: 2, entries: [entry] }), JSON.stringify({ version: 1, entries: [{}] })]) {
+  values.set(CASE_STORAGE_KEY, corrupt);
+  assert.throws(() => loadCaseEntries(storage));
+  assert.equal(values.get(CASE_STORAGE_KEY), corrupt, 'corrupt data must not be overwritten');
+}
+assert.throws(() => loadCaseEntries({ getItem() { throw new Error('denied'); } }));
+assert.throws(() => saveCaseEntries({ setItem() { throw new Error('quota'); } }, [entry]));
+saveCaseEntries(storage, []);
+assert.deepEqual(loadCaseEntries(storage), [], 'an empty saved ledger is valid');
+console.log('Case ledger: persistence, validation, corrupt-data preservation and storage errors passed.');

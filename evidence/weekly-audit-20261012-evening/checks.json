@@ -1,0 +1,27 @@
+[
+  {
+    "command": "npm run typecheck",
+    "exitCode": 0,
+    "log": "D:\\0-Project\\92-AiAccess\\AI_ExamFormatter\\evidence\\weekly-audit-20261012-evening\\typecheck.log"
+  },
+  {
+    "command": "npm run lint",
+    "exitCode": 0,
+    "log": "D:\\0-Project\\92-AiAccess\\AI_ExamFormatter\\evidence\\weekly-audit-20261012-evening\\lint.log"
+  },
+  {
+    "command": "npm run test",
+    "exitCode": 0,
+    "log": "D:\\0-Project\\92-AiAccess\\AI_ExamFormatter\\evidence\\weekly-audit-20261012-evening\\test.log"
+  },
+  {
+    "command": "npm run test:quality",
+    "exitCode": 0,
+    "log": "D:\\0-Project\\92-AiAccess\\AI_ExamFormatter\\evidence\\weekly-audit-20261012-evening\\test-quality.log"
+  },
+  {
+    "command": "npm run benchmark",
+    "exitCode": 0,
+    "log": "D:\\0-Project\\92-AiAccess\\AI_ExamFormatter\\evidence\\weekly-audit-20261012-evening\\benchmark.log"
+  }
+]

@@ -1,0 +1,11 @@
+{
+  "status": "passed",
+  "actualPDF": true,
+  "rawCropTargets": 25,
+  "cropQuestion": 2,
+  "draftEditable": true,
+  "unresolvedExportDisabled": true,
+  "liveReviewPassed": true,
+  "insertedImagePreserved": true,
+  "sourceUnchanged": true
+}

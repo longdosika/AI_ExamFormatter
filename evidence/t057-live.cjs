@@ -1,0 +1,32 @@
+const fs=require('node:fs');const assert=require('node:assert/strict');
+const {chromium}=require('playwright');
+(async()=>{const browser=await chromium.launch({headless:true,channel:'msedge'});try{
+const page=await browser.newPage({viewport:{width:1600,height:1000}});const requests=[];const errors=[];
+page.on('pageerror',e=>errors.push(e.message));
+page.on('response',async r=>{if(r.url().endsWith('/api/source-answers'))requests.push({page:r.request().postDataJSON().page,status:r.status(),body:await r.json()});});
+await page.goto('http://localhost:3000/');
+await page.locator('input[type=file]').setInputFiles('D:/0-Project/10-Obsidian/quizflow/tmp/บทที่ 7 ชุดที่ 2 เรื่อง การแยกสาร.pdf');
+await page.getByRole('textbox',{name:'ข้อความ OCR สำหรับตรวจแก้'}).waitFor({timeout:90000});
+await page.getByRole('button',{name:'แปลงเป็นรูปแบบข้อสอบ',exact:true}).click();
+await page.locator('[contenteditable=true] [data-item-id]').first().waitFor({timeout:420000});
+assert.equal(await page.locator('[contenteditable=true] [data-item-id]').count(),25);
+await page.waitForTimeout(500);
+fs.writeFileSync('evidence/t057-provider-recheck.json',JSON.stringify({requests},null,2));
+const successfulPages=new Set(requests.filter(r=>r.status===200).map(r=>r.page));
+assert.deepEqual([...successfulPages].sort(),[1,2,3,4]);
+assert.ok(requests.flatMap(r=>r.body.answers||[]).length>0);
+await page.screenshot({path:'evidence/t057-answers.png'});
+const image=page.locator('[data-workspace="source"] img').first();const original=await image.getAttribute('src');
+page.once('dialog',d=>d.accept(original));await page.getByRole('button',{name:'แทรกรูป',exact:true}).click();
+await page.waitForTimeout(200);
+const inserted=page.locator('[contenteditable=true] [data-item-id="1"] img');assert.equal(await inserted.count(),1);
+assert.equal(await inserted.evaluate(img=>img.previousElementSibling.textContent),'[รูปโจทย์]');
+// The observer also handles DOM image insertion used by browser rich-text paste.
+await page.locator('[contenteditable=true] [data-item-id="2"]').evaluate((el,src)=>{const img=document.createElement('img');img.src=src;el.append(img);},original);
+await page.waitForTimeout(200);
+assert.equal(await page.locator('[contenteditable=true] [data-item-id="2"] img').evaluate(img=>img.previousElementSibling.textContent),'[รูปโจทย์]');
+assert.equal(await image.getAttribute('src'),original);assert.deepEqual(errors,[]);
+await page.screenshot({path:'evidence/t057-live.png'});
+fs.writeFileSync('evidence/t057-live-result.json',JSON.stringify({actualPDF:true,questions:25,requests,errors,sourceUnchanged:true,toolbarCaption:true,pastedDOMCaption:true},null,2));
+console.log(JSON.stringify({questions:25,statuses:requests.map(r=>r.status),answers:requests.flatMap(r=>r.body.answers||[]),imageCaption:true}));
+}finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

@@ -1,0 +1,64 @@
+{
+  "task": "T-022",
+  "capturedAt": "2026-10-12T12:27:34.798Z",
+  "environment": {
+    "node": "v22.23.2",
+    "typescript": "5.9.3",
+    "platform": "win32",
+    "release": "10.0.26200",
+    "arch": "x64",
+    "cpu": "12th Gen Intel(R) Core(TM) i5-1235U",
+    "logicalCpus": 12
+  },
+  "methodology": "Synchronous parser only; one warm-up and seven measured samples per size; correctness asserted outside measured interval; observations are not timed test thresholds or browser/import measurements.",
+  "results": [
+    {
+      "questions": 100,
+      "sourceBytesUtf8": 12683,
+      "samplesMs": [
+        4.718,
+        2.604,
+        3.922,
+        2.589,
+        2.67,
+        2.669,
+        3.452
+      ],
+      "medianMs": 2.67,
+      "maxMs": 4.718,
+      "correctness": "all source question texts, numbers, four choices and source answers asserted each sample"
+    },
+    {
+      "questions": 1000,
+      "sourceBytesUtf8": 128785,
+      "samplesMs": [
+        25.641,
+        25.476,
+        26.495,
+        22.398,
+        20.529,
+        22.068,
+        20.714
+      ],
+      "medianMs": 22.398,
+      "maxMs": 26.495,
+      "correctness": "all source question texts, numbers, four choices and source answers asserted each sample"
+    },
+    {
+      "questions": 5000,
+      "sourceBytesUtf8": 652785,
+      "samplesMs": [
+        108.755,
+        109.458,
+        101.5,
+        117.336,
+        119.157,
+        107.168,
+        107.436
+      ],
+      "medianMs": 108.755,
+      "maxMs": 119.157,
+      "correctness": "all source question texts, numbers, four choices and source answers asserted each sample"
+    }
+  ]
+}

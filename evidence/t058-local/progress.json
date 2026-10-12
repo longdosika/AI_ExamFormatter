@@ -1,0 +1,17 @@
+{
+  "started": "2026-10-12T00:48:07.371Z",
+  "models": {
+    "qwen3-vl:2b": {
+      "started": "2026-10-12T01:16:26.710Z",
+      "exitCode": 1,
+      "finished": "2026-10-12T01:21:37.133Z"
+    },
+    "qwen3-vl:4b": {
+      "started": "2026-10-12T01:21:37.186Z",
+      "exitCode": 1,
+      "finished": "2026-10-12T01:26:47.137Z"
+    }
+  },
+  "phase": "experiment has failures; review required",
+  "finished": "2026-10-12T01:26:47.524Z"
+}

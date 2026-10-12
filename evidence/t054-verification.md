@@ -1,0 +1,5 @@
+# T-054
+
+T-054: tools absent during raw/loading/failed-conversion stage; after success RichTextToolbar is nested in conversion header above question navigation, no independent toolbar row. Icon names/title/disabled state retained. Validation count means issues, not distinct questions. E2E selection explicitly targets plain text: center-click plus Control+End is layout-dependent and can land inside bold heading, falsely testing bold toggle. Keep tests about intended edit operation, not accidental caret location.
+
+Browser E2E verifies absent tools before conversion, merged header above nav, successful style/copy/export controls, source independence, reset, OCR loading/failures, keyboard and 390px. Live Google export remains T-017. node scripts/finish-task.mjs T-054 passed exit0: knowledge/platform/drift, typecheck/lint (0 errors/8 prior img warnings), unit/performance, E2E, build and CSS HTTP200. Evidence t054-result.json and t054-toolbar.png. Verified checkpoint before Done. Tested URL http://localhost:3000/.

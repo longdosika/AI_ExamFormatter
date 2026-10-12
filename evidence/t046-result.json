@@ -1,0 +1,11 @@
+{
+  "status": "passed",
+  "canonicalOrigin": "http://localhost:3000",
+  "crossHostRedirect": true,
+  "stateCookieOnlyOnCanonicalHost": true,
+  "registeredRedirectMatches": true,
+  "missingStateRecovery": true,
+  "canonicalImport": true,
+  "liveGoogleConsent": "pending user sign-in",
+  "googleExport": "not certified by this test"
+}

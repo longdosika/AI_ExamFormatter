@@ -1,0 +1,22 @@
+{
+  "capturedAt": "2026-10-12T02:35:14.9586148Z",
+  "scope": "Single observation during 4B ROI inference; process peak working set is process lifetime, not isolated model allocation",
+  "totalPhysicalBytes": 16874135552,
+  "freePhysicalBytes": 712241152,
+  "processes": [
+    {
+      "Id": 24896,
+      "ProcessName": "llama-server",
+      "WorkingSet64": 4778348544,
+      "PeakWorkingSet64": 4959588352,
+      "CPU": 2430.296875
+    },
+    {
+      "Id": 26308,
+      "ProcessName": "ollama",
+      "WorkingSet64": 21897216,
+      "PeakWorkingSet64": 49197056,
+      "CPU": 150.953125
+    }
+  ]
+}

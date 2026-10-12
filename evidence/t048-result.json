@@ -1,0 +1,9 @@
+{
+  "status": "passed",
+  "pages": 12,
+  "numberedJump": true,
+  "previousNext": true,
+  "keyboardEnter": true,
+  "scrollHighlight": true,
+  "mobileNoOverflow": true
+}

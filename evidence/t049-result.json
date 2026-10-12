@@ -1,0 +1,9 @@
+{
+  "status": "passed",
+  "pendingScan": true,
+  "noPrematureWarning": true,
+  "pendingActionDisabled": true,
+  "reducedMotion": true,
+  "sourceActionUsesEditedText": true,
+  "formattedActionDisabled": true
+}

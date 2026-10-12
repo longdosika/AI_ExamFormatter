@@ -1,0 +1,36 @@
+name: Knowledge Governance
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate-knowledge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate Knowledge Graph
+        run: node scripts/check-knowledge-vault.mjs
+      - name: Validate platform readiness
+        run: node scripts/check-platform-readiness.mjs
+      - name: Detect code and knowledge drift
+        env:
+          KNOWLEDGE_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ -n "$KNOWLEDGE_BASE_REF" ] && [ "$KNOWLEDGE_BASE_REF" != "0000000000000000000000000000000000000000" ]; then
+            node scripts/check-knowledge-drift.mjs "$KNOWLEDGE_BASE_REF"
+          else
+            node scripts/check-knowledge-drift.mjs
+          fi

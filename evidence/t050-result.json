@@ -1,0 +1,12 @@
+{
+  "status": "passed",
+  "rawBeforeFormat": true,
+  "editorLeftSourceRight": true,
+  "questionJump": true,
+  "stableSource": true,
+  "keyboardEnter": true,
+  "scrollHighlight": true,
+  "mobileNoOverflow": true,
+  "filenameHistory": true,
+  "textStyles": true
+}

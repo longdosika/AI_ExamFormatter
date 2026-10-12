@@ -1,0 +1,15 @@
+const fs=require('node:fs');
+const file='components/SplitDocumentEditor.tsx';
+let text=fs.readFileSync(file,'utf8');
+const sourceStart=text.indexOf('        {/* LEFT PANEL: Original Source File (50%) */}');
+const editorStart=text.indexOf('        {/* RIGHT PANEL: Formatted Output & Rich Text Editor (50%) */}');
+const end=text.lastIndexOf('      </div>\n    </div>\n  );');
+if(sourceStart<0||editorStart<sourceStart||end<editorStart) throw new Error('Expected panel structure not found; no edits written');
+const source=text.slice(sourceStart,editorStart).replace('LEFT PANEL: Original Source File','RIGHT PANEL: Original Source File');
+const editor=text.slice(editorStart,end).replace('RIGHT PANEL: Formatted Output & Rich Text Editor','LEFT PANEL: OCR, Conversion & Rich Text Editor');
+text=text.slice(0,sourceStart)+editor+source+text.slice(end);
+text=text.replaceAll('leftPaneRef','sourcePaneRef').replaceAll('rightPaneRef','editorPaneRef').replaceAll('handleLeft','handleSource');
+text=text.replace('Independent Scrolling for Left Panel (Tracks magnifier coordinates without affecting right pane)','Independent source scrolling (tracks magnifier without affecting editor)');
+text=text.replace('Magnifier & Capture Mouse Handlers over Left Panel','Magnifier & Capture Mouse Handlers over source panel');
+fs.writeFileSync(file,text);
+console.log('Conversion is first/left, source second/right; refs are semantic.');

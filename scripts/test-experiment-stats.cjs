@@ -1,0 +1,31 @@
+const fs = require('node:fs');
+const assert = require('node:assert/strict');
+const ts = require('typescript');
+require.extensions['.ts'] = (module, filename) => module._compile(ts.transpileModule(fs.readFileSync(filename,'utf8'), {
+  compilerOptions: {module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}
+}).outputText, filename);
+const {EXPERIMENT_KEY,appendExperiment,readExperiments,experimentReport} = require('../lib/experiment-stats.ts');
+let raw = null;
+const storage = {getItem:()=>raw,setItem:(_key,value)=>{raw=value;}};
+const run = {id:'one',capturedAt:'2026-10-11T00:00:00Z',appVersion:'fixture',sourceHash:'a'.repeat(64),mode:'ocr',status:'structured',fileType:'png',fileBytes:10,pages:1,models:['fixture-model'],durationMs:10,questions:1,choices:4,mediaGroups:0,validationIssues:0,environment:'fixture environment',semanticAccuracy:null};
+appendExperiment(storage,run);
+appendExperiment(storage,{...run,id:'two',durationMs:30});
+appendExperiment(storage,{...run,id:'failed',status:'failed',durationMs:1000});
+let report = experimentReport(readExperiments(storage));
+assert.equal(report.groups[0].medianMs,20);
+assert.equal(report.groups[0].failed,1);
+assert.equal(report.groups[0].semanticAccuracy,null);
+for (const variant of [{mode:'reviewed-reuse'},{models:['different-model']},{sourceHash:'b'.repeat(64)},{appVersion:'other'},{environment:'different computer'},{pages:2}]) appendExperiment(storage,{...run,...variant,id:JSON.stringify(variant)});
+assert.equal(experimentReport(readExperiments(storage)).groups.length,7,'incomparable cohorts separated');
+assert.equal(experimentReport([{...run,sourceHash:null,id:'unknown1'},{...run,sourceHash:null,id:'unknown2'}]).groups.length,2);
+for(let i=0;i<205;i++) appendExperiment(storage,{...run,id:String(i)});
+assert.equal(readExperiments(storage).length,200);
+assert.equal(readExperiments(storage)[0].id,'5');
+raw='broken previous data';
+assert.throws(()=>appendExperiment(storage,run));
+assert.equal(raw,'broken previous data','corrupt history not overwritten');
+assert.throws(()=>appendExperiment({getItem:()=>null,setItem:()=>{throw new Error('quota');}},run));
+assert.throws(()=>appendExperiment(storage,{...run,durationMs:NaN}));
+assert.throws(()=>appendExperiment(storage,{...run,apiKey:'unexpected secret field'}));
+assert.ok(EXPERIMENT_KEY);
+console.log('Experiment statistics passed: medians, cohort isolation, 200-run retention, unknown accuracy, corrupt-data preservation and quota failure.');

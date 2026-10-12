@@ -1,0 +1,33 @@
+const fs=require('node:fs');const assert=require('node:assert/strict');
+let chromium;try{({chromium}=require('playwright'));}catch{({chromium}=require('C:/Users/nathaphat/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright'));}
+(async()=>{const browser=await chromium.launch({headless:true,channel:'msedge'});try{
+ const page=await browser.newPage({viewport:{width:1600,height:1000}});
+ let ocrCalls=0;const errors=[];page.on('request',r=>{if(r.url().endsWith('/api/ocr'))ocrCalls++;});page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('http://localhost:3000/');const started=Date.now();
+ await page.locator('input[type=file]').setInputFiles('D:/0-Project/10-Obsidian/quizflow/tmp/บทที่ 7 ชุดที่ 2 เรื่อง การแยกสาร.pdf');
+ const editor=page.locator('[contenteditable=true]').first();await page.getByRole('textbox',{name:'ข้อความ OCR สำหรับตรวจแก้',exact:true}).waitFor({timeout:90000});assert.equal(await editor.count(),0);await page.getByRole('button',{name:'แปลงเป็นรูปแบบข้อสอบ',exact:true}).click();await editor.waitFor({timeout:90000});
+ assert.equal(await editor.locator('[data-item-id]').count(),25);
+ assert.equal(await editor.locator('img').count(),5);
+ assert.equal(ocrCalls,0);
+ assert.equal(await page.getByRole('navigation',{name:'เลือกข้อสอบ'}).getByRole('button').count(),25);
+ const sourcePages=await editor.locator('[data-source-page]').evaluateAll(buttons=>buttons.map(b=>Number(b.dataset.sourcePage)));
+ assert.deepEqual(sourcePages,[...Array(6).fill(1),...Array(4).fill(2),...Array(10).fill(3),...Array(5).fill(4)]);
+ const question25=editor.locator('[data-item-id="25"]');await question25.scrollIntoViewIfNeeded();
+ await question25.locator('[data-source-page="4"]').click();await page.waitForTimeout(800);
+ const source=page.locator('[data-source-page-target="4"]');
+ const visible=await source.evaluate(el=>{let pane=el.parentElement;while(pane&&getComputedStyle(pane).overflowY!=='auto')pane=pane.parentElement;return pane?Math.abs(el.getBoundingClientRect().top-pane.getBoundingClientRect().top)<35:false;});
+ assert.ok(visible,'Source-page button must align the original page 4');
+ await question25.locator('img').evaluate(img=>img.decode());
+ await editor.locator('[data-item-id="1"] [data-source-page="1"]').click();await page.waitForTimeout(400);
+ const original=page.locator('[data-workspace="source"] img').first();await original.evaluate(img=>img.decode());
+ const srcBefore=await original.getAttribute('src');
+ await page.getByRole('button',{name:/แคปภาพเฉพาะจุด/}).click();
+ const box=await original.boundingBox();const pane=await page.locator('[data-workspace="source"]').boundingBox();
+ const x=box.x+80,y=Math.max(box.y+80,pane.y+170);await page.mouse.move(x,y);await page.mouse.down();await page.mouse.move(x+150,y+120,{steps:12});await page.mouse.up();
+ const crop=page.getByRole('dialog',{name:'แทรกภาพที่ตัดจากต้นฉบับ'});await crop.waitFor();await crop.locator('select').selectOption('1');await crop.getByRole('button',{name:'แทรกเป็นรูปโจทย์'}).click();
+ assert.equal(await editor.locator('[data-item-id="1"] img').count(),1);assert.equal(await original.getAttribute('src'),srcBefore);
+ await page.screenshot({path:'evidence/t050-real-pdf-result.png'});
+ assert.deepEqual(errors,[]);
+ const result={status:'passed',source:'Original supplied PDF, not a renamed transcript',questions:25,choices:100,mediaGroups:5,ocrCalls,sourcePages,sourcePageNavigation:'passed',durationMs:Date.now()-started,url:'http://localhost:3000/',reuseNotice:'visible',noBrowserErrors:true};
+ fs.writeFileSync('evidence/t050-real-pdf-result.json',JSON.stringify(result,null,2));console.log(JSON.stringify(result));
+}finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

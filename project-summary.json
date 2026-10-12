@@ -1,0 +1,48 @@
+{
+  "projectName": "AI Exam Formatter",
+  "projectType": "web-app",
+  "outputLanguage": "thai",
+  "promptPackLevel": "standard",
+  "documentsToGenerate": [
+    "00-index.md",
+    "prd.md",
+    "design.md",
+    "architecture.md",
+    "rules.md",
+    "tasks.md",
+    "traceability.md",
+    "code-map.md",
+    "memory.md",
+    "decisions.md",
+    "context.md",
+    "api.md"
+  ],
+  "coreFeatures": [
+    "ลาก / browser ไฟล์ต้นฉบับ",
+    "แปลงเอกสารให้เข้ารูปแบบที่กำหนด",
+    "ได้เอกสารในรูปแบบ google doc ไว้ใน dirve ที่กำหนด",
+    "ปรับแต่ง ตัวหนา ตัวเอียง ขีดเส้นใต้ได้ (อนาคตอยากให้รองรับ สูตรเลข สูตรเคมี เลขยกำลัง)"
+  ],
+  "aiTargetContext": {
+    "targetProfile": {
+      "id": "generic-agent",
+      "label": "Generic Agent",
+      "workflowStyle": "Tool-agnostic, markdown-first, easy to adapt",
+      "handoffStyle": "สื่อสารชัดเป็นขั้นตอน ใช้ภาษาเรียบและลด assumption ที่ผูกกับ IDE ใด IDE หนึ่ง",
+      "promptBias": "เน้น context completeness, next-task execution และ memory updates แบบทั่วไป"
+    },
+    "provider": {
+      "id": "deterministic-fallback",
+      "label": "Standard Fallback",
+      "model": null,
+      "timeoutMs": null
+    }
+  },
+  "aiDocuments": [],
+  "aiQualityGate": null,
+  "aiAnalysis": null,
+  "providerDiagnosticsHistory": null,
+  "contextSync": null,
+  "teamTemplate": null,
+  "generatedAt": "2026-10-10T11:31:16.274Z"
+}
