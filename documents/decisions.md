@@ -178,5 +178,14 @@ T-058 runtime diagnosis: actual stream evidence shows schema JSON wholly in mess
   4. Prepared automated GitHub repository creation & push workflow and Vercel environment configuration checklist.
 - Reason: Guarantees rejection-free push to GitHub and reliable, zero-drift continuous deployment on Vercel.
 - Affected notes: [[tasks]], [[memory]], [[code-map]]
+## D-015 Transparent OAuth Diagnostics & Origin URL Normalization (2026-10-13)
+- Context: When environment variables for Google Drive are partially set or APP_URL contains a trailing slash, the system previously failed silently, returning `configured: false` with generic "รอตั้งค่าการเชื่อมต่อ", making it hard to diagnose which exact variable is missing.
+- Decision:
+  1. Automatically normalize APP_URL by stripping trailing slashes in `googleConfig()`.
+  2. Expose a non-sensitive `missingFields` array in `GET /api/google/session` to identify missing or invalid keys (e.g. non-numeric Project Number or short session secret).
+  3. Render explicit missing field names directly in the Google Drive status UI.
+- Reason: Removes user ambiguity and makes cloud deployment diagnostics transparent and actionable.
+- Affected notes: [[tasks]], [[memory]], [[code-map]], [[traceability]]
 - Status: `Approved`
+
 

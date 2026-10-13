@@ -6,15 +6,36 @@ export const STATE_COOKIE = "quizflow_google_state";
 export const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 export interface GoogleSession { token: string; expires: number }
 export function googleConfig() {
-  const appUrl = process.env.APP_URL || "http://localhost:3000";
-  const url = new URL(appUrl);
-  if (url.origin !== appUrl || (url.protocol !== "https:" && !["localhost", "127.0.0.1"].includes(url.hostname))) throw new Error("APP_URL ต้องเป็น origin HTTPS หรือ localhost");
-  const clientId = process.env.GOOGLE_CLIENT_ID || "";
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET || "";
-  const sessionSecret = process.env.GOOGLE_SESSION_SECRET || "";
-  const apiKey = process.env.GOOGLE_PICKER_API_KEY || "";
-  const projectNumber = process.env.GOOGLE_CLOUD_PROJECT_NUMBER || "";
-  return { appUrl, clientId, clientSecret, sessionSecret, apiKey, projectNumber, ready: Boolean(clientId && clientSecret && sessionSecret.length >= 32 && apiKey && /^\d+$/.test(projectNumber)), secure: url.protocol === "https:" };
+  const rawUrl = (process.env.APP_URL || "http://localhost:3000").trim().replace(/\/+$/, "");
+  const url = new URL(rawUrl);
+  if (url.origin !== rawUrl || (url.protocol !== "https:" && !["localhost", "127.0.0.1"].includes(url.hostname))) throw new Error("APP_URL ต้องเป็น origin HTTPS หรือ localhost");
+  const appUrl = rawUrl;
+  const clientId = (process.env.GOOGLE_CLIENT_ID || "").trim();
+  const clientSecret = (process.env.GOOGLE_CLIENT_SECRET || "").trim();
+  const sessionSecret = (process.env.GOOGLE_SESSION_SECRET || "").trim();
+  const apiKey = (process.env.GOOGLE_PICKER_API_KEY || "").trim();
+  const projectNumber = (process.env.GOOGLE_CLOUD_PROJECT_NUMBER || "").trim();
+
+  const missingFields: string[] = [];
+  if (!clientId) missingFields.push("GOOGLE_CLIENT_ID");
+  if (!clientSecret) missingFields.push("GOOGLE_CLIENT_SECRET");
+  if (!sessionSecret) missingFields.push("GOOGLE_SESSION_SECRET");
+  else if (sessionSecret.length < 32) missingFields.push("GOOGLE_SESSION_SECRET (ต้องยาวอย่างน้อย 32 ตัวอักษร)");
+  if (!apiKey) missingFields.push("GOOGLE_PICKER_API_KEY");
+  if (!projectNumber) missingFields.push("GOOGLE_CLOUD_PROJECT_NUMBER");
+  else if (!/^\d+$/.test(projectNumber)) missingFields.push("GOOGLE_CLOUD_PROJECT_NUMBER (ต้องเป็นตัวเลขล้วน ไม่ใช่ Project ID)");
+
+  return {
+    appUrl,
+    clientId,
+    clientSecret,
+    sessionSecret,
+    apiKey,
+    projectNumber,
+    ready: missingFields.length === 0,
+    missingFields,
+    secure: url.protocol === "https:"
+  };
 }
 function key() {
   const secret = googleConfig().sessionSecret;

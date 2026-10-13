@@ -992,5 +992,22 @@ T-058 runtime diagnosis: actual stream evidence shows schema JSON wholly in mess
 - Expected verification: `git ls-files` shows zero files > 25MB, `finish-task.mjs` exits 0, git remote push readiness confirmed.
 - Verification result: Passed. Remote repository `https://github.com/longdosika/AI_ExamFormatter.git` verified created and responsive; `git push -u origin main` executed successfully with branch tracking established; live content verified at GitHub; all quality gates, 12 test suites, and Next.js production build passed cleanly.
 
+### T-064 Google Drive OAuth & Environment Configuration Diagnostics & URL Normalization
+- Type: Bug / Feature
+- Status: Done
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Owner: Codex / Fullstack & Cloud Engineer
+- Problem: User added Environment Variables on Vercel Dashboard, but Google Drive status still shows "ยังส่งออก Google Docs ไม่ได้ · รอตั้งค่าการเชื่อมต่อ". Potential causes: (1) On Vercel, adding environment variables requires a new deployment/redeploy to take effect; (2) `APP_URL` with a trailing slash (`/`) causes `googleConfig()` to throw an exception that resets `configured: false`; (3) Missing Picker credentials (`GOOGLE_PICKER_API_KEY` and numeric `GOOGLE_CLOUD_PROJECT_NUMBER`); (4) Session secret length under 32 characters; (5) Lack of diagnostic output in `/api/google/session` hides which exact variable is missing.
+- Acceptance Criteria:
+  1. Update `lib/google-auth.ts` to normalize `APP_URL` (strip trailing slashes gracefully) and return detailed, non-sensitive `missingFields` array.
+  2. Enhance `app/api/google/session/route.ts` to expose `missingFields` and error reason when unconfigured, enabling transparent diagnostics without leaking secret values.
+  3. Update `components/GoogleDriveStatus.tsx` to display specific missing configuration requirements when unconfigured.
+  4. Pass all quality gates (`npm test`, `finish-task.mjs`).
+  5. Push to GitHub to automatically trigger Vercel deployment with updated environment variables and diagnostics.
+- Affected Files: lib/google-auth.ts, app/api/google/session/route.ts, components/GoogleDriveStatus.tsx, documents/tasks.md, documents/memory.md, documents/decisions.md.
+- Expected verification: Unit tests pass, `/api/google/session` returns granular diagnostic information, git push triggers fresh Vercel deployment.
+- Verification result: Passed. Trailing slash normalization implemented and verified in `googleConfig()`; `missingFields` array exposed in `GET /api/google/session` and rendered in `GoogleDriveStatus`; all unit test suites, vault checks, and finish-task gate passed cleanly.
+
+
 
 

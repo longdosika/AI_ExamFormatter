@@ -9,8 +9,23 @@ export async function GET(request: NextRequest) {
     const config = googleConfig();
     const session = config.ready ? getGoogleSession(request.cookies.get(SESSION_COOKIE)?.value) : null;
     const folderReady = session ? await checkTargetFolder(session.token) : false;
-    return json({ configured: config.ready, connected: Boolean(session), folderReady, folderId: TARGET_FOLDER });
-  } catch { return json({ configured: false, connected: false, folderReady: false, folderId: TARGET_FOLDER }); }
+    return json({
+      configured: config.ready,
+      connected: Boolean(session),
+      folderReady,
+      folderId: TARGET_FOLDER,
+      missingFields: config.missingFields || []
+    });
+  } catch (error) {
+    return json({
+      configured: false,
+      connected: false,
+      folderReady: false,
+      folderId: TARGET_FOLDER,
+      missingFields: [],
+      error: error instanceof Error ? error.message : "การตั้งค่าไม่ถูกต้อง"
+    });
+  }
 }
 export async function POST(request: NextRequest) {
   try {

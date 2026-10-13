@@ -19,9 +19,9 @@ Help people and AI locate the code responsible for each feature without reading 
 - Tests: `scripts/test-parser.cjs`; full template/crop acceptance pending.
 ### R-003 ได้เอกสารในรูปแบบ google doc ไว้ใน dirve ที่กำหนด
 - Feature Note: [[features/r-003-google-doc-dirve]]
-- Entry points: `To be identified during implementation`
-- Supporting files: `To be identified during implementation`
-- Tests: `To be identified during implementation`
+- Entry points: `components/GoogleDriveStatus.tsx`, `app/api/google/session/route.ts`, `app/api/google/auth/route.ts`, `app/api/google/callback/route.ts`, `app/api/google/export/route.ts`
+- Supporting files: `lib/google-auth.ts`, `lib/google-export.ts`
+- Tests: `scripts/test-google.cjs`
 ### R-004 ปรับแต่ง ตัวหนา ตัวเอียง ขีดเส้นใต้ได้ (อนาคตอยากให้รองรับ สูตรเลข สูตรเคมี เลขยกำลัง)
 - Feature Note: [[features/r-004-feature]]
 - Entry points: `components/SplitDocumentEditor.tsx`, `components/RichTextToolbar.tsx`, `app/page.tsx`

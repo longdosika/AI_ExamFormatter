@@ -42,7 +42,8 @@
     ".next-weekly-audit-20261012-evening/types/**/*.ts",
     ".next-e2e-18616/types/**/*.ts",
     ".next-e2e-22916/types/**/*.ts",
-    ".next-e2e-4540/types/**/*.ts"
+    ".next-e2e-4540/types/**/*.ts",
+    ".next-e2e-3284/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

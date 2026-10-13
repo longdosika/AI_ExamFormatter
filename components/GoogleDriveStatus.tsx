@@ -1,7 +1,14 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 
-interface DriveStatus { configured: boolean; connected: boolean; folderReady: boolean; folderId: string }
+interface DriveStatus {
+  configured: boolean;
+  connected: boolean;
+  folderReady: boolean;
+  folderId: string;
+  missingFields?: string[];
+  error?: string;
+}
 interface PickerView { setIncludeFolders(value: boolean): PickerView; setSelectFolderEnabled(value: boolean): PickerView; setMimeTypes(value: string): PickerView }
 interface PickerBuilder { addView(view: PickerView): PickerBuilder; setOAuthToken(value: string): PickerBuilder; setDeveloperKey(value: string): PickerBuilder; setAppId(value: string): PickerBuilder; setOrigin(value: string): PickerBuilder; setCallback(callback: (data: {action: string; docs?: {id: string}[]}) => void): PickerBuilder; build(): {setVisible(value: boolean): void} }
 interface PickerApi { DocsView: new () => PickerView; PickerBuilder: new () => PickerBuilder; Action: {PICKED: string} }
@@ -76,7 +83,21 @@ export function GoogleDriveStatus({ onReady }: {onReady: (ready: boolean) => voi
     finally { setBusy(false); }
   };
   return <section aria-label="การเชื่อมต่อ Google Drive" className="my-4 flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs">
-    <span role="status">{!status ? "กำลังตรวจการเชื่อมต่อ Google…" : !status.configured ? "ยังส่งออก Google Docs ไม่ได้ · รอตั้งค่าการเชื่อมต่อ" : !status.connected ? "เชื่อม Google ก่อนส่งออก" : status.folderReady ? "พร้อมส่งออกไป AI_ExamFormatter" : "เลือกโฟลเดอร์ AI_ExamFormatter เพื่อให้สิทธิ์ส่งออก"}</span>
+    <span role="status">
+      {!status
+        ? "กำลังตรวจการเชื่อมต่อ Google…"
+        : !status.configured
+        ? status.missingFields && status.missingFields.length > 0
+          ? `ยังส่งออก Google Docs ไม่ได้ · ขาด: ${status.missingFields.join(", ")}`
+          : status.error
+          ? `ยังส่งออก Google Docs ไม่ได้ · ${status.error}`
+          : "ยังส่งออก Google Docs ไม่ได้ · รอตั้งค่าการเชื่อมต่อ"
+        : !status.connected
+        ? "เชื่อม Google ก่อนส่งออก"
+        : status.folderReady
+        ? "พร้อมส่งออกไป AI_ExamFormatter"
+        : "เลือกโฟลเดอร์ AI_ExamFormatter เพื่อให้สิทธิ์ส่งออก"}
+    </span>
     {status?.configured && !status.connected && <a href="/api/google/auth" className="rounded-lg bg-[#006D77] px-3 py-2 text-white">เชื่อมบัญชี Google</a>}
     {status?.connected && !status.folderReady && <button type="button" disabled={busy} onClick={selectFolder} className="rounded-lg bg-[#006D77] px-3 py-2 text-white disabled:opacity-50">เลือกโฟลเดอร์</button>}
     {status?.connected && <button type="button" disabled={busy} onClick={disconnect} className="rounded-lg border border-slate-300 px-3 py-2">ออกจากการเชื่อมต่อ</button>}
