@@ -977,8 +977,8 @@ T-058 runtime diagnosis: actual stream evidence shows schema JSON wholly in mess
 - Expected verification: finish-task.mjs exit 0, e2e browser test exit 0, CSS delivery check pass.
 ### T-063 Git Remote Repository Alignment & Vercel Deployment Readiness
 - Type: Deployment / Infrastructure
-- Status: In Progress
-- Lifecycle: Proposed -> Ready -> In Progress
+- Status: Done
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
 - Owner: Codex / DevOps & Fullstack Engineer
 - Problem: User requested pushing the project to Git and connecting with Vercel ("เอาขึ้น git หน่อย ให้เชื่อมกับ vercel"). Current blockers: (1) GitHub remote repository `https://github.com/longdosika/AI_ExamFormatter.git` returns 404 (not yet created on GitHub under account `longdosika`); (2) Local git commit history accidentally tracked binary node addon files (`next-swc.win32-x64-msvc.node`, 135.8 MB each) inside `.node_modules-backup-*` and `node_modules_stale`, which violates GitHub's 100 MB hard limit (GH001) and blocks push; (3) `.gitignore` lacked `.next-*/`, `.qa-drift-*/`, `.node_modules-*/`, `node_modules_stale/`, causing git drift failures; (4) Vercel deployment requires clean repository configuration and explicit environment variable checklist.
 - Acceptance Criteria:
@@ -990,6 +990,7 @@ T-058 runtime diagnosis: actual stream evidence shows schema JSON wholly in mess
   6. Provide complete Vercel project import and environment variable configuration guide.
 - Affected Files: .gitignore, documents/tasks.md, documents/memory.md, documents/decisions.md.
 - Expected verification: `git ls-files` shows zero files > 25MB, `finish-task.mjs` exits 0, git remote push readiness confirmed.
-- Verification result: Pending repository creation and push execution.
+- Verification result: Passed. Remote repository `https://github.com/longdosika/AI_ExamFormatter.git` verified created and responsive; `git push -u origin main` executed successfully with branch tracking established; live content verified at GitHub; all quality gates, 12 test suites, and Next.js production build passed cleanly.
+
 
 
