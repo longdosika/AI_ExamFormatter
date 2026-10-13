@@ -303,3 +303,12 @@ T-058 runtime diagnosis: actual stream evidence shows schema JSON wholly in mess
 3. **Tier 3 - Auto Local OCR Failover:** หาก Cloud OCR ขัดข้อง (`fetch failed`, Connection reset) ให้สลับไปเรียก Local OCR (Ollama ในเครื่อง) อัตโนมัติ
 4. **Tier 4 - Graceful Manual Fallback:** หาก Local OCR ไม่พร้อม ให้แสดงกล่องเตือนสี Earth-Tone พร้อมปุ่ม 1-Click "สร้างแบบร่างข้อสอบทันที (เน้นความเร็ว)" และ "ดึงข้อความดิจิทัลเดิม" เพื่อให้ผู้ใช้ทำงานได้เสมอโดยไม่มี Deadlock
 
+
+### T-066 Blueprint parity notes
+OCR text is normalized before question parsing so diacritic/front-vowel spacing repairs cannot change question boundaries. Repairs are conservative and preserve unknown `�` corruption for review. `คำตอบ:` and `Answer:` are visible answer evidence but do not override conflicting explicit keys. Matrix-table rendering, shared-context ownership, crop edge clearance, and QuizFlow output manifests remain partial/unknown until real source fixtures are available. See `evidence/t066-blueprint-parity.md`.
+
+### T-068 image/PDF flow
+The source pane remains the stable reference image/PDF. Import can render scanned PDFs locally, OCR is reviewed as editable raw text, then explicit conversion creates editable questions. The browser must never silently treat a worker-load failure as an OCR accuracy failure; local pdf.js assets and visible error state keep this boundary diagnosable.
+
+### T-069 long scanned exam layout
+Long scanned documents keep the original page pane independent while the editor navigation reflects every parsed source question. A figure marker is converted to a page-owned `[รูปโจทย์]` image when a page image is available. Answer state remains explicit: source text/asterisk is shown as source evidence; ambiguous handwriting or unavailable Vision responses remain unresolved.

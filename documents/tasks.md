@@ -912,8 +912,8 @@ T-058 runtime diagnosis: actual stream evidence shows schema JSON wholly in mess
 
 ### T-059 QuizFlow Technique Deep Dive and Architecture Porting
 - Type: Research / Architecture
-- Status: In Progress
-- Lifecycle: Proposed -> Ready -> In Progress
+- Status: Done
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
 - Owner: Codex / Core Architect
 - Problem: User requested studying the battle-tested conversion, answer reconciliation, and image cropping techniques from the QuizFlow engine (`D:\0-Project\10-Obsidian\quizflow\skills\gdoc-exam-formatter`) to adopt and elevate AI Exam Formatter's accuracy and robustness.
 - Acceptance Criteria:
@@ -1008,6 +1008,115 @@ T-058 runtime diagnosis: actual stream evidence shows schema JSON wholly in mess
 - Expected verification: Unit tests pass, `/api/google/session` returns granular diagnostic information, git push triggers fresh Vercel deployment.
 - Verification result: Passed. Trailing slash normalization implemented and verified in `googleConfig()`; `missingFields` array exposed in `GET /api/google/session` and rendered in `GoogleDriveStatus`; all unit test suites, vault checks, and finish-task gate passed cleanly.
 
+### T-065 OCR request-size handling and imported skill compatibility
+- Type: Bug / Refactor
+- Status: In Progress
+- Lifecycle: Proposed -> Ready -> In Progress
+- Owner: Codex / OCR & Runtime Engineer
+- Problem: Multi-page OCR batches are limited to ten pages but not to a request-body size. Large Base64 PNG batches can be rejected by the runtime/proxy as plain-text `Request Entity Too Large`; `lib/ocr-client.ts` then calls `response.json()` unconditionally and exposes `Unexpected token 'R'` instead of the actionable cause. A copied `gdoc-exam-formatter` skill specification also contains assumptions from another repository and must not override this project's source-of-truth or localhost/Vercel boundaries.
+- Acceptance Criteria:
+  1. Build OCR batches using both the ten-page ceiling and a conservative serialized request-size ceiling while preserving absolute page numbering and progress.
+  2. Parse non-JSON OCR failures safely and show a Thai message explaining that the batch was too large or the provider returned an invalid response.
+  3. Add regression coverage for adaptive batching and plain-text HTTP failures.
+  4. Record compatibility guidance: imported skill rules are advisory and must be reconciled with this repository's `AGENTS.md`, `README.md`, and knowledge vault before use.
+- Affected Files: `lib/ocr-client.ts`, `scripts/test-ocr-client.cjs`, `documents/tasks.md`, `documents/memory.md`, `documents/decisions.md`, `README.md`.
+- Expected verification: `node scripts/test-ocr-client.cjs`, `npm test`, `npm run typecheck`, and `node scripts/finish-task.mjs T-065`.
+
+### T-066 QuizFlow conversion blueprint parity: Thai normalization and answer directives
+- Type: Feature / Parser hardening
+- Status: In Progress
+- Lifecycle: Proposed -> Ready -> In Progress
+- Owner: Codex / Parser & Source-Fidelity Engineer
+- Problem: The imported QuizFlow blueprint documents evidence-backed conversion rules, but this repository has no QuizFlow golden fixture files and must not claim parity from the blueprint alone. Two portable rules are directly applicable and testable here: Thai OCR spacing repair must run before structural parsing, and explicit answer directives must recognize `คำตอบ`/`Answer` in addition to `ตอบ`/`เฉลย`.
+- Acceptance Criteria:
+  1. Centralize conservative Thai OCR normalization with multi-pass diacritic/front-vowel spacing repair and explicit replacement mapping; never guess unknown replacement characters.
+  2. Run that normalization before question/choice/explanation parsing without changing source page markers or inline media.
+  3. Reconcile explicit `ตอบ`, `เฉลย`, `คำตอบ`, and `Answer` directives with explanation precedence; conflicting explicit keys stay unresolved.
+  4. Add regression fixtures derived from the supplied Blueprint examples and existing parser contracts, clearly marked as synthetic until the real QuizFlow corpus is imported.
+  5. Record parity gaps and porting boundaries; do not copy hard-coded QuizFlow paths, crop coordinates, template IDs, or hidden reasoning into production.
+- Affected Files: `lib/text-normalization.ts`, `lib/ocr-service.ts`, `lib/exam-parser.ts`, `scripts/test-parser.cjs`, `scripts/test-ocr-contract.cjs`, `evidence/t066-synthetic-fixtures.json`, `evidence/t066-blueprint-parity.md`, `evidence/t066-verification.md`, `features/r-002-feature.md`, `documents/tasks.md`, `documents/prd.md`, `documents/architecture.md`, `documents/design.md`, `documents/decisions.md`, `documents/traceability.md`, `documents/code-map.md`, `documents/memory.md`, `documents/00-index.md`, `README.md`.
+- Expected verification: parser/OCR regression tests, `npm test`, `npm run typecheck`, `npm run lint`, browser E2E recheck, and `node scripts/finish-task.mjs T-066`.
+- Verification update (2026-10-13): parser/OCR targeted tests, `npm test`, typecheck, lint, Knowledge Vault check, and drift check passed. Browser E2E passed 11 checks but remains blocked at the existing 12-page fixture waiting for `ข้อความ OCR สำหรับตรวจแก้` (`scripts/test-e2e.cjs:218`); finish gate is therefore not yet successful. External QuizFlow golden artifacts remain unavailable, so synthetic fixtures cannot certify external output parity.
+- Current blocker/owner: project owner must provide permitted QuizFlow golden inputs and expected artifacts; Codex must recheck the 12-page E2E raw-review transition before moving T-066 to `Verified`.
+
+### T-067 Acquire QuizFlow golden corpus for parity certification
+- Type: Confirmation / Evidence acquisition
+- Status: Proposed
+- Lifecycle: Proposed
+- Owner: Project owner / QuizFlow source custodian
+- Problem: The supplied Blueprint names QuizFlow builders, manifests, DOCX/Google Doc outputs and golden counts, but those files are not present in this repository. Synthetic T-066 tests cannot prove external output parity.
+- Acceptance Criteria: Provide a permitted, secret-free fixture package or links containing at least one source input, expected parsed structure, expected answer provenance, media ownership/crops, and output/readback artifact; record hashes and license/permission; add a real fixture test before claiming parity.
+- Affected Files: `evidence/`, `scripts/test-parser.cjs` or a dedicated fixture runner, `documents/tasks.md`, `documents/traceability.md`, `documents/decisions.md`, `documents/memory.md`.
+- Expected verification: fixture hash/readback check, regression test, browser/manual evidence where applicable, and `node scripts/finish-task.mjs T-067`.
+
+### T-068 Complete image-exam conversion flow
+- Type: Bug / Feature hardening
+- Status: Done
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Owner: Codex / Image OCR & Browser-flow Engineer
+- Problem: Image uploads reach the OCR boundary, but the complete user flow is not yet certified end-to-end. The system must reliably show OCR text for review, preserve the original image for comparison, allow explicit conversion into editable exam questions, preserve source-provided answers/images, and remain usable when OCR is incomplete or provider/runtime state is stale.
+- Acceptance Criteria:
+  1. A PNG/JPG upload is represented as a source image and reaches the OCR route with image bytes; OCR progress/failure remains visible.
+  2. Successful OCR exposes editable raw text before conversion; conversion uses the edited text without rerunning OCR.
+  3. Valid choices, source answer directives/markers, and `[รูปโจทย์]` ownership survive conversion; incomplete structure remains reviewable and never invents questions/answers.
+  4. Browser regression covers one image with mocked OCR, edited-text conversion, source-pane stability, and an OCR failure/incomplete path.
+  5. Existing 12-page E2E fixture is either repaired with evidence or explicitly isolated as an unrelated runtime blocker; no test is weakened to hide the failure.
+- Affected Files: `app/page.tsx`, `components/SplitDocumentEditor.tsx`, `lib/file-parser.ts`, `lib/ocr-client.ts`, `lib/pdf-renderer.ts`, `scripts/test-e2e.cjs`, `scripts/test-parser.cjs`, `scripts/test-ocr-client.cjs`, `scripts/sync-pdf-assets.cjs`, `scripts/test-pdf-assets.cjs`, `public/pdf.worker.min.js`, `public/pdf-assets/`, `package.json`, `documents/tasks.md`, `documents/prd.md`, `documents/architecture.md`, `documents/design.md`, `documents/decisions.md`, `documents/traceability.md`, `documents/code-map.md`, `documents/memory.md`, `documents/00-index.md`, `README.md`.
+- Expected verification: targeted parser/OCR/PDF-asset tests, `npm test`, `npm run typecheck`, `npm run lint`, isolated browser E2E, and `node scripts/finish-task.mjs T-068`.
+- Verification update (2026-10-13): local PDF worker/font/cmap assets pass; fresh browser E2E on `http://127.0.0.1:3220` passed all 15 checks, including unknown PNG OCR boundary, edited-text reconversion, 12-page 10+2 OCR batching, provider failure, source stability and no uncaught browser errors. `npm test`, typecheck, lint (8 existing image optimization warnings), knowledge vault, and drift checks pass. `node scripts/finish-task.mjs T-068` passed semantic, platform, drift, typecheck, lint, test, E2E, build, and CSS health gates. Evidence: `evidence/t068-verification.md`.
+
+### T-069 Complete 80-question image/PDF conversion fidelity
+- Type: Bug / Feature hardening
+- Status: In Progress
+- Lifecycle: Proposed -> Ready -> In Progress
+- Owner: Codex / Exam fidelity and media-answer pipeline
+- Problem: A real 80-question scanned exam currently produces only 27 navigable converted items. The source pane contains the full document, but OCR/parser boundaries, question-owned image attachment, and source-answer extraction are not yet proven for long mixed-layout files. The user also reports that inserted question images and available teacher answers are absent after conversion.
+- Acceptance Criteria:
+  1. Preserve and report all source question numbers from the OCR/raw review; no silent collapse from 80 to 27. Any unresolved ranges are explicitly listed with evidence.
+  2. Parse long documents with mixed numbered lists, tables, figures, and continuation lines without inventing questions or merging distinct questions.
+  3. Attach question-owned images with `[รูปโจทย์]` above the image and preserve them through conversion/edit/export snapshots.
+  4. Use source answer marks/directives when evidence exists; leave ambiguous or missing answers visibly unresolved and record provenance.
+  5. Add a regression fixture/contract for an 80-question, 13-page shape and browser coverage for count, media, and answer states.
+  6. Run the completion gate and record real evidence before closing the task.
+- Affected Files: `lib/exam-parser.ts`, `lib/file-parser.ts`, `lib/ocr-service.ts`, `lib/source-answer-service.ts`, `lib/source-answer-client.ts`, `app/page.tsx`, `components/SplitDocumentEditor.tsx`, `scripts/test-parser.cjs`, `scripts/test-e2e.cjs`, `documents/tasks.md`, `documents/prd.md`, `documents/architecture.md`, `documents/design.md`, `documents/decisions.md`, `documents/traceability.md`, `documents/code-map.md`, `documents/memory.md`, `documents/00-index.md`, `README.md`, `features/r-002-feature.md`, `evidence/`.
+- Expected verification: targeted long-document/parser/media/answer tests, `npm test`, `npm run typecheck`, `npm run lint`, fresh browser E2E with 80-question fixture, and `node scripts/finish-task.mjs T-069`.
+
+- Verification update (2026-10-13): parser and browser regressions found and fixed a second numeric-choice edge case: after a `1..4` block, `5.` was previously consumed as a fifth choice. Numeric choices are now capped at four; `5.` is treated as a next question only when an immediate letter-choice block follows, otherwise it remains stem enumeration. `node scripts/test-parser.cjs` PASS, `npm test` PASS, `npm run typecheck` PASS, `npm run lint` PASS with 8 existing image warnings, and `node scripts/check-knowledge-drift.mjs --require-git` PASS. Fresh browser E2E on `http://127.0.0.1:3220` PASS (16 checks): 80 navigable questions, 10+2 batching, page-owned figure rendering, stable original pane, mobile layout, provider-failure handling, and no uncaught browser errors. Evidence: `evidence/t069-verification.md`, `evidence/qa-iteration-2/results.json`.
+- Remaining blocker/owner: live Gemini Vision source-answer calls are still blocked by recorded HTTP 429 (`evidence/t057-quota-image-20261012.json`, `evidence/t057-provider-recheck.json`). The app intentionally leaves answers unresolved. Project owner must recheck the Gemini API key/project quota and rerun the real 80-question file before T-069 can be moved to `Verified`/`Done` for the answer criterion.
 
 
 
+
+- Additional regression update (2026-10-13): all-numeric 80-question input now passes too. A 5. after a numeric 1..4 block is a new question when its immediate following lines are either letter choices or numeric 1..4 choices; a stem enumeration remains intact when neither pattern follows.
+
+### T-070 QuizFlow golden source/output parity for Chapter 7 separation exam
+- Type: Confirmation / Evidence acquisition / Feature parity
+- Status: In Progress
+- Lifecycle: Proposed -> Ready -> In Progress
+- Owner: Project owner / QuizFlow source custodian with Codex parity engineer
+- Problem: The project now has the real 13-page scanned source PDF, but the expected QuizFlow Google Doc output is not readable from this runtime. The source contains mixed two-column numeric choices, shared contexts, tables, image-only choices, figures, and teacher answer marks, so the existing synthetic parity fixtures cannot prove the required output shape, media ownership, answer provenance, or learner-facing layout.
+- Acceptance Criteria:
+  1. Record the source PDF hash, page count, and representative rendered-page evidence without modifying the source.
+  2. Obtain a permitted readback/export of the expected QuizFlow output (Google Doc access, DOCX/PDF/HTML export, or equivalent secret-free fixture) and record its hash/permission note.
+  3. Build a parity matrix for question count/numbering, shared contexts, tables, image-only choices, question images, answer marks/directives, explanations, formatting, and visible captions/placeholders.
+  4. Add golden-fixture metadata and regression tests only for behaviors supported by the source/output evidence; unresolved answer or image cases remain explicit warnings.
+  5. Update the affected knowledge-vault documents and traceability, run the relevant test/build/browser checks, and use `node scripts/finish-task.mjs T-070` before moving beyond Verified.
+- Affected Files: `documents/tasks.md`, `evidence/`, `documents/traceability.md`, `documents/decisions.md`, `documents/memory.md`, `documents/00-index.md`, `README.md`, and (after evidence review) `lib/exam-parser.ts`, `lib/ocr-service.ts`, `lib/pdf-renderer.ts`, `app/page.tsx`, `components/SplitDocumentEditor.tsx`, `scripts/test-parser.cjs`, `scripts/test-e2e.cjs`.
+- Expected verification: source hash/render check, expected-output readback check, parity-matrix review, targeted parser/media/answer regressions, `npm test`, `npm run typecheck`, `npm run lint`, browser E2E, knowledge-vault/drift checks, and `node scripts/finish-task.mjs T-070`.
+- Current blocker/owner: the supplied Google Doc currently returns an access/network failure from this runtime. Project owner must either grant permitted link access/export the expected output into the workspace or provide a connected Google Drive/Docs session before exact parity claims or code changes are made.
+
+### T-071 Cross-machine Git handoff and environment parity check
+- Type: Tooling / Portability
+- Status: Done
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Owner: Codex / Project owner
+- Problem: Moving the project to another Windows machine currently depends on remembering manual Git, dependency, `.env.local`, Ollama, OAuth, port, and test checks. A clone can appear ready while the required runtime/provider configuration is missing or inconsistent.
+- Acceptance Criteria:
+  1. Add a cross-platform Node environment doctor that checks Git/package-lock identity, Node/npm compatibility, dependencies/Next binary, safe env-key presence, configured OCR mode, local Ollama reachability/model, port availability, and optional provider readiness without printing secrets.
+  2. Add reproducible Git push/clone/handoff instructions that explicitly keep `.env.local` and keys out of Git and use `npm ci` from the committed lockfile.
+  3. Record a redacted environment evidence artifact on request and include actionable PASS/WARN/FAIL output with exit codes.
+  4. Add a regression test for the doctor output/schema and synchronize README/decision/memory/traceability.
+  5. Run the doctor, targeted test, full applicable checks, and `node scripts/finish-task.mjs T-071` before closing.
+- Affected Files: `scripts/check-environment.mjs`, `scripts/test-environment-check.cjs`, `package.json`, `.env.example`, `README.md`, `documents/tasks.md`, `documents/decisions.md`, `documents/memory.md`, `documents/traceability.md`, `evidence/`.
+- Expected verification: `npm run env:check`, `npm run test:environment`, `npm test`, `npm run typecheck`, `npm run lint`, and `node scripts/finish-task.mjs T-071`.
+- Verification update (2026-10-13): `npm run env:check -- --skip-network --json` PASS; `npm run env:check:record` PASS and wrote `evidence/environment-check.json`; `npm run test:environment` PASS; full `npm test` PASS when loopback was permitted; `npm run typecheck` PASS; lint PASS with 8 pre-existing image warnings; `node scripts/finish-task.mjs T-071` PASS including knowledge, drift, E2E, build, and CSS gates. The first sandboxed test attempt failed only because the runtime denied the test's temporary loopback listener (`EACCES`), then passed outside sandbox.

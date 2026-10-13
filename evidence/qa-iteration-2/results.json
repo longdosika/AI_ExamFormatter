@@ -13,8 +13,9 @@
     "Unknown PNG enters real UI/API boundary with embedded image (mocked provider, not OCR accuracy proof)",
     "Unknown image retains raw text and allows explicit reviewed reconversion",
     "Statistics download survives reload and separates file-text/OCR/review without source text",
-    "Twelve-page PDF automatically splits 10+2 requests and preserves absolute source pages (mocked OCR)",
+    "Twelve-page PDF splits 10+2 requests, preserves source pages, and renders page-owned figure media (mocked OCR)",
     "Question numbered navigation, stable original, keyboard, scroll highlight and mobile width passed",
+    "80-question browser conversion keeps all question navigation items",
     "Provider HTTP failure is displayed instead of asking to edit nonexistent OCR text",
     "No uncaught browser runtime errors"
   ],

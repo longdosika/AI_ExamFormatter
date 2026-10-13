@@ -3,6 +3,8 @@
  * Specifically designed for Thai document and exam parsing
  */
 
+import { normalizeThaiOcrText } from "./text-normalization";
+
 export interface OcrResult {
   success: boolean;
   text: string;
@@ -12,9 +14,9 @@ export interface OcrResult {
 
 /** Normalize harmless Markdown escaping emitted by Typhoon before parsing. */
 export function normalizeOcrText(text: string): string {
-  return text
+  return normalizeThaiOcrText(text
     .replace(/\\([\\`*_[\]{}()#+.!-])/g, "$1")
-    .replace(/\r\n/g, "\n")
+    .replace(/\r\n/g, "\n"))
     // A checkbox is not answer evidence. Strip it only when the actual
     // printed choice key is still present; missing keys remain unresolved.
     .replace(/^[ \t]*[☐☑]\s*(?=[ก-จA-E][.)])/gm, "")

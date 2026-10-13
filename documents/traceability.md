@@ -102,3 +102,15 @@ T-058 runtime diagnosis: actual stream evidence shows schema JSON wholly in mess
 
 T-064 Google Drive OAuth diagnostic & URL normalization -> features/r-003-google-doc-dirve.md -> lib/google-auth.ts, app/api/google/session/route.ts, components/GoogleDriveStatus.tsx -> scripts/test-google.cjs.
 
+
+### T-066 QuizFlow conversion blueprint parity
+Requirement R-002/R-004 -> Task T-066 -> parser/OCR feature note -> `lib/text-normalization.ts`, `lib/ocr-service.ts`, `lib/exam-parser.ts` -> synthetic regressions in `scripts/test-parser.cjs` and `scripts/test-ocr-contract.cjs` -> `evidence/t066-blueprint-parity.md` and `evidence/t066-verification.md`. External QuizFlow golden artifacts are absent, so the traceability claim is limited to deterministic rules evidenced in this repository.
+
+### T-068 image conversion traceability
+Requirement R-001/R-002 -> T-068 -> `app/page.tsx`, `lib/pdf-renderer.ts`, `scripts/test-e2e.cjs`, `scripts/sync-pdf-assets.cjs`, `public/pdf.worker.min.js`, `public/pdf-assets/` -> `evidence/t068-verification.md`.
+
+### T-069 traceability
+Requirement R-001/R-002 -> T-069 -> `lib/exam-parser.ts`, `app/page.tsx`, `scripts/test-parser.cjs` -> `evidence/t069-verification.md`. Answer provider quota remains linked to T-057 and is not silently bypassed by this parser fix.
+
+### T-071 traceability
+Portability requirement -> T-071 -> `scripts/check-environment.mjs`, `scripts/test-environment-check.cjs`, `.env.example`, `package.json`, `README.md` -> `evidence/environment-check.json` (when recorded). The handoff contract uses `git push`/`git clone`, `npm ci`, machine-local `.env.local`, and redacted environment checks; provider warnings are not treated as successful OCR/answer accuracy.

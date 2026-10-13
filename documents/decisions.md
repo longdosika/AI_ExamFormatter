@@ -21,6 +21,11 @@
 - Affected notes: `next.config.mjs`, `scripts/finish-task.mjs`, `scripts/test-e2e.cjs`, `scripts/check-css.mjs`, [[tasks]], [[traceability]], [[code-map]].
 - Status: `Approved`
 
+### D-065 OCR request-size and imported-skill boundary
+- Decision: Keep the provider's ten-page ceiling, but split client requests earlier when serialized Base64 payloads approach 3 MB. Treat non-JSON HTTP failures as transport errors with user-facing guidance.
+- Rationale: Runtime/proxy limits vary by deployment and can return plain text such as `Request Entity Too Large`; unconditional JSON parsing obscures the real cause. A skill copied from another repository may inform heuristics but cannot override this repository's governance or source-of-truth documents.
+- Status: `Approved`
+
 ## D-009 Automated Windows dependency recovery
 - Context: `npm ci` can fail while replacing the Next SWC native binary, leaving a partial `node_modules` tree and making local startup impossible.
 - Decision: Use `scripts/bootstrap-local.ps1` as the supported recovery path. It stops only project-owned Node processes, preserves the existing dependency tree as a timestamped backup, installs from the lockfile, validates the Next binary, runs checks, and starts a local server. It never deletes source or `.env.local` and never prints secrets.
@@ -189,3 +194,22 @@ T-058 runtime diagnosis: actual stream evidence shows schema JSON wholly in mess
 - Status: `Approved`
 
 
+
+## D-016 Port deterministic QuizFlow rules only (2026-10-13)
+- Context: A QuizFlow conversion blueprint was supplied, but the referenced external source files and golden outputs are not present in this repository.
+- Decision: Port only rules that are deterministic and directly testable here: conservative Thai OCR normalization before parsing, explicit `คำตอบ`/`Answer` answer directives, and unresolved handling for conflicting evidence. Keep unknown replacement characters visible.
+- Excluded: hidden reasoning, hard-coded paths/crops/templates, unverified manifest schemas, auto-solving, and claims of QuizFlow output parity.
+- Evidence: `evidence/t066-blueprint-parity.md`, `scripts/test-parser.cjs`, `scripts/test-ocr-contract.cjs`.
+- Status: `In Progress` pending full repository verification and external golden corpus acquisition.
+
+### D-017 Keep pdf.js runtime assets local
+Decision: serve the pdf.js worker, cmap files, and standard fonts from repository `public/` assets and synchronize them from `pdfjs-dist` during postinstall. Reason: the previous CDN URL made valid imports depend on a third-party origin and produced a misleading return-to-upload failure in browser E2E. Tradeoff: approximately 3 MB of static assets are maintained in the app, with a regression check to detect missing files after dependency changes.
+
+### D-018 Numeric choice boundary before question boundary
+Decision: detect a complete numeric choice block before treating a numeric line as a new question. This prevents question 2/3/4 choice labels from swallowing or merging later questions, including when a page marker appears between the choices and the next question. A fifth numeric stem item remains a stem enumeration, preserving source fidelity.
+
+### D-019 Numeric choice boundary clarification (2026-10-13)
+Numeric-choice blocks are capped at four. A following 5. remains a stem-enumeration item unless the very next line is a letter choice, which identifies question 5 after question 4. This distinction is covered by the alternating 80-question regression and prevents both merged questions and false question boundaries.
+
+### D-020 Cross-machine environment contract (2026-10-13)
+Use the committed `package-lock.json` with `npm ci` on every machine. Keep `.env.local` machine-specific and untracked. `scripts/check-environment.mjs` is the portable doctor: it reports redacted PASS/WARN/FAIL checks for runtime, dependencies, provider configuration, optional services, and port state. It must never print secret values or make a remote provider call merely to claim readiness; local Ollama reachability is checked only when local OCR is configured. `--write-evidence` records a safe environment snapshot for comparison.

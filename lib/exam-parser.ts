@@ -1,11 +1,12 @@
 import { ExamItem, ChoiceItem, FORMATTER_CONSTANTS, normalizeChoiceKey } from "./formatter-rules";
+import { normalizeThaiOcrText } from "./text-normalization";
 
 /** Reconcile only answer evidence present in the source. */
 export function reconcileAnswerKey(choiceAsteriskKey: string | null, explanationText: string): {
   finalKey: string | undefined;
   provenance: ExamItem["reconciliationProvenance"];
 } {
-  const keys = new Set(Array.from(explanationText.matchAll(/(?:ตอบ|เฉลย)\s*[:：]?\s*(?:ข้อ)?\s*([ก-จA-E1-5])(?=[\s.)]|$)/gi), match => normalizeChoiceKey(match[1])));
+  const keys = new Set(Array.from(explanationText.matchAll(/(?:ตอบ|เฉลย|คำตอบ|answer)\s*[:：]?\s*(?:ข้อ)?\s*([ก-จA-E1-5])(?=[\s.)]|$)/gi), match => normalizeChoiceKey(match[1])));
   if (keys.size > 1) return { finalKey: undefined, provenance: "unresolved" };
   if (keys.size === 1) return { finalKey: Array.from(keys)[0], provenance: "reconciled_from_explanation" };
   if (choiceAsteriskKey) return { finalKey: choiceAsteriskKey, provenance: "source_asterisk" };
@@ -89,7 +90,7 @@ export function splitInlineChoices(rawText: string): string[] {
 
 /** Parse numbered questions without substituting generated content. */
 export function parseExamText(rawText: string, embeddedImages: { id: string; dataUrl: string }[] = [], _fileName = ""): ExamItem[] {
-  const lines = splitInlineChoices(rawText);
+  const lines = splitInlineChoices(normalizeThaiOcrText(rawText));
   const items: ExamItem[] = [];
   let number = 0;
   let question = "";
@@ -103,6 +104,38 @@ export function parseExamText(rawText: string, embeddedImages: { id: string; dat
   const numbered = /^(?:(?:ข้อ\s*(?:ที่)?\s*)?(\d+)[.)]\s*|\((\d+)\)\s*)(.*)$/;
   const choicePattern = /^(?:([ก-จA-E1-5])[.)]\s*|\(([ก-จA-E1-5])\)\s*)(.*)$/i;
   const sectionPattern = /^(?:ชุด|ตอน|แบบทดสอบ|ข้อสอบ)\s*(?:ที่)?\s*\d+/i;
+
+  // OCR frequently uses the same numeric form for both question numbers and
+  // numeric answer choices. A four-line 1..4 block followed by a later
+  // question (rather than a letter choice) is a choice block; treat it as
+  // such before applying question-boundary logic. This prevents question 2
+  // inside question 1's numeric choices from swallowing the rest of a long
+  // document.
+  const isNumericChoiceBlockStart = (lineIndex: number, activeNumber: number) => {
+    if (activeNumber <= 0) return false;
+    const keys = lines.slice(lineIndex, lineIndex + 4).map(candidate => {
+      const choice = candidate.match(choicePattern);
+      const question = candidate.match(numbered);
+      return choice ? Number(choice[1] || choice[2]) : question ? Number(question[1] || question[2]) : NaN;
+    });
+    if (keys.length !== 4 || !keys.every((key, index) => key === index + 1)) return false;
+    const following = lines.slice(lineIndex + 4).find(candidate => !/^--- หน้าที่ \d+ ---$/.test(candidate));
+    if (!following) return true;
+    if (/^(?:[ก-จA-E])[.)]\s*/i.test(following)) return false;
+    const nextQuestion = following.match(numbered);
+    if (nextQuestion && Number(nextQuestion[1] || nextQuestion[2]) === 5) {
+      // `5.` is often a fifth stem item, but it is also a valid next question
+      // after question 4. Treat it as a real boundary when a letter-choice
+      // block follows immediately; otherwise preserve the stem enumeration.
+      const nextQuestionIndex = lines.indexOf(following, lineIndex + 4);
+      const hasImmediateLetterChoices = /^(?:[ก-จA-E])[.)]\s*/i.test(lines[nextQuestionIndex + 1] || "");
+      const numericChoiceKeys = lines.slice(nextQuestionIndex + 1, nextQuestionIndex + 5)
+        .map(candidate => candidate.match(numbered)?.[1] || candidate.match(numbered)?.[2] || "");
+      const hasImmediateNumericChoices = numericChoiceKeys.length === 4 && numericChoiceKeys.every((key, index) => Number(key) === index + 1);
+      if (!hasImmediateLetterChoices && !hasImmediateNumericChoices) return false;
+    }
+    return Boolean(nextQuestion && Number(nextQuestion[1] || nextQuestion[2]) > activeNumber);
+  };
 
   // Numbered reasoning inside explanations is not a new question. Require
   // source choice evidence before accepting an otherwise ambiguous boundary.
@@ -135,9 +168,16 @@ export function parseExamText(rawText: string, embeddedImages: { id: string; dat
       // Explicit inline media belongs to this question; never shift a sparse
       // image list onto earlier questions just because its array index matches.
       const inlineMedia = question.match(/!\[[^\]]*\]\((data:image\/(?:png|jpeg);base64,[A-Za-z0-9+/=]+)\)/);
-      const imageUrl = inlineMedia?.[1] || embeddedImages.find(image => image.id === `question-${number}`)?.dataUrl ||
+      const hasFigureMarker = /\[รูป(?:ต้องตรวจสอบ|โจทย์)\]|<figure\b/i.test(question);
+      const pageImage = hasFigureMarker && questionSourcePage
+        ? embeddedImages.find(image => image.id === `page-${questionSourcePage}`)?.dataUrl
+        : undefined;
+      const imageUrl = inlineMedia?.[1] || embeddedImages.find(image => image.id === `question-${number}`)?.dataUrl || pageImage ||
         (embeddedImages.some(image => /^question-\d+$/.test(image.id)) ? undefined : embeddedImages[items.length]?.dataUrl);
-      const visibleQuestion = question.replace(/!\[[^\]]*\]\(data:image\/(?:png|jpeg);base64,[A-Za-z0-9+/=]+\)/g, "").trim();
+      const visibleQuestion = question
+        .replace(/!\[[^\]]*\]\(data:image\/(?:png|jpeg);base64,[A-Za-z0-9+/=]+\)/g, "")
+        .replace(/\[รูป(?:ต้องตรวจสอบ|โจทย์)\]/g, "")
+        .trim();
       items.push({
         id: items.length + 1,
         questionNumber: number,
@@ -180,6 +220,10 @@ export function parseExamText(rawText: string, embeddedImages: { id: string; dat
     const qNum = qMatch ? Number(qMatch[1] || qMatch[2]) : null;
     const qText = qMatch ? qMatch[3] : "";
 
+    if (number && qMatch && qNum === 1 && !choices.length && isNumericChoiceBlockStart(index, number)) {
+      numericChoices = true;
+    }
+
     // Detect start of sub-enumeration list (1..N) inside question stem when letter choices follow ahead
     if (number > 1 && !choices.length && !numericChoices && (qNum === 1 || cKey === "1")) {
       for (let c = index; c < lines.length; c++) {
@@ -215,7 +259,11 @@ export function parseExamText(rawText: string, embeddedImages: { id: string; dat
     }
 
     const isChoice = cMatch && cKey && number && !insideExplanation &&
-      (!/^\d$/.test(cKey) || (numericChoices && Number(cKey) === choices.length + 1 && choices.length < 5));
+      // Numeric exams have four answer choices. Once 1..4 are present, a
+      // following `5.` is a question boundary (or stem text), never a fifth
+      // answer choice. Keeping this cap prevents long scans from losing every
+      // question that follows a numeric-choice block.
+      (!/^\d$/.test(cKey) || (numericChoices && Number(cKey) === choices.length + 1 && choices.length < 4));
 
     if (isChoice && cMatch && cKey) {
       inStemEnumeration = false;
@@ -228,6 +276,18 @@ export function parseExamText(rawText: string, embeddedImages: { id: string; dat
 
     if (number > 1 && !choices.length && !numericChoices && (qNum === 1 || cKey === "1")) {
       inStemEnumeration = true;
+    }
+
+    // A larger number is a new question unless it is one of the pending
+    // numeric choices or a numeric stem enumeration. Evaluate this after the
+    // stem probe so a 13-page exam does not collapse into a few items.
+    const isPendingNumericChoice = Boolean(numericChoices && qNum !== null && qNum > number && qNum <= 4 && choices.length < 4);
+    if (qMatch && qNum && qNum > number && !inStemEnumeration && !isPendingNumericChoice && (!insideExplanation || hasFollowingChoices(index))) {
+      finish();
+      number = qNum;
+      questionSourcePage = currentPage;
+      question = qText;
+      continue;
     }
 
     const isSubEnumerationInStem = (inStemEnumeration && !choices.length) || (
@@ -249,10 +309,11 @@ export function parseExamText(rawText: string, embeddedImages: { id: string; dat
       continue;
     }
 
-    const explanationMatch = line.match(/^(คำอธิบาย|เฉลย)\s*:\s*(.*)$/);
+    const explanationMatch = line.match(/^(คำอธิบาย|เฉลย|คำตอบ|Answer)\s*:\s*(.*)$/i);
     if (explanationMatch && number) {
       insideExplanation = true;
-      explanation += (explanation ? " " : "") + (explanationMatch[1] === "เฉลย" ? "เฉลย: " : "") + explanationMatch[2];
+      const answerLabel = /^(เฉลย|คำตอบ|answer)$/i.test(explanationMatch[1]) ? `${explanationMatch[1]}: ` : "";
+      explanation += (explanation ? " " : "") + answerLabel + explanationMatch[2];
       continue;
     }
 

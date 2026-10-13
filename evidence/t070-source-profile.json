@@ -1,0 +1,24 @@
+{
+  "task_id": "T-070",
+  "captured_at": "2026-10-13T00:00:00+07:00",
+  "source_path": "D:\\0-Project\\10-Obsidian\\quizflow\\tmp\\บทที่ 7 ชุดที่ 1 เรื่อง การแยกสาร.pdf",
+  "sha256": "4D46497721A7FD8E3EDC0242E7B3CBB35AC08609B6AD46B7626D9CE80279A018",
+  "bytes": 3149425,
+  "pdfinfo": "Creator:         DocuCentre-VII C3372\r\nProducer:        DocuCentre-VII C3372\r\nCreationDate:    Wed Oct  7 10:19:24 2026 SE Asia Standard Time\r\nModDate:         Wed Oct  7 10:20:22 2026 SE Asia Standard Time\r\nCustom Metadata: no\r\nMetadata Stream: yes\r\nTagged:          no\r\nUserProperties:  no\r\nSuspects:        no\r\nForm:            none\r\nJavaScript:      no\r\nPages:           13\r\nEncrypted:       no\r\nPage size:       595.44 x 842.4 pts (A4)\r\nPage rot:        180\r\nFile size:       0 bytes\r\nOptimized:       yes\r\nPDF version:     1.6\r\n",
+  "rendered_representatives": [
+    ".tmp-t070-pdf/page-01.png",
+    ".tmp-t070-pdf/page-02.png",
+    ".tmp-t070-pdf/page-03.png",
+    ".tmp-t070-pdf/page-04.png",
+    ".tmp-t070-pdf/page-13.png"
+  ],
+  "expected_output": "https://docs.google.com/document/d/1wyAaKDjHQM8lYqhwXqGX7fJgXZ8FZ1Xa/edit",
+  "expected_output_readback": "blocked: docs.google.com inaccessible from this runtime and no connected document session",
+  "observations": [
+    "13-page scanned source; pdftotext has no usable text layer",
+    "numeric 1-4 choices and two-column layouts",
+    "shared contexts/tables and image-only choices",
+    "figures on late pages; page 13 includes question 80 figure",
+    "teacher marks are visible in scans but answer provenance is not yet extracted"
+  ]
+}

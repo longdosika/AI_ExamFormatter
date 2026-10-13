@@ -8,10 +8,15 @@
     "start": "node -r ./scripts/next-realpath-shim.cjs ./node_modules/next/dist/bin/next start",
     "typecheck": "tsc --noEmit",
     "lint": "eslint app components lib scripts --ext .ts,.tsx,.mjs,.cjs",
-    "test": "node scripts/check-knowledge-vault.mjs && node scripts/test-parser.cjs && node scripts/test-source-answers.cjs && node scripts/test-local-vision-metrics.cjs && node scripts/test-local-vision-http.cjs && node scripts/test-ocr-contract.cjs && node scripts/test-ocr-client.cjs && node scripts/test-experiment-stats.cjs && node scripts/test-import-history.cjs && node scripts/test-cases.cjs && node scripts/test-performance.cjs && node scripts/test-google.cjs",
+    "test": "node scripts/check-knowledge-vault.mjs && node scripts/test-environment-check.cjs && node scripts/test-parser.cjs && node scripts/test-source-answers.cjs && node scripts/test-local-vision-metrics.cjs && node scripts/test-local-vision-http.cjs && node scripts/test-ocr-contract.cjs && node scripts/test-ocr-client.cjs && node scripts/test-experiment-stats.cjs && node scripts/test-import-history.cjs && node scripts/test-cases.cjs && node scripts/test-performance.cjs && node scripts/test-google.cjs && node scripts/test-pdf-assets.cjs",
     "test:quality": "node scripts/test-quality.cjs",
+    "test:environment": "node scripts/test-environment-check.cjs",
     "test:e2e": "node scripts/test-e2e.cjs",
-    "benchmark": "node scripts/benchmark-parser.cjs"
+    "env:check": "node scripts/check-environment.mjs",
+    "env:check:strict": "node scripts/check-environment.mjs --strict",
+    "env:check:record": "node scripts/check-environment.mjs --write-evidence",
+    "benchmark": "node scripts/benchmark-parser.cjs",
+    "postinstall": "node scripts/sync-pdf-assets.cjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",

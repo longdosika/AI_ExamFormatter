@@ -75,3 +75,11 @@ T-058 final pre-inference dataset: expanded from2pages/16questions to3pages/20qu
 
 T-058 ROI verification checkpoint (2026-10-12): owner confirms teacher-rechecked red circles/crosses for this fixture. Visually inspected all three QA contact sheets: 20 question-owned original-pixel crops,19 marked keys and Q13 Free/no unique choice. QA labels are excluded from inference images. Experimental native loopback HTTP NDJSON transport added (scripts/local-vision-http.cjs); guards tested for UTF8, final metadata, incomplete stream, provider error and loopback-only scope. Metrics now match case IDs rather than first matching page, preventing repeated-page ROI truth contamination. Initial cropped 2B response completed in63.348s but captured empty content; preserved evidence/t058-roi/initial-stream-empty.json, no accuracy certification. Raw stream capture added for diagnosis. Both full-page failed baselines remain in evidence/t058-local. T-058 remains In Progress; production Gemini provider unchanged. Final actual comparison and finish-task gate pending.
 T-058 runtime diagnosis: actual stream evidence shows schema JSON wholly in message.thinking with empty content despite thinkfalse. Diagnostic fallback is strictly JSON-only and experiment-only; preserve channel/chunks, never integrate as production response. First diagnostic2B q1 selected ข incorrectly with confidence0.95 (teacher truth ก); confidence alone unsafe. Transport tests passed. Evidence diagnostic-thinking-channel.json, ROI outputs. Full20case comparison ongoing.
+
+T-066 QuizFlow parity: deterministic Thai normalization and answer directives are ported with synthetic regression coverage. External QuizFlow golden corpus and output manifests are absent; see `evidence/t066-blueprint-parity.md`, `documents/tasks.md`, and the T-066 verification evidence.
+
+### T-068 status
+Image/PDF conversion reliability is verified by fresh browser E2E and local asset checks; finish-task gate evidence is recorded in `evidence/t068-verification.md`.
+
+### T-069 long exam conversion
+The image/PDF conversion requirement now includes a long-document contract: preserve all source question numbers, handle mixed numeric/letter choices, map figure markers to source-page images, and preserve unresolved answer provenance. See `evidence/t069-verification.md`.

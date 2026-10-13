@@ -189,3 +189,60 @@ assert.equal(reconcileAnswerKey(null,'เฉลย: คำตอบไม่ม�
 console.log('T-052 enumerated layout and colon source-answer regressions passed.');
 
 assert.equal(reconcileAnswerKey('ก','เฉลย: ข. ตอบ ง.').finalKey,undefined);
+// T-066 QuizFlow blueprint parity: explicit answer labels and Thai OCR spacing
+// are normalized before structural parsing; unknown corruption is preserved.
+const thaiSpacing = parseExamText('1. เป ็ น โจทย์\nก. หนึ่ง\nข. สอง\nค. สาม\nง. สี่\nคำตอบ: ข');
+assert.equal(thaiSpacing[0].questionText, 'เป็น โจทย์');
+assert.equal(thaiSpacing[0].reconciledAnswerKey, 'ข');
+const englishAnswer = parseExamText('1. คำถาม\nก. หนึ่ง\nข. สอง\nค. สาม\nง. สี่\nAnswer: ค');
+assert.equal(englishAnswer[0].reconciledAnswerKey, 'ค');
+assert.equal(parseExamText('1. ก๋วยเต�ยว\nก. หนึ่ง\nข. สอง')[0].questionText, 'ก๋วยเต�ยว');
+const t066Fixtures = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'evidence', 't066-synthetic-fixtures.json'), 'utf8'));
+assert.equal(t066Fixtures.external_golden_corpus_available, false);
+for (const fixture of t066Fixtures.cases) {
+  const [item] = parseExamText(fixture.input);
+  assert.equal(item.questionText, fixture.expected_question, fixture.id);
+  assert.equal(item.reconciledAnswerKey ?? null, fixture.expected_answer, fixture.id);
+}
+console.log('T-066 synthetic fixture regressions passed (external QuizFlow corpus unavailable).');
+
+// T-069 long scanned exam contract: 80 numbered questions over 13 pages,
+// alternating letter/numeric choices and one page-owned figure marker.
+const longExam = [];
+for (let page = 1; page <= 13; page++) {
+  longExam.push(`[PAGE ${page}]`);
+  const first = (page - 1) * 6 + 1;
+  const last = page === 13 ? 80 : first + 5;
+  for (let q = first; q <= last; q++) {
+    longExam.push(`${q}. โจทย์ข้อ ${q}${q === 20 ? ' [รูปต้องตรวจสอบ]' : ''}`);
+    if (q % 5 === 0) {
+      longExam.push('1. ตัวเลือกหนึ่ง', '2. ตัวเลือกสอง', '3. ตัวเลือกสาม', '4. ตัวเลือกสี่');
+    } else {
+      longExam.push('ก. ตัวเลือกหนึ่ง', 'ข. ตัวเลือกสอง', 'ค. ตัวเลือกสาม', 'ง. ตัวเลือกสี่');
+    }
+  }
+}
+const longItems = parseExamText(longExam.join('\n'), [{id:'page-4',dataUrl:'data:image/png;base64,AA=='}]);
+assert.equal(longItems.length, 80);
+assert.deepEqual(longItems.map(item => item.questionNumber), Array.from({length:80}, (_, i) => i + 1));
+assert.equal(longItems[19].sourcePage, 4);
+assert.equal(longItems[19].imageUrl, 'data:image/png;base64,AA==');
+assert.equal(longItems[19].choices.length, 4);
+const alternatingNumeric = Array.from({length:80},(_,index)=>{
+  const q=index+1;
+  const choices = q % 2 === 0
+    ? `1. ตัวเลือกหนึ่งของข้อ ${q}\n2. ตัวเลือกสองของข้อ ${q}\n3. ตัวเลือกสามของข้อ ${q}\n4. ตัวเลือกสี่ของข้อ ${q}`
+    : `ก. ตัวเลือก ก ของข้อ ${q}\nข. ตัวเลือก ข ของข้อ ${q}\nค. ตัวเลือก ค ของข้อ ${q}\nง. ตัวเลือก ง ของข้อ ${q}`;
+  return `${q}. โจทย์ทดสอบข้อ ${q}\n${choices}`;
+}).join('\n\n');
+const alternatingItems = parseExamText(alternatingNumeric);
+assert.equal(alternatingItems.length, 80);
+assert.deepEqual(alternatingItems.map(item => item.questionNumber), Array.from({length:80}, (_, i) => i + 1));
+const allNumeric = Array.from({length:80},(_,index)=>{
+  const q=index+1;
+  return `${q}. โจทย์ตัวเลขข้อ ${q}\n1. ตัวเลือกหนึ่ง\n2. ตัวเลือกสอง\n3. ตัวเลือกสาม\n4. ตัวเลือกสี่`;
+}).join('\n\n');
+const allNumericItems = parseExamText(allNumeric);
+assert.equal(allNumericItems.length, 80);
+assert.deepEqual(allNumericItems.map(item => item.questionNumber), Array.from({length:80}, (_, i) => i + 1));
+console.log('T-069 long 80-question/page-owned-image regression passed.');

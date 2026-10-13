@@ -80,3 +80,18 @@ T-058 final pre-inference dataset: expanded from2pages/16questions to3pages/20qu
 
 T-058 ROI verification checkpoint (2026-10-12): owner confirms teacher-rechecked red circles/crosses for this fixture. Visually inspected all three QA contact sheets: 20 question-owned original-pixel crops,19 marked keys and Q13 Free/no unique choice. QA labels are excluded from inference images. Experimental native loopback HTTP NDJSON transport added (scripts/local-vision-http.cjs); guards tested for UTF8, final metadata, incomplete stream, provider error and loopback-only scope. Metrics now match case IDs rather than first matching page, preventing repeated-page ROI truth contamination. Initial cropped 2B response completed in63.348s but captured empty content; preserved evidence/t058-roi/initial-stream-empty.json, no accuracy certification. Raw stream capture added for diagnosis. Both full-page failed baselines remain in evidence/t058-local. T-058 remains In Progress; production Gemini provider unchanged. Final actual comparison and finish-task gate pending.
 T-058 runtime diagnosis: actual stream evidence shows schema JSON wholly in message.thinking with empty content despite thinkfalse. Diagnostic fallback is strictly JSON-only and experiment-only; preserve channel/chunks, never integrate as production response. First diagnostic2B q1 selected ข incorrectly with confidence0.95 (teacher truth ก); confidence alone unsafe. Transport tests passed. Evidence diagnostic-thinking-channel.json, ROI outputs. Full20case comparison ongoing.
+
+### T-066 QuizFlow deterministic parity
+The parser/OCR path now applies conservative Thai grapheme spacing and explicit static repairs before question splitting, and reconciles `คำตอบ`/`Answer` directives with existing explanation precedence. Unknown replacement characters and conflicting answer evidence remain unresolved for review. This note covers only deterministic rules; external QuizFlow manifests, crop contracts, and DOCX/Google Doc builders require permitted golden fixtures.
+Evidence: `evidence/t066-blueprint-parity.md`, `evidence/t066-verification.md`.
+
+### T-068 image/PDF reliability
+T-068 closes the browser runtime gap for scanned image/PDF conversion: pdf.js runtime assets are local, OCR text is retained on the parsed-file record, and the explicit conversion handoff is covered by fresh E2E. Source answers and `[รูปโจทย์]` ownership remain governed by T-052/T-056/T-057; provider answer accuracy is not certified by this task.
+Evidence: `evidence/t068-verification.md`.
+
+### T-069 feature note
+Long image/PDF conversions retain all sequential questions across page markers, including questions with numeric choices. `[รูปต้องตรวจสอบ]` markers resolve to the matching source page image when available. Source answer extraction remains evidence-bound and can remain unresolved when Gemini Vision quota/provider checks fail.
+Evidence: `evidence/t069-verification.md`.
+
+### T-069 verification note (2026-10-13)
+The long-document fix is verified by parser and browser fixtures: 80 question numbers remain navigable, numeric and letter choice layouts alternate safely, page-owned figure markers render a labeled original-page image, and the source pane remains stable. Live Gemini answer extraction is not certified because current image calls return HTTP 429; source-answer states remain unresolved rather than fabricated.

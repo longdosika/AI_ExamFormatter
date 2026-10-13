@@ -64,6 +64,58 @@
 
 สคริปต์จะหยุดเฉพาะ Node process ของโปรเจกต์, เปลี่ยนชื่อ `node_modules` เดิมเก็บเป็น backup, รัน `npm ci`, ตรวจ Next, รัน test/typecheck/lint และเปิด `http://localhost:3000` เมื่อพร้อม โดยไม่แตะ `.env.local` หรือแสดงค่า secret หากไฟล์ถูกล็อกจนย้ายไม่ได้ ให้ปิดโปรแกรมที่ใช้โปรเจกต์หรือ restart Windows แล้วรันซ้ำ
 
+### ย้ายงานไปอีกเครื่องด้วย Git (Windows PowerShell)
+
+เครื่องต้นทางต้อง commit เฉพาะ source และเอกสาร ห้าม commit `.env.local`, API keys, `node_modules` หรือโฟลเดอร์ build:
+
+```powershell
+git status
+git add app components lib scripts documents evidence package.json package-lock.json README.md .env.example
+git diff --cached --check
+git commit -m "chore: prepare cross-machine handoff"
+git push -u origin <ชื่อ-branch>
+```
+
+ถ้ายังไม่มี remote ให้สร้าง repository เปล่าก่อน แล้วตั้งค่า remote ครั้งเดียว:
+
+```powershell
+git remote add origin https://github.com/<บัญชี>/<repository>.git
+git branch -M main
+git push -u origin main
+```
+
+เครื่องปลายทางทำตามนี้:
+
+```powershell
+git clone https://github.com/<บัญชี>/<repository>.git
+cd AI_ExamFormatter
+Copy-Item .env.example .env.local
+# เปิด .env.local แล้วใส่ค่าของเครื่องนี้เอง ห้ามคัดลอกคีย์ลงแชตหรือ commit
+npm ci --no-audit --no-fund
+npm run env:check:record
+npm test
+npm run typecheck
+npm run lint
+.
+scripts\bootstrap-local.ps1 -Port 3000 -SkipTests
+```
+
+`npm ci` ใช้ `package-lock.json` เป็นแหล่งจริง จึงทำให้ dependencies ตรงกันข้ามเครื่อง ส่วน `.env.local` เป็นค่าลับและค่าบริการเฉพาะเครื่อง ต้องสร้างใหม่ทุกเครื่อง
+
+### ตรวจ environment ก่อนเริ่มงาน
+
+```powershell
+npm run env:check
+```
+
+คำสั่งนี้ตรวจ Node/npm/Git, lockfile, dependencies, `.env.local`, โหมด OCR, Ollama/model เมื่อใช้ local OCR, Gemini, Google OAuth และพอร์ต 3000 โดยไม่แสดงค่า secret ผลแบบ redacted บันทึกได้ด้วย:
+
+```powershell
+npm run env:check:record
+```
+
+ไฟล์หลักฐานจะอยู่ที่ `evidence/environment-check.json` หากต้องการให้ warning ทำให้คำสั่งไม่ผ่าน ใช้ `npm run env:check:strict`
+
 ```powershell
 # 1. ตรวจสอบความสมบูรณ์ของ Knowledge Graph
 node scripts/check-knowledge-vault.mjs
@@ -104,6 +156,8 @@ T-046 Google sign-in origin: use http://localhost:3000 for OAuth; APP_URL and re
 
 T-047 clarification: scanned PDFs over ten pages no longer require manual splitting; client sends sequential batches of at most ten pages automatically and preserves source numbering. File size/rendering resource limits still apply. Transport failure messages are visible; raw OCR review is used only when source text is available. Persistent unknown-source reviewed reuse remains under T-044.
 
+T-065: OCR upload batches now obey both the ten-page provider ceiling and a conservative serialized request-size ceiling. Large PNG batches are split automatically; non-JSON `413 Request Entity Too Large` responses are converted to an actionable Thai message instead of leaking `Unexpected token 'R'`. A skill specification copied from another repository is advisory only and must be reconciled with this repository's `AGENTS.md`, README, and Knowledge Vault before implementation.
+
 T-048: source PDF pane now has numbered page navigation above the document, with current-page highlight and previous/next. Combined with T-047, users upload once, OCR is batched automatically, then inspect source pages directly.
 
 T-049: active OCR shows scanning animation and actual batch count. Valid source structure autoformats. Otherwise edit raw OCR text on right, then click Convert to exam format on left or Check and format on right; both use corrected text and do not rerun image recognition. Source-side button is disabled while pending/incomplete/already formatted.
@@ -120,3 +174,12 @@ T-052: numbered stem steps retain explicit line breaks including the following p
 ### อ่านเฉลยที่มีในต้นฉบับด้วย Gemini (T-057)
 ตั้ง GEMINI_API_KEY ใน .env.local และเลือก GEMINI_ANSWER_MODEL=gemini-3.8-flash (ค่าเริ่มต้น) แล้วเริ่ม dev server ใหม่หากแก้ env หลังเปิดเซิร์ฟเวอร์ คีย์นี้แยกจาก Google Drive OAuth และ Google Picker เมื่อกดแปลงเป็นรูปแบบข้อสอบ ระบบอ่านเฉลยจากภาพทีละหน้า ไม่แก้โจทย์เพื่อเดาคำตอบ รักษาเฉลยข้อความเดิม และแสดงหลักฐานเฉลยใต้ข้อที่อ่านได้ ข้อที่กำกวมหรือไม่มีเครื่องหมายให้ตรวจต้นฉบับเอง รุ่น2.5อาจปรากฏใน models list แต่บัญชีใหม่เรียกจริงได้404; ต้องทดสอบ generateContent จริงก่อนรับรองการตั้งค่า
 "# AI_ExamFormatter" 
+
+### T-066 QuizFlow blueprint parity boundary
+The supplied QuizFlow blueprint was compared against files that actually exist in this repository. T-066 ports only deterministic, source-preserving rules: conservative Thai OCR spacing/static repairs run before parsing, and explicit `คำตอบ`/`Answer` directives participate in answer reconciliation. Synthetic regression cases are marked in `evidence/t066-blueprint-parity.md`; the external QuizFlow golden corpus, Python builders, manifest schema, crop coordinates, and native Google Doc outputs are not present here, so parity is not claimed for those items.
+
+### T-068 Image/PDF conversion reliability
+Image and scanned-PDF imports now use repository-local pdf.js worker, cmap, and standard-font assets. This removes the external CDN dependency that caused valid documents to fall back to the upload screen when the worker could not load. OCR responses are written to the parsed-file raw content before review/conversion, so edited OCR text is the source for explicit formatting. The postinstall sync and `test-pdf-assets.cjs` guard keep the runtime assets present.
+
+### T-069 80-question conversion fidelity
+T-069 fixes the long-document parser boundary that confused numeric choices `1..4` with new question numbers. It now preserves sequential question numbers across page markers, supports mixed letter/numeric choices, and maps an OCR `[รูปต้องตรวจสอบ]` marker to the corresponding original page image with `[รูปโจทย์]` ownership. This does not fabricate missing answers: explicit source directives/asterisks remain authoritative, while teacher marks still require the configured Gemini Vision provider and quota.

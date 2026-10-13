@@ -32,13 +32,16 @@ export async function renderPdfPages(file: File, maxPages = Infinity, options: I
     const pdfjsLib = await import("pdfjs-dist");
     throwIfImportAborted(signal);
     if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+      // Keep PDF rendering deterministic in localhost/Vercel environments;
+      // relying on a CDN worker makes a valid image/PDF look like an import
+      // failure when the browser has no access to that external origin.
+      pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.js";
     }
     loadingTask = pdfjsLib.getDocument({
       data: new Uint8Array(arrayBuffer),
       useSystemFonts: true,
-      standardFontDataUrl: `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/standard_fonts/`,
-      cMapUrl: `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/cmaps/`,
+      standardFontDataUrl: "/pdf-assets/standard_fonts/",
+      cMapUrl: "/pdf-assets/cmaps/",
       cMapPacked: true,
     });
     const pdf = await loadingTask.promise;

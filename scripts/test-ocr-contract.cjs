@@ -27,6 +27,8 @@ const items = parseExamText(normalized);
 assert.deepEqual(items.map(item => item.questionNumber), [1, 2]);
 assert.deepEqual(items.map(item => item.choices.length), [4, 2]);
 assert.ok(!normalized.includes('\\.'));
+assert.equal(normalizeOcrText('เป ็ น ป ี ครึ่ ง น้้า เอท เนอล'), 'เป็น ปี ครึ่ง น้ำ เอทานอล');
+assert.equal(normalizeOcrText('ข้อความ�ที่อ่านไม่ได้'), 'ข้อความ�ที่อ่านไม่ได้');
 const previous = {
   baseUrl: process.env.TYPHOON_OCR_BASE_URL,
   model: process.env.TYPHOON_OCR_MODEL,

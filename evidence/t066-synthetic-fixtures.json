@@ -1,0 +1,24 @@
+{
+  "provenance": "synthetic-derived-from-user-supplied-QuizFlow-blueprint",
+  "external_golden_corpus_available": false,
+  "cases": [
+    {
+      "id": "thai-spacing-and-answer",
+      "input": "1. เป ็ น โจทย์\nก. หนึ่ง\nข. สอง\nค. สาม\nง. สี่\nคำตอบ: ข",
+      "expected_question": "เป็น โจทย์",
+      "expected_answer": "ข"
+    },
+    {
+      "id": "english-answer-directive",
+      "input": "1. คำถาม\nก. หนึ่ง\nข. สอง\nค. สาม\nง. สี่\nAnswer: ค",
+      "expected_question": "คำถาม",
+      "expected_answer": "ค"
+    },
+    {
+      "id": "unknown-replacement-visible",
+      "input": "1. ก๋วยเต�ยว\nก. หนึ่ง\nข. สอง",
+      "expected_question": "ก๋วยเต�ยว",
+      "expected_answer": null
+    }
+  ]
+}

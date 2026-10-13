@@ -38,7 +38,9 @@ async function ready() {
   }
   if (!process.env.E2E_BASE_URL && !isReusing) {
     const next = require.resolve('next/dist/bin/next');
-    server=spawn(process.execPath,[next,'dev','-p',String(port),'-H','127.0.0.1'],{cwd:root,windowsHide:true,stdio:['ignore','pipe','pipe'],env:{...process.env,NEXT_DIST_DIR:e2eDistDir}});
+    // Use the same Windows realpath shim as the supported npm dev command.
+    // Directly spawning Next can exit before readiness on this workspace.
+    server=spawn(process.execPath,['-r',path.join(root,'scripts','next-realpath-shim.cjs'),next,'dev','-p',String(port),'-H','127.0.0.1'],{cwd:root,windowsHide:true,stdio:['ignore','pipe','pipe'],env:{...process.env,NEXT_DIST_DIR:e2eDistDir}});
     server.on('error',error=>output.push(error.stack));
     server.stdout.on('data',data=>{output.push(data.toString());fs.writeFileSync(path.join(evidence,'server.log'),output.join(''));});
     server.stderr.on('data',data=>{output.push(data.toString());fs.writeFileSync(path.join(evidence,'server.log'),output.join(''));});
@@ -57,7 +59,13 @@ async function ready() {
   await page.locator('input[type=file]').setInputFiles({name:'source.md',mimeType:'text/markdown',buffer:fixture});
   const editor=page.locator('[contenteditable=true]');
   const formatRaw = async () => {
-    await page.getByRole('textbox',{name:'ข้อความ OCR สำหรับตรวจแก้',exact:true}).waitFor();
+    try {
+      await page.getByRole('textbox',{name:'ข้อความ OCR สำหรับตรวจแก้',exact:true}).waitFor();
+    } catch (error) {
+      console.error('formatRaw diagnostic body:', (await page.locator('body').innerText()).slice(-5000));
+      await page.screenshot({path:path.join(root,'evidence','t068-format-raw-timeout.png'),fullPage:true});
+      throw error;
+    }
     assert.equal(await editor.count(),0,'Import must show raw text before explicit conversion');
     assert.equal(await page.getByRole('button',{name:'ส่งออกเข้า Google Drive',exact:true}).count(),0);
     assert.equal(await page.getByRole('button',{name:'ตัวหนา',exact:true}).count(),0);
@@ -211,7 +219,7 @@ async function ready() {
   await page.route('**/api/ocr',async route=>{
     const images=route.request().postDataJSON().images;batchSizes.push(images.length);
     assert.ok(images.length<=10);
-    const text=images.map((_image,index)=>`[PAGE ${index+1}]\n${++pageNumber}. Batch source ${pageNumber}\nก. one\nข. two\nค. three\nง. four`).join('\n\n');
+    const text=images.map((_image,index)=>`[PAGE ${index+1}]\n${++pageNumber}. Batch source ${pageNumber}${pageNumber === 1 ? ' [รูปต้องตรวจสอบ]' : ''}\nก. one\nข. two\nค. three\nง. four`).join('\n\n');
     await route.fulfill({json:{success:true,text,allPagesSuccess:true,quality:'ready',questionMarkers:images.length,pageResults:images.map((_image,index)=>({page:index+1,success:true,modelUsed:'fixture-transport'}))}});
   });
   await page.locator('input[type=file]').setInputFiles({name:'twelve-pages.pdf',mimeType:'application/pdf',buffer:Buffer.from(pdf)});
@@ -220,9 +228,11 @@ async function ready() {
   assert.deepEqual(batchSizes,[10,2]);
   const mappedPages=await editor.locator('[data-source-page]').evaluateAll(buttons=>buttons.map(button=>Number(button.dataset.sourcePage)));
   assert.deepEqual(mappedPages,Array.from({length:12},(_,i)=>i+1));
+  assert.equal(await editor.locator('[data-item-id="1"] [data-question-image="true"]').count(),1,'Page-owned figure must render in the converted question');
+  assert.match(await editor.locator('[data-item-id="1"] [data-question-image="true"] img').getAttribute('src'),/^data:image\/png;base64,/);
   fs.writeFileSync(path.join(root,'evidence','t047-batch-result.json'),JSON.stringify({status:'passed',fixture:'generated twelve-page blank PDF; mocked OCR transport',batchSizes,questions:12,mappedPages,semanticAccuracy:'not measured'},null,2));
   await page.screenshot({path:path.join(root,'evidence','t047-batch-browser.png'),fullPage:true});
-  mark('Twelve-page PDF automatically splits 10+2 requests and preserves absolute source pages (mocked OCR)');
+  mark('Twelve-page PDF splits 10+2 requests, preserves source pages, and renders page-owned figure media (mocked OCR)');
   const navigation=page.getByRole('navigation',{name:'เลือกข้อสอบ'});
   assert.equal(await navigation.getByRole('button',{name:/^ไปข้อ \d+$/}).count(),12);
   const sourceScrollBefore=await page.locator('[data-source-page-target="1"]').evaluate(element=>{let pane=element.parentElement;while(pane&&getComputedStyle(pane).overflowY!=='auto')pane=pane.parentElement;return pane.scrollTop;});
@@ -244,6 +254,24 @@ async function ready() {
   fs.writeFileSync(path.join(root,'evidence','t051-result.json'),JSON.stringify({status:'passed',rawBeforeFormat:true,sourceLeftEditorRight:true,questionJump:true,stableSource:true,keyboardEnter:true,scrollHighlight:true,mobileNoOverflow:true,filenameHistory:true,textStyles:true},null,2));
   await page.screenshot({path:path.join(root,'evidence','t051-workspace.png'),fullPage:true});
   mark('Question numbered navigation, stable original, keyboard, scroll highlight and mobile width passed');
+  // Long mixed-layout regression: numeric choice blocks must not be counted as
+  // new questions. This mirrors the reported 80-question scan while keeping
+  // the browser test deterministic and provider-independent.
+  await page.getByRole('button',{name:'เลือกไฟล์ใหม่',exact:true}).click();
+  const longFixture = Buffer.from(Array.from({length:80},(_,index)=>{
+    const q=index+1;
+    const choices = q % 2 === 0
+      ? `1. ตัวเลือกหนึ่งของข้อ ${q}\n2. ตัวเลือกสองของข้อ ${q}\n3. ตัวเลือกสามของข้อ ${q}\n4. ตัวเลือกสี่ของข้อ ${q}`
+      : `ก. ตัวเลือก ก ของข้อ ${q}\nข. ตัวเลือก ข ของข้อ ${q}\nค. ตัวเลือก ค ของข้อ ${q}\nง. ตัวเลือก ง ของข้อ ${q}`;
+    return `${q}. โจทย์ทดสอบข้อ ${q}\n${choices}`;
+  }).join('\n\n'));
+  await page.locator('input[type=file]').setInputFiles({name:'eighty-questions.md',mimeType:'text/markdown',buffer:longFixture});
+  await formatRaw();
+  const longNumbers = await editor.locator('[data-item-id]').evaluateAll(elements=>elements.map(element=>Number(element.getAttribute('data-item-id'))));
+  assert.equal(longNumbers.length,80,`Long source must expose all 80 questions; got ${longNumbers.join(',')}`);
+  assert.deepEqual(longNumbers,Array.from({length:80},(_,index)=>index+1));
+  assert.equal(await page.getByRole('navigation',{name:'เลือกข้อสอบ'}).getByRole('button',{name:/^ไปข้อ \d+$/}).count(),80);
+  mark('80-question browser conversion keeps all question navigation items');
   await page.getByRole('button',{name:'เลือกไฟล์ใหม่',exact:true}).click();
   await page.unroute('**/api/ocr');
   await page.route('**/api/ocr',route=>route.fulfill({status:503,json:{success:false,error:'fixture provider unavailable'}}));

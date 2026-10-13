@@ -46,6 +46,10 @@ export default function Home() {
   const [answerBusy, setAnswerBusy] = useState(false);
   const answerEpoch = useRef(0);
   const [importHistory, setImportHistory] = useState<ImportHistoryEntry[] | null>(null);
+  const parserImages = (file: ParsedFileResult) => [
+    ...file.extractedImages,
+    ...(file.pageImages || []).map((dataUrl, index) => ({ id: `page-${index + 1}`, dataUrl })),
+  ];
   const historyButton = useRef<HTMLButtonElement>(null);
   const historyCloseButton = useRef<HTMLButtonElement>(null);
   const openImportHistory = () => {
@@ -179,7 +183,7 @@ export default function Home() {
         } catch { /* Unknown/unavailable corpus falls back to the normal OCR flow. */ }
         if (epoch !== uploadEpoch.current) { revokeParsedFileUrls(result); return false; }
       }
-      let items = parseExamText(result.rawContent, result.extractedImages, result.fileName);
+      let items = parseExamText(result.rawContent, parserImages(result), result.fileName);
       observeItems(items, validateExamItems(items).length);
       const isScannedDocument = !items.length && (
         (result.pageImages && result.pageImages.length > 0) ||
@@ -222,18 +226,22 @@ export default function Home() {
             if (activeFile.current !== result) return true;
             sourcePagesComplete.current = ocrData.allPagesSuccess === true;
             if (typeof ocrData.text === "string" && ocrData.text.trim()) {
-              const observedItems = parseExamText(ocrData.text, result.extractedImages, result.fileName);
+              // Keep the latest OCR text on the parsed-file record as well as
+              // in React state. This makes image fallback/review actions use
+              // the actual OCR result instead of the initial image placeholder.
+              result.rawContent = ocrData.text;
+              const observedItems = parseExamText(ocrData.text, parserImages(result), result.fileName);
               observeItems(observedItems, validateExamItems(observedItems).length + (ocrData.allPagesSuccess ? 0 : 1));
               sourceQuestionNumbers.current = parseExamText(ocrData.text, [], result.fileName).map(item => item.questionNumber);
               setOcrText(ocrData.text);
-              setReviewIssues(validateExamItems(parseExamText(ocrData.text, result.extractedImages, result.fileName)));
+              setReviewIssues(validateExamItems(parseExamText(ocrData.text, parserImages(result), result.fileName)));
             }
 
             const structuredReady = ocrData.success && ocrData.text &&
               ocrData.quality === "ready" && ocrData.questionMarkers > 0 &&
               ocrData.allPagesSuccess;
             if (structuredReady) {
-              const ocrItems = parseExamText(ocrData.text, result.extractedImages, result.fileName);
+              const ocrItems = parseExamText(ocrData.text, parserImages(result), result.fileName);
               const issues = validateExamItems(ocrItems);
               observeItems(ocrItems, issues.length);
               setReviewIssues(issues);
@@ -311,7 +319,7 @@ export default function Home() {
     const epoch = ++answerEpoch.current;
     const upload = uploadEpoch.current;
     const current = () => epoch === answerEpoch.current && upload === uploadEpoch.current;
-    const items = parseExamText(text, parsedFile.extractedImages, parsedFile.fileName);
+    const items = parseExamText(text, parserImages(parsedFile), parsedFile.fileName);
     const issues = validateExamItems(items);
     if (!sourcePagesComplete.current) issues.push("OCR ยังอ่านไม่ครบทุกหน้า กรุณานำเข้าต้นฉบับใหม่ก่อนจัดรูปแบบ");
     const originalNumbers = sourceQuestionNumbers.current;
