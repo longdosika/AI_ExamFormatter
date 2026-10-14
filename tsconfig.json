@@ -44,7 +44,8 @@
     ".next-e2e-22916/types/**/*.ts",
     ".next-e2e-4540/types/**/*.ts",
     ".next-e2e-3284/types/**/*.ts",
-    ".next-e2e-12656/types/**/*.ts"
+    ".next-e2e-12656/types/**/*.ts",
+    ".next-e2e-22388/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

@@ -9,6 +9,7 @@ export interface DocumentDraft {
   updatedAt: string;
   ocrText?: string;
   formattedItems?: ExamItem[];
+  editorHtml?: string;
   diagramsHarvested?: boolean;
   itemCount: number;
 }
@@ -88,6 +89,7 @@ export function saveDocumentDraft(
     updatedAt: input.updatedAt || now,
     ocrText: input.ocrText || "",
     formattedItems: Array.isArray(input.formattedItems) ? input.formattedItems : [],
+    editorHtml: typeof input.editorHtml === "string" ? input.editorHtml : "",
     diagramsHarvested: Boolean(input.diagramsHarvested),
     itemCount: Array.isArray(input.formattedItems) && input.formattedItems.length > 0 
       ? input.formattedItems.length 
@@ -111,7 +113,7 @@ export function saveDocumentDraft(
       if (targetSlice.length <= 1) {
         // If even 1 draft can't be stored with full items, omit large formattedItems or fail silently
         try {
-          const minimalDraft: DocumentDraft = { ...newDraft, formattedItems: [] };
+          const minimalDraft: DocumentDraft = { ...newDraft, formattedItems: [], editorHtml: "" };
           storage.setItem(
             DRAFT_STORAGE_KEY,
             JSON.stringify({ schemaVersion: 1, drafts: [minimalDraft] })

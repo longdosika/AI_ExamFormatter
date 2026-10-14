@@ -2,13 +2,19 @@ import { ExamItem } from "./formatter-rules";
 import { DetectedDiagram } from "./diagram-service";
 import { parseSharedContextHeader, stripCapturedTableText } from "./exam-parser";
 
+type EdgeTrimMode = boolean | "all" | "bottom" | "none";
+
 /**
  * Smart edge trimmer that detects whitespace gutters separating the diagram/table
  * from adjacent text lines (such as table titles above or question stems below),
  * trimming away intruder text and leaving a clean, customizable margin (default 3px)
  * while accommodating table tilt / skew safely.
  */
-export function trimIntruderTextAndMargin(sourceCanvas: HTMLCanvasElement, targetMargin = 3): HTMLCanvasElement {
+export function trimIntruderTextAndMargin(
+  sourceCanvas: HTMLCanvasElement,
+  targetMargin = 3,
+  options: { top?: boolean; bottom?: boolean } = { top: true, bottom: true }
+): HTMLCanvasElement {
   const w = sourceCanvas.width;
   const h = sourceCanvas.height;
   if (w <= 10 || h <= 10) return sourceCanvas;
@@ -48,77 +54,81 @@ export function trimIntruderTextAndMargin(sourceCanvas: HTMLCanvasElement, targe
   let topCut = 0;
   let bottomCut = h;
 
-  // 1. Scan from top edge down: detect intruder text followed by a whitespace gutter
-  const maxSearchTop = Math.min(Math.round(h * 0.35), 65);
-  let sawDarkNearTop = false;
-  let gutterStart = -1;
-  let gutterEnd = -1;
+  if (options.top !== false) {
+    // 1. Scan from top edge down: detect intruder text followed by a whitespace gutter
+    const maxSearchTop = Math.min(Math.round(h * 0.35), 65);
+    let sawDarkNearTop = false;
+    let gutterStart = -1;
+    let gutterEnd = -1;
 
-  for (let y = 0; y < maxSearchTop; y++) {
-    const isDark = rowDarkness[y] >= contentThreshold;
-    if (isDark) {
-      if (y < 16) sawDarkNearTop = true;
-      if (gutterStart !== -1) {
-        // Gutter ended, table content below begins
-        gutterEnd = y;
-        break;
-      }
-    } else {
-      // Row is white/blank
-      if (sawDarkNearTop && gutterStart === -1) {
-        gutterStart = y;
+    for (let y = 0; y < maxSearchTop; y++) {
+      const isDark = rowDarkness[y] >= contentThreshold;
+      if (isDark) {
+        if (y < 16) sawDarkNearTop = true;
+        if (gutterStart !== -1) {
+          // Gutter ended, table content below begins
+          gutterEnd = y;
+          break;
+        }
+      } else {
+        // Row is white/blank
+        if (sawDarkNearTop && gutterStart === -1) {
+          gutterStart = y;
+        }
       }
     }
-  }
 
-  if (sawDarkNearTop && gutterStart !== -1 && gutterEnd !== -1 && (gutterEnd - gutterStart) >= 2) {
-    // Found outer intruder text separated by a whitespace gap! Cut to just before the content below with targetMargin
-    topCut = Math.max(0, gutterEnd - targetMargin);
-  } else if (!sawDarkNearTop) {
-    // No outer text; trim excessive leading white space to targetMargin
-    let firstContentY = 0;
-    while (firstContentY < maxSearchTop && rowDarkness[firstContentY] < contentThreshold) {
-      firstContentY++;
-    }
-    if (firstContentY > targetMargin) {
-      topCut = firstContentY - targetMargin;
-    }
-  }
-
-  // 2. Scan from bottom edge up: detect intruder text below followed by a whitespace gutter
-  const minSearchBottom = Math.max(h - 65, Math.round(h * 0.65));
-  let sawDarkNearBottom = false;
-  let bGutterStart = -1;
-  let bGutterEnd = -1;
-
-  for (let y = h - 1; y >= minSearchBottom; y--) {
-    const isDark = rowDarkness[y] >= contentThreshold;
-    if (isDark) {
-      if (y > h - 16) sawDarkNearBottom = true;
-      if (bGutterStart !== -1) {
-        // Gutter ended, table content above begins
-        bGutterEnd = y;
-        break;
+    if (sawDarkNearTop && gutterStart !== -1 && gutterEnd !== -1 && (gutterEnd - gutterStart) >= 2) {
+      // Found outer intruder text separated by a whitespace gap! Cut to just before the content below with targetMargin
+      topCut = Math.max(0, gutterEnd - targetMargin);
+    } else if (!sawDarkNearTop) {
+      // No outer text; trim excessive leading white space to targetMargin
+      let firstContentY = 0;
+      while (firstContentY < maxSearchTop && rowDarkness[firstContentY] < contentThreshold) {
+        firstContentY++;
       }
-    } else {
-      // Row is white/blank
-      if (sawDarkNearBottom && bGutterStart === -1) {
-        bGutterStart = y;
+      if (firstContentY > targetMargin) {
+        topCut = firstContentY - targetMargin;
       }
     }
   }
 
-  if (sawDarkNearBottom && bGutterStart !== -1 && bGutterEnd !== -1 && (bGutterStart - bGutterEnd) >= 2) {
-    // Found outer intruder text below separated by a whitespace gap! Cut to just after the content above with targetMargin
-    bottomCut = Math.min(h, bGutterEnd + 1 + targetMargin);
-  } else if (!sawDarkNearBottom) {
-    // No outer text below; trim excessive trailing white space to targetMargin
-    let lastContentY = h - 1;
-    while (lastContentY >= minSearchBottom && rowDarkness[lastContentY] < contentThreshold) {
-      lastContentY--;
+  if (options.bottom !== false) {
+    // 2. Scan from bottom edge up: detect intruder text below followed by a whitespace gutter
+    const minSearchBottom = Math.max(h - 65, Math.round(h * 0.65));
+    let sawDarkNearBottom = false;
+    let bGutterStart = -1;
+    let bGutterEnd = -1;
+
+    for (let y = h - 1; y >= minSearchBottom; y--) {
+      const isDark = rowDarkness[y] >= contentThreshold;
+      if (isDark) {
+        if (y > h - 16) sawDarkNearBottom = true;
+        if (bGutterStart !== -1) {
+          // Gutter ended, table content above begins
+          bGutterEnd = y;
+          break;
+        }
+      } else {
+        // Row is white/blank
+        if (sawDarkNearBottom && bGutterStart === -1) {
+          bGutterStart = y;
+        }
+      }
     }
-    if (h - 1 - lastContentY > targetMargin) {
-      bottomCut = Math.min(h, lastContentY + 1 + targetMargin);
+
+    if (sawDarkNearBottom && bGutterStart !== -1 && bGutterEnd !== -1 && (bGutterStart - bGutterEnd) >= 2) {
+      // Found outer intruder text below separated by a whitespace gap! Cut to just after the content above with targetMargin
+      bottomCut = Math.min(h, bGutterEnd + 1 + targetMargin);
+    } else if (!sawDarkNearBottom) {
+      // No outer text below; trim excessive trailing white space to targetMargin
+      let lastContentY = h - 1;
+      while (lastContentY >= minSearchBottom && rowDarkness[lastContentY] < contentThreshold) {
+        lastContentY--;
+      }
+      if (h - 1 - lastContentY > targetMargin) {
+        bottomCut = Math.min(h, lastContentY + 1 + targetMargin);
+      }
     }
   }
 
@@ -146,7 +156,8 @@ export async function cropBboxFromImage(
   imageSrc: string,
   rawBbox: [number, number, number, number] | any,
   paddingPx = 10,
-  targetMargin = 3
+  targetMargin = 3,
+  trimEdges: EdgeTrimMode = true
 ): Promise<string> {
   const bbox: [number, number, number, number] = Array.isArray(rawBbox) && Array.isArray(rawBbox[0])
     ? (rawBbox[0] as [number, number, number, number])
@@ -195,8 +206,13 @@ export async function cropBboxFromImage(
       ctx.fillRect(0, 0, w, h);
       ctx.drawImage(img, x, y, w, h, 0, 0, w, h);
 
-      // Smart edge trimming to eliminate adjacent outer text and normalize clean margin
-      const finalCanvas = trimIntruderTextAndMargin(canvas, targetMargin);
+      // Full smart trimming is table-focused. Question figures still use bottom
+      // trimming to drop neighboring answer choices while preserving top captions.
+      const trimOptions =
+        trimEdges === "bottom" ? { top: false, bottom: true } :
+          trimEdges === true || trimEdges === "all" ? { top: true, bottom: true } :
+            null;
+      const finalCanvas = trimOptions ? trimIntruderTextAndMargin(canvas, targetMargin, trimOptions) : canvas;
       resolve(finalCanvas.toDataURL("image/png"));
     };
     img.onerror = () => reject(new Error("FAILED_TO_LOAD_IMAGE_FOR_CROP"));
@@ -271,8 +287,9 @@ export async function harvestExamDiagrams(
 
       for (const diag of diagrams) {
         if (!current()) break;
-        const cropPadding = diag.type === "shared_context" ? 14 : diag.type === "question" ? 12 : 8;
-        const crop = await cropBboxFromImage(pageImage, diag.bbox, cropPadding, 3).catch(() => null);
+        const cropPadding = diag.type === "shared_context" ? 14 : diag.type === "question" ? 56 : diag.type === "explanation" ? 18 : 10;
+        const shouldTrimEdges: EdgeTrimMode = diag.type === "shared_context" ? "all" : diag.type === "question" ? "bottom" : "none";
+        const crop = await cropBboxFromImage(pageImage, diag.bbox, cropPadding, 3, shouldTrimEdges).catch(() => null);
         if (!crop) continue;
 
 

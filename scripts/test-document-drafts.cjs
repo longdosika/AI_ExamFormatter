@@ -58,6 +58,7 @@ async function runTests() {
     sourceHash: "hash123",
     ocrText: "1. ข้อสอบเคมี\nก. น้ำ\nข. เกลือ",
     formattedItems: [{ id: "q1", questionNumber: 1, questionText: "ข้อสอบเคมี", choices: [] }],
+    editorHtml: '<div data-item-id="q1">1. ข้อสอบเคมี <strong>แก้แล้ว</strong></div>',
     itemCount: 1,
     diagramsHarvested: true,
   });
@@ -71,6 +72,7 @@ async function runTests() {
   assert.strictEqual(found1.fileName, "Exam-1.pdf");
   assert.strictEqual(found1.itemCount, 1);
   assert.strictEqual(found1.ocrText, "1. ข้อสอบเคมี\nก. น้ำ\nข. เกลือ");
+  assert.ok(found1.editorHtml.includes("แก้แล้ว"));
 
   // Test 4: Overwriting existing docKey updates without duplicating
   saveDocumentDraft(storage, {
@@ -85,6 +87,17 @@ async function runTests() {
   assert.strictEqual(allDrafts.length, 1);
   assert.strictEqual(allDrafts[0].ocrText, "Updated OCR text");
   assert.strictEqual(allDrafts[0].itemCount, 5);
+
+  // Test 4b: App integration contract keeps old drafts editable without reimport
+  const appSource = fs.readFileSync(path.join(__dirname, "../app/page.tsx"), "utf8");
+  assert.ok(appSource.includes("parsedFileFromDraft"), "Opening a saved draft without an active file must create a resumable ParsedFileResult");
+  assert.ok(appSource.includes("restoredEditorHtml"), "Saved editor DOM must be restored for exact continuation");
+  assert.ok(appSource.includes("onEditorDraftChange"), "Editor changes must autosave back into the draft");
+  assert.ok(appSource.includes('data-theme-surface="earth"'), "Draft modal must stay on the earth-tone design surface");
+
+  const editorSource = fs.readFileSync(path.join(__dirname, "../components/SplitDocumentEditor.tsx"), "utf8");
+  assert.ok(editorSource.includes("dangerouslySetInnerHTML"), "Editor must be able to restore the saved draft DOM snapshot");
+  assert.ok(editorSource.includes("onInput={() => editorPaneRef.current && onEditorDraftChange"), "Editor input must trigger draft autosave");
 
   // Test 5: Delete draft
   deleteDocumentDraft(storage, saved1.docKey);

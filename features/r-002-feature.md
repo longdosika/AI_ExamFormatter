@@ -95,3 +95,12 @@ Evidence: `evidence/t069-verification.md`.
 
 ### T-069 verification note (2026-10-13)
 The long-document fix is verified by parser and browser fixtures: 80 question numbers remain navigable, numeric and letter choice layouts alternate safely, page-owned figure markers render a labeled original-page image, and the source pane remains stable. Live Gemini answer extraction is not certified because current image calls return HTTP 429; source-answer states remain unresolved rather than fabricated.
+
+### T-084 figure crop and render-order note
+Question/apparatus diagrams now use a different crop policy from shared-context tables. Shared-context table crops keep smart gutter trimming to remove neighboring text, but question/apparatus crops use wider padding and skip edge trimming so separated bottom/right labels, leader lines, and captions such as `ของเหลวที่แยกได้` remain inside the figure. The formatted output order is treated as part of source fidelity: `โจทย์ร่วม:` -> shared text -> `รูปโจทย์ร่วม:` -> question text -> `รูปโจทย์:` -> question image -> `ตัวเลือก:` -> optional choice images -> optional `คำอธิบาย:` text -> optional `รูปคำอธิบาย:` -> `จบโจทย์ร่วม`. Regression: `scripts/test-diagram-contract.cjs`, `scripts/test-parser.cjs`, `npm test`, and browser E2E.
+
+### T-085 duplicate question-image label fix
+Question images must not display both `รูปโจทย์:` and `[รูปโจทย์]`. The editor auto-label observer now recognizes the explicit `รูปโจทย์:` heading and skips legacy bracket-label insertion. Question/apparatus crop padding is widened again for bottom/right callouts while keeping shared-context table trimming unchanged.
+
+### T-086 question figure bottom-trim fix
+Question/apparatus crops now apply smart trimming only to the bottom edge after the generous figure padding is applied. This preserves top captions such as `การแยกสารดังรูป` while removing neighboring option text below the figure when a whitespace gutter separates it from the diagram, preventing Q80-style captured choices from appearing inside `รูปโจทย์:`.

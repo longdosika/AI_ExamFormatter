@@ -39,3 +39,15 @@ T-021 preserves desktop equal-column comparison and stacks individually scrollab
 T-041 verified source artifact: explicit inline/sparse media ownership, source-page navigation excluded from learner export, fixed OCR prompt, table column labels, checkbox markers not answer evidence, aspect-ratio-safe snapshots. Regression and evidence: evidence/t041-browser-result.json; evidence/t041-media-manifest.json. Full automatic source fidelity remains open in T-039.
 
 T-041/T-042 final verification: original PDF import -> exact SHA-256 reviewed corpus -> 25 questions/100 choices/5 source-owned media -> editor -> source-page navigation -> live DOM snapshot -> native Google Docs. Source page is captured when each question starts, preventing prior-page questions shifting forward. Unknown/changed files use ordinary OCR; no approximate filename match or learned answer inference. Corpus is data under public/reviewed and includes reviewer, source hash/page count and text. Live PDF import: 3.577s, zero OCR calls. Remote OCR baseline: 13.8s, recognition defects retained for review. All seven native PDF pages visually checked after grouped pagination repair. Readback: evidence/t041-gdoc-readback.json. Browser: evidence/t042-real-pdf-result.json. Google URL: https://docs.google.com/document/d/1r5CWTFdiQE98JAmSgRMNnNh1WKLIuJzqI4vVwZOCfIY .
+
+### T-084 image-order editing contract
+The editable formatter now renders explicit image headings in the requested sequence. Shared contexts begin with `โจทย์ร่วม:` and optional shared image `รูปโจทย์ร่วม:`; question images render under `รูปโจทย์:` before the choices; explanation image blocks render `รูปคำอธิบาย:` after optional `คำอธิบาย:` text. This keeps manual review/export order predictable while preserving existing rich-text editing and crop insertion behavior.
+
+### T-085 consistent manual/automatic image headings
+Manual crop insertion, toolbar image insertion, and AI-harvested question images now use the same visible heading: `รูปโจทย์:`. The observer no longer injects `[รูปโจทย์]` when that heading is already present, preventing duplicate text in the editable document and export snapshots.
+
+### T-086 crop/editing hygiene
+AI-harvested question images keep their explicit `รูปโจทย์:` heading while the crop pipeline removes option text that belongs outside the figure. This keeps the editable document cleaner before manual review and export.
+
+### T-087 resumable draft editing
+Saved draft entries are working documents. When a draft contains formatted items, the editor opens immediately for continued editing even if the original file is not active. The saved editor DOM is restored for exact continuation, future edits autosave back to local draft storage, and the drafts modal follows the earth-tone action/theme rules.

@@ -243,6 +243,28 @@ T-071 environment lesson (2026-10-13): A successful clone is not a ready runtime
 - Skew & Tilt Tolerance: Scanned documents often exhibit slight rotation/tilt (0.5° - 2°). Because solid horizontal table borders span the width of the table, gutter detection anchors to the whitespace gap outside the highest/lowest point of the tilted line, completely preserving all corners of the outer frame without catching neighbor text.
 - GitHub Desktop Local Repository Registration: When a pre-existing Git repository on disk does not show in GitHub Desktop's Current Repository dropdown, the user must use `File -> Add Local Repository...` (Ctrl+O) pointing to `D:\0-Project\92-AiAccess\AI_ExamFormatter` rather than creating or cloning a new one.
 
+### T-083 New Machine Environment Onboarding (2026-10-14)
+- Machine `DESKTOP-FNVSAKS` is a new development machine for this project at `D:\90-AI\AI_ExamFormatter`. Dependency installation must use `npm ci --no-audit --no-fund` from the committed lockfile; `.env.local` must be created from `.env.example` and kept secret/local.
+- Sandbox DNS can block npm registry access and sandbox loopback can block local HTTP tests. For this machine, `npm ci` passed after network approval and `npm test` passed after loopback approval.
+- Local development and regression testing are ready after dependency install. Provider-backed OCR/export is not ready until real `TYPHOON_OCR_API_KEY`, Gemini key(s), and Google OAuth settings are added to `.env.local`; never treat missing provider secrets as product acceptance.
+- Durable checklist: `evidence/t083-new-machine-checklist.md`. Future updates should start with `git status`, `git pull`, `npm ci` only when `package-lock.json` changes, `npm run env:check:record`, then targeted test/build commands.
 
+### T-084 Figure Crop and Render Order Fix (2026-10-14)
+- Apparatus crops are not the same as table crops. Smart gutter trimming is useful for shared-context tables because it removes neighbor text, but it can incorrectly remove separated labels/captions inside science apparatus figures. Question/apparatus crops now keep trim disabled and use larger padding.
+- Gemini diagram extraction must explicitly include bottom/right labels and receiver captions; the screenshot failure for Question 33 cut the `ของเหลวที่แยกได้` label because the bbox/crop policy was too tight around the central apparatus.
+- The editor order is now treated as a formatting contract: `โจทย์ร่วม:` -> shared text -> `รูปโจทย์ร่วม:` -> question text -> `รูปโจทย์:` -> question image -> `ตัวเลือก:` -> optional choice images -> optional `คำอธิบาย:` text -> optional `รูปคำอธิบาย:` -> `จบโจทย์ร่วม`.
 
+### T-085 Duplicate Label and Final Apparatus Margin Tune (2026-10-14)
+- Legacy auto-labeling can conflict with explicit render headings. After switching managed question-image headings to `รูปโจทย์:`, the mutation observer still inserted `[รูปโจทย์]` inside the image frame because it only recognized the old constant. The guard now treats any existing `รูปโจทย์` heading as sufficient.
+- Manual crop insertion and toolbar image insertion must use the same visible heading as rendered AI captures (`รูปโจทย์:`) to prevent mixed output styles.
+- Question/apparatus padding increased to 56px to give bottom/right labels one more safety margin. Shared-context table crops retain smart trimming because their problem is opposite: removing surrounding neighbor text.
 
+### T-086 Question Figure Bottom Trim and Build Stamp Policy (2026-10-14)
+- Increasing question crop padding can fix cut-off apparatus labels but can also capture the next answer choice below the figure, as seen on Q80. Question figures now use bottom-only gutter trimming: preserve top captions, keep right/bottom callouts when connected to the figure, but cut lower intruder text when a whitespace gap separates it from the diagram.
+- Do not revert `APP_VERSION` or `BUILD_STAMP` after `npm run build`/`finish-task`. The build number is the user-visible confirmation of the active code version and must remain changed after each implementation pass.
+- Local dev startup also needs stamping. `package.json` now uses `predev` to run `scripts/stamp-version.cjs`, so bootstrap/dev sessions refresh the header badge before serving.
+
+### T-087 Draft Resume Continuity (2026-10-14)
+- A draft/cache entry must be a continuation point, not just a reference that forces reimport. If the original source file is not currently active, create a minimal parsed-file session from the draft so the right-side editor can open and export instead of staying on the landing screen.
+- `ExamItem` data alone is not enough for user-edited rich text. Store and restore `editorHtml` so manual edits, inline formatting, and inserted image DOM survive closing/reopening the draft. Review still re-parses the live DOM before marking the draft clean.
+- Draft/history UI must stay inside the earth-tone system: sand/cream surfaces, olive primary actions, terracotta destructive accents, warm borders, and no generic slate/rose styling unless it is intentionally mapped to a theme token.

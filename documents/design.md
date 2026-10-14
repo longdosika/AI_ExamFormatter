@@ -303,6 +303,12 @@ T-058 runtime diagnosis: actual stream evidence shows schema JSON wholly in mess
 3. **Tier 3 - Auto Local OCR Failover:** หาก Cloud OCR ขัดข้อง (`fetch failed`, Connection reset) ให้สลับไปเรียก Local OCR (Ollama ในเครื่อง) อัตโนมัติ
 4. **Tier 4 - Graceful Manual Fallback:** หาก Local OCR ไม่พร้อม ให้แสดงกล่องเตือนสี Earth-Tone พร้อมปุ่ม 1-Click "สร้างแบบร่างข้อสอบทันที (เน้นความเร็ว)" และ "ดึงข้อความดิจิทัลเดิม" เพื่อให้ผู้ใช้ทำงานได้เสมอโดยไม่มี Deadlock
 
+### 5.4 กฎธีมสำหรับ Modal และ Draft/Cache Controls
+- Modal, drawer, และ history surfaces ต้องใช้พื้น `#fdfdfc` หรือ `#f7f6f2`, border `#dedad0`, และข้อความหลัก `#28332d`; หลีกเลี่ยง white/slate-only panels ที่ดูหลุดจากระบบ
+- Primary action ใน modal ใช้ Deep Olive `#496053`; destructive/clear actions ใช้ Terracotta `#F2604D` แบบ restrained พร้อมพื้นโปร่ง ไม่ใช้ red/rose palette ลอย ๆ
+- Badge สถานะสำเร็จหรือพร้อมใช้งานใช้ olive-tinted surface (`#eef5f2`, `#496053`) แทน emerald generic เว้นแต่เป็น semantic state ที่ต้องคงความหมายด้าน accessibility
+- Draft/cache controls ต้องสื่อว่า “เปิดทำต่อ” เป็น continuation ของงาน ไม่ใช่ import ใหม่หรือ OCR ใหม่
+
 
 ### T-066 Blueprint parity notes
 OCR text is normalized before question parsing so diacritic/front-vowel spacing repairs cannot change question boundaries. Repairs are conservative and preserve unknown `�` corruption for review. `คำตอบ:` and `Answer:` are visible answer evidence but do not override conflicting explicit keys. Matrix-table rendering, shared-context ownership, crop edge clearance, and QuizFlow output manifests remain partial/unknown until real source fixtures are available. See `evidence/t066-blueprint-parity.md`.

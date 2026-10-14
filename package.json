@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "prebuild": "node scripts/stamp-version.cjs",
+    "predev": "node scripts/stamp-version.cjs",
     "dev": "node -r ./scripts/next-realpath-shim.cjs ./node_modules/next/dist/bin/next dev",
     "build": "node -r ./scripts/next-realpath-shim.cjs ./node_modules/next/dist/bin/next build",
     "start": "node -r ./scripts/next-realpath-shim.cjs ./node_modules/next/dist/bin/next start",

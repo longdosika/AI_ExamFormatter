@@ -1,34 +1,34 @@
 {
-  "generatedAt": "2026-10-13T14:43:51.781Z",
-  "projectRoot": "D:\\0-Project\\92-AiAccess\\AI_ExamFormatter",
-  "status": "PASS",
+  "generatedAt": "2026-10-14T12:59:49.875Z",
+  "projectRoot": "D:\\90-AI\\AI_ExamFormatter",
+  "status": "WARN",
   "checks": [
     {
       "id": "node",
       "status": "PASS",
-      "message": "Node.js 22.23.2 meets Next.js minimum 18.17."
+      "message": "Node.js 24.19.0 meets Next.js minimum 18.17."
     },
     {
       "id": "npm",
       "status": "PASS",
-      "message": "npm 10.9.8 is available."
+      "message": "npm 11.17.0 is available."
     },
     {
       "id": "git",
       "status": "PASS",
-      "message": "git version 2.55.0.windows.4 is available."
+      "message": "git version 2.49.0.windows.1 is available."
     },
     {
       "id": "node-policy",
-      "status": "PASS",
-      "message": "Node major is a recommended LTS line."
+      "status": "WARN",
+      "message": "Node is supported, but Node 20 or 22 LTS is recommended for cross-machine parity."
     },
     {
       "id": "package-lock",
       "status": "PASS",
       "message": "package-lock.json is present; npm ci can reproduce dependencies.",
       "details": {
-        "sha256": "b2b3636c1cc54a7e14cb1098eedd903cc8494943023a5ec5bb8318d3f417003f"
+        "sha256": "c67300a642f076d22c5c2903bf07edd578c9cacbdb865d2ddbafb1879ee5c86c"
       }
     },
     {
@@ -48,12 +48,18 @@
       "details": {
         "keys": [
           "APP_URL",
+          "GEMINI_ANSWER_MODEL",
           "GEMINI_API_KEY",
+          "GEMINI_API_KEY_2",
+          "GEMINI_API_KEY_3",
           "GOOGLE_CLIENT_ID",
           "GOOGLE_CLIENT_SECRET",
           "GOOGLE_CLOUD_PROJECT_NUMBER",
           "GOOGLE_PICKER_API_KEY",
           "GOOGLE_SESSION_SECRET",
+          "GOOGLE_VISION_API_KEY",
+          "GOOGLE_VISION_API_KEY_2",
+          "GOOGLE_VISION_API_KEY_3",
           "TYPHOON_OCR_API_KEY",
           "TYPHOON_OCR_BASE_URL",
           "TYPHOON_OCR_CONCURRENCY",
@@ -78,18 +84,18 @@
     },
     {
       "id": "port",
-      "status": "PASS",
-      "message": "Port 3000 is available."
+      "status": "WARN",
+      "message": "Port 3000 is already in use; use another port or stop the project-owned process."
     }
   ],
   "snapshot": {
-    "node": "22.23.2",
-    "npm": "10.9.8",
+    "node": "24.19.0",
+    "npm": "11.17.0",
     "platform": "win32",
     "arch": "x64",
-    "os": "10.0.26200",
+    "os": "10.0.26300",
     "branch": "main",
-    "commit": "a2f31a6",
+    "commit": "c9153dd",
     "remote": "https://github.com/longdosika/AI_ExamFormatter.git",
     "ocrBaseUrl": "https://api.opentyphoon.ai/v1",
     "networkSkipped": false

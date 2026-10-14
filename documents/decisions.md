@@ -233,4 +233,14 @@ Use the committed `package-lock.json` with `npm ci` on every machine. Keep `.env
 - Evidence: `scripts/test-diagram-contract.cjs`, `lib/diagram-service.ts`, `lib/diagram-client.ts`, `components/SplitDocumentEditor.tsx`.
 - Status: `Approved`
 
+### D-023 Preserve Visible Build Stamp After Every Implementation Pass (2026-10-14)
+- Context: The header build badge is the user's quick confirmation that the running system includes the newest fix. Reverting `APP_VERSION` / `BUILD_STAMP` after a successful build makes the UI appear stale even when code changed, and dev server startup previously did not stamp a fresh value.
+- Decision:
+  1. Keep the freshly generated `APP_VERSION` in `lib/version.ts` and matching `BUILD_STAMP` in `app/page.tsx` after `npm run build` / `finish-task`.
+  2. Add `predev` alongside `prebuild` so `npm run dev` and `scripts/bootstrap-local.ps1` refresh the visible build badge before serving the app.
+  3. Treat the final stamped value as intentional release evidence for the completed implementation pass, not disposable build noise.
+- Tradeoff: Source diffs include a timestamp-only change after each completed pass, but the UI now reliably identifies the active local build for user verification.
+- Evidence: `package.json`, `scripts/stamp-version.cjs`, `app/page.tsx`, `lib/version.ts`, `scripts/test-diagram-contract.cjs`.
+- Status: `Approved`
+
 

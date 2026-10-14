@@ -189,6 +189,37 @@ T-058 runtime diagnosis: actual stream evidence shows schema JSON wholly in mess
 - `components/SplitDocumentEditor.tsx`: Updated Region Snipping modal to inform user of automatic 2-3px edge trimming and skew/tilt tolerance during manual diagram captures.
 - `scripts/test-diagram-contract.cjs`: Added unit regression test verifying smart gutter trimming algorithm cuts outer intruder text lines while preserving table content and maintaining clean margins.
 
+### T-083 New Machine Development Environment Onboarding
+- `.env.example`: Source template copied to machine-local `.env.local`; secrets remain local and uncommitted.
+- `package-lock.json`: Dependency source of truth used by `npm ci --no-audit --no-fund`.
+- `scripts/sync-pdf-assets.cjs`: Ran through `postinstall`, syncing local pdf.js worker, cmap, and standard-font assets.
+- `scripts/check-environment.mjs`: Produced redacted readiness evidence in `evidence/environment-check.json`; dependencies passed, provider secrets remain missing.
+- `scripts/bootstrap-local.ps1`: Canonical local startup command for the ready development URL once checks are complete.
+- `evidence/t083-new-machine-checklist.md`: Machine-specific onboarding checklist for `DESKTOP-FNVSAKS`, including completed checks, remaining secrets, and future minimal update path.
+
+### T-084 Complete Figure Crop Coverage and Shared-Question Render Order
+- `lib/diagram-client.ts`: `cropBboxFromImage` accepts `trimEdges`; `harvestExamDiagrams` applies smart trimming only to `shared_context` table/diagram crops, while question/apparatus figures use larger padding and preserve separated bottom/right labels.
+- `lib/diagram-service.ts`: Diagram prompt now explicitly requires complete bottom/right Thai labels, receiver containers, leader lines, and captions such as `ของเหลวที่แยกได้` for science apparatus figures.
+- `components/SplitDocumentEditor.tsx`: Shared context heading renders `โจทย์ร่วม:`; question images render with explicit `รูปโจทย์:` heading; explanation image blocks render `รูปคำอธิบาย:` and the explanation text label appears only when explanation text exists.
+- `scripts/test-diagram-contract.cjs`: Regression checks cover question crop policy, shared-context trim policy, explicit image headings, and first-class render-order markup.
+
+### T-085 Duplicate Question-Image Label Removal and Apparatus Margin Expansion
+- `components/SplitDocumentEditor.tsx`: `labelImages` now detects existing `รูปโจทย์` headings and skips auto-inserting another label; manual crop insertion and toolbar image insertion create `รูปโจทย์:` headings instead of legacy `[รูปโจทย์]`.
+- `lib/diagram-client.ts`: Question/apparatus diagram padding increased to 56px while keeping `trimEdges=false` for question figures and `trimEdges=true` for shared-context table figures.
+- `scripts/test-diagram-contract.cjs`: Regression asserts the duplicate-label guard exists and no manual/auto question-image path inserts `FORMATTER_CONSTANTS.LABEL_QUESTION_IMAGE`.
+
+### T-086 Tight Question-Figure Bottom Trimming and Visible Build Stamp
+- `lib/diagram-client.ts`: `trimIntruderTextAndMargin` accepts top/bottom trim options; question figures now use bottom-only smart trimming so top captions stay in the crop while lower neighboring option text is removed across a whitespace gutter.
+- `package.json`: `predev` now runs `scripts/stamp-version.cjs`, matching `prebuild`, so local development startup refreshes the visible build number.
+- `scripts/test-diagram-contract.cjs`: Regression covers question bottom-only trimming and verifies the dev startup build-stamp hook remains configured.
+- `app/page.tsx` / `lib/version.ts`: Build output keeps the current stamped `APP_VERSION`/`BUILD_STAMP` as the user-visible release identifier after the completion gate.
+
+### T-087 Editable Draft Resume and Earth-Tone Draft Modal
+- `lib/document-draft-store.ts`: Draft records now support `editorHtml` so manual rich-text edits, inserted images, and review-time DOM state can be restored in later sessions.
+- `app/page.tsx`: `handleApplyDraft` creates a resumable `ParsedFileResult` from a saved draft when no active file exists, restores formatted items/OCR state, increments the document key, and autosaves editor input/review snapshots back to the same draft.
+- `components/SplitDocumentEditor.tsx`: Accepts restored editor HTML, renders it inside the editable document, and emits editor input changes for debounced draft autosave.
+- `scripts/test-document-drafts.cjs`: Regression covers `editorHtml`, active draft resume hooks, editor autosave hooks, and earth-tone modal marker.
+
 
 
 

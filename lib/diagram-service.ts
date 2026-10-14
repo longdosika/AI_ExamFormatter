@@ -110,6 +110,8 @@ CRITICAL INSTRUCTIONS:
    - MANDATORY INCLUSIVITY FOR LABELS & CALLOUTS:
      For science apparatus, diagrams, experiments, charts, and chemical/physical setups (e.g. distillation flasks, test tubes, pulleys, circuits, biological specimens) that have text labels, annotations, callout pointers, or leader lines around them (e.g. 'เทอร์มอมิเตอร์', 'คอลัมน์ที่ใช้แยก', 'ของเหลวที่นำมาแยก', 'ทางน้ำออก', 'ควบแน่น', 'ทางน้ำเข้า', 'ของเหลวที่แยกได้'):
      You MUST enclose the ENTIRE figure INCLUDING ALL associated text labels, pointer lines, and annotations on ALL 4 SIDES (top, bottom, left, right).
+     Pay special attention to BOTTOM and RIGHT labels/captions that may sit below receiving containers or near the page edge. The bbox MUST extend beyond the full Thai label text, not just the arrow or container.
+     For distillation/separation apparatus, include the receiver beaker/flask and the full bottom caption such as 'ของเหลวที่แยกได้'. Include all leader lines connected to labels and captions.
      DO NOT tightly crop only the central glassware/drawing and cut off the surrounding descriptive Thai text labels! Ensure the bbox bounds safely encompass all peripheral callouts belonging to the apparatus.
 
 4. EXPLANATION FIGURES:

@@ -1381,4 +1381,104 @@ T-058 runtime diagnosis: actual stream evidence shows schema JSON wholly in mess
   5. Added unit test in `scripts/test-diagram-contract.cjs`. Verified `npm test` (all 17 test suites PASS), `npm run typecheck` (0 errors), `npm run lint` (0 errors), `node scripts/test-e2e.cjs` (16/16 browser scenarios PASS). Moved to Verified.
 - Final gate verification (2026-10-14): `node scripts/finish-task.mjs T-082` PASSED semantic check, platform readiness, git drift, typecheck, lint, all 17 unit test suites, all 16 browser E2E tests, production build (`261014-1550`), and CSS delivery health check. Marked Done.
 
+### T-083 New-machine development environment onboarding and reusable checklist
+- Type: Tooling / Portability
+- Status: Done
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Owner: Codex / Project owner
+- Problem: This Windows machine is newly used for this project. It needs a verified development/runtime environment, a durable machine-specific checklist, and a tested local URL so later partial updates do not require rediscovering every setup step from scratch.
+- Acceptance Criteria:
+  1. Identify and record machine name, date, repository path, branch/commit, Node/npm/Git versions, dependency state, environment-variable readiness, provider warnings, and local port readiness without printing secrets.
+  2. Install or repair dependencies using the committed `package-lock.json`, preserve `.env.local`, and avoid committing `node_modules`, `.next`, or secrets.
+  3. Run environment checks, unit/contract tests, typecheck, lint, browser E2E, and a completion gate where feasible; record exact commands and actual results.
+  4. Create a reusable machine checklist under `evidence/` documenting what was checked, what was fixed, what remains optional, and how to re-run only the needed checks after future updates.
+  5. Start or verify the local app URL and exercise the requested ready-to-test route before reporting the link.
+- Affected Files: `documents/tasks.md`, `evidence/t083-new-machine-checklist.md`, `evidence/environment-check.json`, and optional knowledge files if durable lessons or traceability need updates.
+- Expected verification: `npm ci` or bootstrap install, `npm run env:check:record`, `npm test`, `npm run typecheck`, `npm run lint`, `npm run test:e2e`, `node scripts/finish-task.mjs T-083`, and browser/open-route verification for `http://localhost:3000`.
+- Verification update (2026-10-14): Machine `DESKTOP-FNVSAKS` prepared at `D:\90-AI\AI_ExamFormatter`. `.env.local` exists and remains uncommitted; remote Typhoon OCR, Gemini, and Google OAuth settings are present without printing secrets. `npm ci --no-audit --no-fund` passed after network approval and synced pdf assets. `npm run env:check:record` reports WARN only for Node 24 not being preferred LTS and port 3000 being occupied by the running project server. `npm test` passed after loopback approval, `npm run typecheck` passed, `npm run lint` passed with 8 existing `<img>` warnings, `npm run test:e2e` passed 16/16, `npm run build` passed, `Invoke-WebRequest http://localhost:3000` returned HTTP 200, and the app was opened in the Codex browser panel. Checklist evidence: `evidence/t083-new-machine-checklist.md`.
+- Final gate verification (2026-10-14): `node scripts/finish-task.mjs T-083` PASSED semantic validator, platform readiness, git drift, typecheck, lint, all unit/contract tests, all browser E2E checks, production build (`261014-2001`), and CSS delivery health check. Marked Done.
+
+### T-084 Complete figure crop coverage and enforce shared-question render order
+- Type: Bug / Formatting Fidelity
+- Status: Done
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Owner: Codex / Core Formatter & Vision Pipeline Engineer
+- Problem: User screenshot shows Question 33 apparatus crop losing bottom/right text ("ของเหลวที่แยกได้"). The rendered order also needs to follow the requested document sequence exactly: shared context label, shared context text, shared context image label, question text, question image label, captured question image, choices with optional choice images, explanation text, explanation image, then shared context end.
+- Acceptance Criteria:
+  1. Expand diagram crop safety for apparatus/question figures so peripheral labels and callouts at bottom/right edges are retained, while table-specific smart trimming still removes intruding neighboring text.
+  2. Refine diagram detection instructions to require complete apparatus diagrams including all connected Thai labels, leader lines, destination containers, and bottom/right captions.
+  3. Render question images with an explicit `รูปโจทย์:` label before the captured image, without using the older bracket-only label as the visible heading.
+  4. Ensure shared-question rendering order is exactly: `โจทย์ร่วม:` -> shared text -> `รูปโจทย์ร่วม:` -> question text -> `รูปโจทย์:` -> question image -> `ตัวเลือก:` and choice images -> `คำอธิบาย:` text -> explanation image -> `จบโจทย์ร่วม`.
+  5. Add regression coverage for apparatus crop padding and render-order-relevant markup/labels.
+- Affected Files: `lib/diagram-client.ts`, `lib/diagram-service.ts`, `components/SplitDocumentEditor.tsx`, `scripts/test-diagram-contract.cjs`, `scripts/test-parser.cjs`, `documents/tasks.md`, `documents/traceability.md`, `documents/code-map.md`, `documents/memory.md`.
+- Expected verification: targeted diagram/parser tests, `npm test`, `npm run typecheck`, `npm run lint`, browser E2E where feasible, and `node scripts/finish-task.mjs T-084`.
+- Verification update (2026-10-14): Implemented wider, non-trimmed question/apparatus crop policy and kept smart edge trimming only for shared-context table crops. Updated Gemini diagram prompt to include bottom/right apparatus labels and receiver captions such as `ของเหลวที่แยกได้`. Updated editor render order/labels: `โจทย์ร่วม:`, shared text, `รูปโจทย์ร่วม:`, question text, `รูปโจทย์:`, captured question image, `ตัวเลือก:`, optional choice images, optional `คำอธิบาย:` text, optional `รูปคำอธิบาย:`, and `จบโจทย์ร่วม`. Verification passed: `node scripts/test-diagram-contract.cjs`, `node scripts/test-parser.cjs`, `npm test`, `npm run typecheck`, `npm run lint` (8 existing `<img>` warnings), and `npm run test:e2e` (16/16).
+- Final gate verification (2026-10-14): `node scripts/finish-task.mjs T-084` PASSED semantic validator, platform readiness, git drift, typecheck, lint, all unit/contract tests, all browser E2E checks, production build (`261014-2035`), and CSS delivery health check. Marked Done.
+
+### T-085 Remove duplicate question-image labels and widen apparatus crop margin
+- Type: Bug / Formatting Fidelity
+- Status: Done
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Owner: Codex / Core Formatter & Vision Pipeline Engineer
+- Problem: After T-084, user verification shows duplicate question-image text: visible `รูปโจทย์:` heading plus legacy `[รูปโจทย์]` inserted inside the image frame. The Question 33 apparatus crop still clips part of the bottom/right label, so the question-figure crop margin needs a small additional expansion.
+- Acceptance Criteria:
+  1. Prevent auto-labeling from adding legacy `[รูปโจทย์]` when an explicit `รูปโจทย์:` heading already exists.
+  2. Update manual crop insertion and toolbar image insertion to use `รูปโจทย์:` consistently instead of `[รูปโจทย์]`.
+  3. Increase question/apparatus figure padding enough to preserve bottom/right labels while preserving smart trimming for shared-context table crops.
+  4. Add regression coverage for duplicate-label prevention and crop-policy padding.
+- Affected Files: `components/SplitDocumentEditor.tsx`, `lib/diagram-client.ts`, `scripts/test-diagram-contract.cjs`, `documents/tasks.md`, `documents/traceability.md`, `documents/code-map.md`, `documents/memory.md`, `features/r-002-feature.md`, `features/r-004-feature.md`.
+- Expected verification: `node scripts/test-diagram-contract.cjs`, `npm test`, `npm run typecheck`, `npm run lint`, browser E2E where feasible, and `node scripts/finish-task.mjs T-085`.
+- Verification update (2026-10-14): `node scripts/test-diagram-contract.cjs`, `npm run typecheck`, `npm run lint`, `npm test`, and `npm run test:e2e` passed. First browser E2E attempt hit a transient Windows screenshot file lock under `evidence/t045-statistics-browser.png`; immediate rerun passed all 16 browser checks.
+- Final gate verification (2026-10-14): Initial `node scripts/finish-task.mjs T-085` was blocked by sandbox loopback permission (`EACCES 127.0.0.1`) during local streaming transport tests. Authorized rerun PASSED semantic validator, platform readiness, git drift, typecheck, lint (8 pre-existing `<img>` warnings only), all unit/contract tests, all browser E2E checks, production build (`261014-2055`), and CSS delivery health check. Marked Done.
+
+### T-086 Tighten question figure crops and preserve visible build stamp
+- Type: Bug / Release Hygiene
+- Status: Done
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Owner: Codex / Core Formatter & Vision Pipeline Engineer
+- Problem: User verification shows Question 80's separation-funnel figure crop includes adjacent option text below the image. The user also requires the build number to change on every implementation pass and show the new value in the system after fixes.
+- Acceptance Criteria:
+  1. Question/apparatus crops keep enough bottom/right margin for labels but trim away adjacent question/choice text when a whitespace gutter separates it from the figure.
+  2. Regression coverage demonstrates question figures are not allowed to capture lower neighboring option text while shared-context table trimming remains intact.
+  3. Build stamp behavior is documented and the final pass preserves the freshly stamped `APP_VERSION` / `BUILD_STAMP` instead of reverting it after build.
+  4. The local app URL is verified after the final build so the displayed build value can be checked by the user.
+- Affected Files: `lib/diagram-client.ts`, `scripts/test-diagram-contract.cjs`, `app/page.tsx`, `lib/version.ts`, `documents/tasks.md`, `documents/traceability.md`, `documents/code-map.md`, `documents/memory.md`, `features/r-002-feature.md`, `features/r-004-feature.md`.
+- Expected verification: `node scripts/test-diagram-contract.cjs`, `npm test`, `npm run typecheck`, `npm run lint`, browser E2E where feasible, `node scripts/finish-task.mjs T-086`, and HTTP verification for `http://localhost:3000`.
+- Verification update (2026-10-14): `node scripts/test-diagram-contract.cjs` and `npm run typecheck` passed after implementation. `npm run lint` passed with 8 pre-existing `<img>` warnings. First sandboxed `npm test` was blocked by loopback permission (`EACCES 127.0.0.1`); authorized rerun passed all unit/contract tests. First concurrent `npm run test:e2e` attempt timed out waiting for its local test server; immediate isolated authorized rerun passed all 16 browser checks. Knowledge drift and vault checks passed after adding decision D-023 for the build-stamp policy.
+- Final gate verification (2026-10-14): `node scripts/finish-task.mjs T-086` PASSED semantic validator, platform readiness, git drift, typecheck, lint (8 pre-existing `<img>` warnings only), all unit/contract tests, all browser E2E checks, production build (`261014-2116`), and CSS delivery health check. Marked Done. Fresh `APP_VERSION`/`BUILD_STAMP` intentionally preserved for user-visible verification.
+- Local access verification (2026-10-14): `scripts/bootstrap-local.ps1 -Port 3000 -SkipTests` restarted the dev server, `predev` stamped active version `261014-2118`, and `Invoke-WebRequest http://localhost:3000` returned HTTP 200 with `261014-2118` present in the served page.
+
+### T-087 Resume saved drafts as editable working sessions and align draft modal theme
+- Type: Bug / UX Continuity
+- Status: Done
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Owner: Codex / Core Formatter & UX Engineer
+- Problem: User verification shows the saved draft/history modal can list a prior OCR/draft, but opening an old draft is not reliably treated as a real editable continuation. This forces users to restart work and spend OCR/API cost again, which violates the draft/cache purpose. The modal and action elements also need tighter adherence to the app's earth-tone design theme.
+- Acceptance Criteria:
+  1. Opening a saved draft restores it as an active editable working session when `formattedItems` exist, including document source metadata needed for autosave continuity.
+  2. Opening OCR-only history still provides a clear continuing path to create/edit a draft without rerunning OCR.
+  3. Restored draft edits and diagram extraction autosave back into the same document draft rather than creating an unrelated session or requiring reimport.
+  4. Draft/history modal buttons, badges, empty states, and destructive actions use the established earth-tone theme consistently.
+  5. Regression coverage verifies draft application and themed modal hooks.
+- Affected Files: `app/page.tsx`, `lib/document-draft-store.ts`, `scripts/test-document-drafts.cjs`, `scripts/test-e2e.cjs` if browser coverage is needed, `documents/tasks.md`, `documents/traceability.md`, `documents/code-map.md`, `documents/memory.md`, `features/r-001-browser.md`, `features/r-004-feature.md`.
+- Expected verification: `node scripts/test-document-drafts.cjs`, `npm test`, `npm run typecheck`, `npm run lint`, browser E2E where feasible, `node scripts/finish-task.mjs T-087`, and HTTP verification for `http://localhost:3000`.
+- Verification update (2026-10-14): `node scripts/test-document-drafts.cjs`, `npm run typecheck`, `npm run lint` (8 pre-existing `<img>` warnings), authorized `npm test`, authorized `npm run test:e2e`, `node scripts/check-knowledge-drift.mjs --require-git`, and `node scripts/check-knowledge-vault.mjs` passed.
+- Final gate verification (2026-10-14): `node scripts/finish-task.mjs T-087` PASSED semantic validator, platform readiness, git drift, typecheck, lint (8 pre-existing `<img>` warnings only), all unit/contract tests, all browser E2E checks, production build (`261014-2130`), and CSS delivery health check. Marked Done.
+- Local access verification (2026-10-14): `scripts/bootstrap-local.ps1 -Port 3000 -SkipTests` restarted the dev server, `predev` stamped active version `261014-2131`, and `Invoke-WebRequest http://localhost:3000` returned HTTP 200 with `261014-2131` present in the served page.
+
+### T-088 Keep source pane original-only for comparison, capture, and magnifier
+- Type: Bug / UX Boundary
+- Status: In Progress
+- Lifecycle: Proposed -> Ready -> In Progress
+- Owner: Codex / Core Formatter & UX Engineer
+- Problem: User verification shows the left source pane can display OCR/draft text after resuming a saved draft. The intended contract is that the left pane is only for the original file view used for visual comparison, capture, and magnifier; OCR/draft text belongs on the right editing side.
+- Acceptance Criteria:
+  1. Source pane renders only original page images, original PDF iframe, original image file, or embedded original images when available.
+  2. Source pane never renders `parsedFile.rawContent` / OCR text as fallback.
+  3. If a saved draft is opened without original source pixels/file URL, the left pane shows an earth-tone empty/reference state telling the user to reimport the original file for comparison/capture/magnifier.
+  4. Magnifier overlay also avoids OCR text fallback when no original source visual exists.
+  5. Regression coverage enforces the source-pane original-only boundary and theme marker.
+- Affected Files: `components/SplitDocumentEditor.tsx`, `scripts/test-document-drafts.cjs` or targeted UI contract tests, `documents/tasks.md`, `documents/traceability.md`, `documents/code-map.md`, `documents/memory.md`, `documents/design.md`, `features/r-001-browser.md`, `features/r-004-feature.md`.
+- Expected verification: targeted source-pane/draft contract test, `npm test`, `npm run typecheck`, `npm run lint`, browser E2E where feasible, `node scripts/finish-task.mjs T-088`, and HTTP verification for `http://localhost:3000`.
+
 

@@ -32,10 +32,12 @@ interface SplitDocumentEditorProps {
   onHarvestDiagrams?: () => void;
   onExtractAnswers?: () => void;
   onReviewEditor?: (editor: HTMLElement) => void;
+  onEditorDraftChange?: (editor: HTMLElement) => void;
   onReset?: () => void;
   onExportDrive?: (element: HTMLElement) => Promise<void>;
   exportAvailable?: boolean;
   onCreateStarterDraft?: () => void;
+  restoredEditorHtml?: string | null;
 }
 
 export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
@@ -52,10 +54,12 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
   onHarvestDiagrams,
   onExtractAnswers,
   onReviewEditor,
+  onEditorDraftChange,
   onReset,
   onExportDrive,
   exportAvailable = false,
   onCreateStarterDraft,
+  restoredEditorHtml = null,
 }) => {
   const sourcePaneRef = useRef<HTMLDivElement>(null);
   const [sourcePage, setSourcePage] = useState(1);
@@ -91,10 +95,16 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
   const editorPaneRef = useRef<HTMLDivElement>(null);
   const rawTextRef = useRef<HTMLTextAreaElement>(null);
   const editorSelection = useRef<Range | null>(null);
+  const hasOriginalVisualSource = Boolean(
+    (parsedFile.pageImages && parsedFile.pageImages.length > 0) ||
+    parsedFile.fileUrl ||
+    parsedFile.extractedImages.length > 0
+  );
   useEffect(() => {
     const editor = editorPaneRef.current;
     if (!editor || !formattedItems.length) return;
     const labelImages = () => editor.querySelectorAll('img').forEach(image => {
+      const hasQuestionHeading = (text?: string | null) => Boolean(text?.trim().replace(/\s+/g, "").includes("รูปโจทย์"));
       const isShared = image.closest('[data-shared-image="true"]') ||
         image.previousElementSibling?.textContent?.trim().includes("รูปโจทย์ร่วม") ||
         image.parentElement?.previousElementSibling?.textContent?.trim().includes("รูปโจทย์ร่วม");
@@ -103,11 +113,11 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
       if (isShared || isChoice || isExplanation) return;
       const preceding = image.previousElementSibling;
       const outerPreceding = image.parentElement?.previousElementSibling;
-      if (preceding?.textContent?.trim() === FORMATTER_CONSTANTS.LABEL_QUESTION_IMAGE ||
-        (!preceding && outerPreceding?.textContent?.trim() === FORMATTER_CONSTANTS.LABEL_QUESTION_IMAGE)) return;
+      if (hasQuestionHeading(preceding?.textContent) || hasQuestionHeading(outerPreceding?.textContent)) return;
       const label = document.createElement('p');
-      label.textContent = FORMATTER_CONSTANTS.LABEL_QUESTION_IMAGE;
+      label.textContent = "รูปโจทย์:";
       label.style.color = FORMATTER_CONSTANTS.COLOR_ORANGE;
+      label.style.fontWeight = "bold";
       image.before(label);
     });
     labelImages();
@@ -128,6 +138,7 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
 
   // Dynamic Exam Items List
   const itemsList = formattedItems;
+  const shouldUseRestoredEditorHtml = Boolean(restoredEditorHtml && itemsList.length > 0);
   const navigationItems = useMemo(() => itemsList.length ? itemsList : parseExamText(reviewText), [itemsList, reviewText]);
   const questionRows = useMemo(() => {
     const rows: typeof navigationItems[] = [];
@@ -370,7 +381,7 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
         target.insertBefore(figure, target.children[1] || null);
       }
       const label = document.createElement("p");
-      label.textContent = FORMATTER_CONSTANTS.LABEL_QUESTION_IMAGE;
+      label.textContent = "รูปโจทย์:";
       const image = document.createElement("img");
       image.src = capturedImageSnippet;
       image.alt = "ภาพโจทย์ที่ตัดจากต้นฉบับ";
@@ -516,7 +527,7 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
       if (!target || !editorPaneRef.current?.contains(target)) { showNotice("เลือกข้อสอบที่ต้องการแทรกรูปก่อน"); return; }
       const figure = document.createElement("div");
       figure.dataset.questionImage = "true";
-      const label = document.createElement("p"); label.textContent = FORMATTER_CONSTANTS.LABEL_QUESTION_IMAGE;
+      const label = document.createElement("p"); label.textContent = "รูปโจทย์:";
       const image = document.createElement("img"); image.src = url; image.alt = "รูปโจทย์"; image.style.maxWidth = "100%";
       figure.append(label, image);
       target.insertBefore(figure, target.children[1] || null);
@@ -885,11 +896,7 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
                         draggable={false}
                       />
                     </div>
-                  ) : (
-                    <div className="p-6 font-mono text-xs whitespace-pre-wrap bg-white text-slate-800">
-                      {parsedFile.rawContent}
-                    </div>
-                  )}
+                  ) : null}
                 </div>
               </div>
             )}
@@ -935,26 +942,37 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
                   ไฟล์รูปภาพต้นฉบับ ({parsedFile.fileName}) - แสดงผลความละเอียดเต็มสำหรับสอบทาน OCR
                 </div>
               </div>
+            ) : parsedFile.extractedImages.length > 0 ? (
+              <div className="p-4 space-y-3" data-source-original-only="embedded-images">
+                <div className="font-sans font-semibold text-[#28332d] flex items-center gap-1.5 text-xs">
+                  <ImageIcon className="w-4 h-4 text-[#F2604D]" />
+                  <span>รูปภาพต้นฉบับที่ฝังในเอกสาร ({parsedFile.extractedImages.length} รูป)</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  {parsedFile.extractedImages.map((img, idx) => (
+                    <div key={idx} className="border border-[#dedad0] rounded-lg p-2 bg-white shadow-2xs text-center space-y-1">
+                      <img src={img.dataUrl} alt={`Source figure ${idx}`} className="max-h-36 mx-auto object-contain" />
+                      <span className="text-[10px] text-stone-500 block font-mono">{img.id}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             ) : (
-              <div className="p-6 space-y-4">
-                <div className="whitespace-pre-wrap">{parsedFile.rawContent}</div>
-
-                {parsedFile.extractedImages.length > 0 && (
-                  <div className="pt-4 border-t border-slate-200 space-y-3">
-                    <div className="font-sans font-semibold text-slate-700 flex items-center gap-1.5 text-xs">
-                      <ImageIcon className="w-4 h-4 text-[#F2604D]" />
-                      <span>รูปภาพฝังในเอกสาร ({parsedFile.extractedImages.length} รูป):</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      {parsedFile.extractedImages.map((img, idx) => (
-                        <div key={idx} className="border border-slate-200 rounded-lg p-2 bg-white shadow-2xs text-center space-y-1">
-                          <img src={img.dataUrl} alt={`Source figure ${idx}`} className="max-h-36 mx-auto object-contain" />
-                          <span className="text-[10px] text-slate-400 block font-mono">{img.id}</span>
-                        </div>
-                      ))}
-                    </div>
+              <div
+                data-source-original-only="missing"
+                className="h-full min-h-[420px] flex items-center justify-center p-6 bg-[#f7f6f2]"
+              >
+                <div className="max-w-sm rounded-xl border border-[#dedad0] bg-[#fdfdfc] p-5 text-center shadow-2xs space-y-3">
+                  <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full border border-[#dedad0] bg-[#eae8e1] text-[#496053]">
+                    <FileText className="h-5 w-5" />
                   </div>
-                )}
+                  <div className="space-y-1">
+                    <div className="text-sm font-bold text-[#28332d]">ยังไม่มีไฟล์ต้นฉบับให้แสดง</div>
+                    <p className="text-xs leading-relaxed text-stone-600">
+                      ฝั่งซ้ายใช้สำหรับเทียบต้นฉบับ, capture รูป และแว่นขยายเท่านั้น แบบร่าง/OCR ที่โหลดจากแคชจะแก้ต่อได้ทางฝั่งขวา หากต้องการอ้างอิงภาพเดิมให้นำเข้าไฟล์ต้นฉบับอีกครั้ง
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -1145,6 +1163,7 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
             aria-multiline="true"
             contentEditable={itemsList.length > 0}
             suppressContentEditableWarning
+            onInput={() => editorPaneRef.current && onEditorDraftChange?.(editorPaneRef.current)}
             className="flex-1 min-h-0 p-5 overflow-y-auto space-y-5 font-sans text-[12pt] bg-white text-slate-900 focus:outline-none leading-normal"
             style={{ fontSize: "12pt", fontFamily: "'Sarabun', sans-serif" }}
           >
@@ -1236,6 +1255,8 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
                   </div>
                 )}
               </div>
+            ) : shouldUseRestoredEditorHtml ? (
+              <div dangerouslySetInnerHTML={{ __html: restoredEditorHtml || "" }} />
             ) : itemsList.map((item) => (
               <div key={item.id} data-item-id={item.id} className="border-b border-slate-100 pb-6 last:border-0 last:pb-0 space-y-3">
                 {/* 0. Shared Context Start (โจทย์ร่วม) */}
@@ -1246,7 +1267,7 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
                   >
                     <div className="flex items-center gap-2">
                       <span className="text-[#006D77] font-bold text-[12pt] tracking-wide">
-                        {FORMATTER_CONSTANTS.LABEL_SHARED_START}{" "}
+                        {FORMATTER_CONSTANTS.LABEL_SHARED_START}:{" "}
                       </span>
                       {item.sharedContextRange && (
                         <span
@@ -1301,8 +1322,8 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
                 {/* 2. Question Image (if present) */}
                 {item.imageUrl && (
                   <div data-question-image="true" className="pl-4 space-y-2">
-                    <span className="text-[#F2604D] font-bold text-[12pt]">
-                      {FORMATTER_CONSTANTS.LABEL_QUESTION_IMAGE}
+                    <span className="text-[#F2604D] font-bold text-[12pt] block">
+                      รูปโจทย์:
                     </span>
                     <div className="relative border border-slate-200 rounded-lg p-2 bg-slate-50 inline-block">
                       <img
@@ -1385,14 +1406,19 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
                   <p>{item.sourceAnswerEvidence.evidence}</p>
                 </details>}
                 <div data-explanation-block="true" className="pl-4 pt-1 space-y-2">
-                  <div>
-                    <span className="text-[#006D77] font-bold text-[12pt]">
-                      {FORMATTER_CONSTANTS.LABEL_EXPLANATION}{" "}
-                    </span>
-                    <span className="text-slate-700 font-light leading-relaxed text-[12pt]">{item.explanationText}</span>
-                  </div>
+                  {item.explanationText && (
+                    <div>
+                      <span className="text-[#006D77] font-bold text-[12pt]">
+                        {FORMATTER_CONSTANTS.LABEL_EXPLANATION}{" "}
+                      </span>
+                      <span className="text-slate-700 font-light leading-relaxed text-[12pt]">{item.explanationText}</span>
+                    </div>
+                  )}
                   {item.explanationImageUrl && (
                     <div data-explanation-image="true" className="pt-1">
+                      <span className="text-[#F2604D] font-bold text-[12pt] block mb-2">
+                        รูปคำอธิบาย:
+                      </span>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={item.explanationImageUrl}
