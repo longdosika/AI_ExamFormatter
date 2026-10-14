@@ -34,6 +34,8 @@ export interface ChoiceItem {
   text: string;
   isCorrect: boolean;
   shadingType?: "source_provided" | "auto_solved" | "none";
+  imageUrl?: string;
+  imageStatus?: "CLEAN" | "DIRTY";
 }
 
 export interface ExamItem {
@@ -47,9 +49,16 @@ export interface ExamItem {
   imageStatus?: "CLEAN" | "DIRTY";
   choices: ChoiceItem[];
   explanationText: string;
+  explanationImageUrl?: string;
   reconciledAnswerKey?: string;
   reconciliationProvenance?: "source_asterisk" | "reconciled_from_explanation" | "source_vision" | "auto_solved" | "unresolved";
   sourceAnswerEvidence?: { page: number; confidence: number; evidence: string; bbox: number[]; model: string };
+  // Shared context properties (โจทย์ร่วม)
+  sharedContextText?: string;
+  sharedContextRange?: { start: number; end: number };
+  sharedContextImageUrl?: string;
+  isSharedContextStart?: boolean;
+  isSharedContextEnd?: boolean;
 }
 
 /**

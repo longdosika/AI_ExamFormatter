@@ -119,3 +119,78 @@ T-058 runtime diagnosis: actual stream evidence shows schema JSON wholly in mess
 - `app/page.tsx`: supplies PDF page images to parser and preserves them through reviewed conversion.
 - `scripts/test-parser.cjs`: 80-question, 13-page mixed-choice and page-image regression.
 - `lib/source-answer-client.ts` / `lib/source-answer-service.ts`: source-answer provenance and Gemini quota boundary (T-057).
+
+### T-070 / T-072 Google Cloud Vision OCR, Spatial Line Clustering, and Dynamic Version Stamping
+- `lib/ocr-service.ts`: `requestGoogleVisionOcr` with `reconstructSpatialText` spatial line clustering for multi-column layout.
+- `lib/exam-parser.ts`: `splitInlineChoices` enhanced with inline numeric choice boundary splitting (`1..2`, `3..4`).
+- `lib/version.ts`: `APP_VERSION` stamped dynamically via `scripts/stamp-version.cjs` on `prebuild`.
+- `scripts/stamp-version.cjs`: automated timestamp stamper (`YYMMDD-HHmm`) called before `npm run build`.
+- `scripts/test-parser.cjs`: regression test for inline numeric choices.
+- `evidence/t070-golden-analysis.md`: golden output parity comparison against QuizFlow chapter 7 Google Doc.
+
+### T-073 Pro UX/UI Streamline, Decoupled Formatting, and Performance History
+- `app/page.tsx`: Decoupled `convertReviewedText` for instant (<10ms) format rendering without Gemini Vision dependency; added on-demand `handleExtractAnswers`; integrated `StatisticsModal`; streamlined single-line header with icon-first toolbars.
+- `components/SplitDocumentEditor.tsx`: Sequential action guidance animation (`animate-pulse` with ring highlight on "แปลงเป็นรูปแบบข้อสอบ"); on-demand "ตรวจเฉลยจากภาพ (AI)" action button; prominent centered progress bar (`หน้า X / Y (Z%)`).
+- `components/StatisticsModal.tsx`: Visual performance comparison modal rendering latest 10 runs with median duration, structured success rate, and full JSON export.
+- `lib/exam-parser.ts`: Added `isPageScanList` safeguard preventing full-page document scans (`page-X`) from incorrectly attaching to Question 1 as figures.
+
+### T-074 Fix Detached OCR Enumeration Punctuation & Numeric Choice Collapse in Exam Parser
+- `lib/text-normalization.ts`: `normalizeThaiOcrText` repairs detached punctuation before enumeration numbers and choice letters (`1 . `, `ก . `, `1 ) `).
+- `lib/ocr-service.ts`: `reconstructSpatialText` uses `detectedBreak` and character gap thresholding instead of blind word space joining, preserving natural continuous Thai phrases and punctuation attachments.
+- `lib/exam-parser.ts`: `numbered`, `choicePattern`, `splitInlineChoices`, and `isNumericChoiceBlockStart` tolerate whitespace before dots/parens (`\s*[.)]`), preventing questions like `1 . ในการเลือก...` from collapsing into choices.
+- `scripts/test-parser.cjs`: Regression test verifying Chapter 7 detached punctuation parsing.
+
+### T-075 Dedicated Shared Context Formatting & Parsing for Grouped Exam Questions (โจทย์ร่วม)
+- `lib/formatter-rules.ts`: Enriched `ExamItem` schema with `sharedContextText`, `sharedContextRange`, `sharedContextImageUrl`, `isSharedContextStart`, and `isSharedContextEnd`.
+- `lib/exam-parser.ts`: Added `parseSharedContextHeader` regex matching Thai shared scenario headers (e.g. `ใช้ข้อมูลในตารางต่อไปนี้ตอบคำถามข้อ 17 - 18`, `ใช้รูปต่อไปนี้ตอบคำถามข้อ 28 - 29`, `ข้อ 17-18 ใช้ข้อมูล...`); buffered scenario preambles and shared diagrams without dropping lines between questions; handled explicit closing delimiter `จบโจทย์ร่วม` and automatic question range boundary closure.
+- `components/SplitDocumentEditor.tsx`: Rendered dedicated shared scenario container with Stormy Teal (`#006D77`) header `โจทย์ร่วม`, orange `รูปโจทย์ร่วม:`, question range badge, and ending delimiter `จบโจทย์ร่วม`; guarded `labelImages` to prevent duplicate `[รูปโจทย์]` label insertion on shared scenario images.
+- `scripts/test-parser.cjs`: Added automated regression suite for header parsing, multi-question shared context binding (Q17–18, Q19–21), and clean boundary reset for standard questions (Q19/Q22).
+
+### T-076 Dedicated Diagram/Table Harvesting Step & Multi-Target Region Snipping
+- `lib/formatter-rules.ts`: Enriched `ChoiceItem` with `imageUrl?: string`, `imageStatus?: "CLEAN" | "DIRTY"` and `ExamItem` with `explanationImageUrl?: string`.
+- `lib/diagram-service.ts`: `analyzePageDiagrams` detects bounding boxes (`ymin, xmin, ymax, xmax`) for framed figures, data tables, apparatus diagrams, choice images, and solution figures across source pages via Gemini Vision.
+- `app/api/diagrams/route.ts`: POST endpoint proxying diagram detection requests with strict schema validation and error recovery.
+- `lib/diagram-client.ts`: `cropBboxFromImage` performs HTML5 Canvas cropping with border clearance padding; `harvestExamDiagrams` orchestrates multi-page extraction and item assignment.
+- `components/SplitDocumentEditor.tsx`: Added Step 3 "สกัดรูปประกอบ (AI)" button between Step 2 and Step 4 with action guidance pulse; enhanced Region Snipping modal with target question and role selectors (`รูปโจทย์`, `รูปโจทย์ร่วม`, `รูปตัวเลือก ก-ง`, `รูปคำอธิบาย`); rendered `choice.imageUrl` and `item.explanationImageUrl`.
+- `app/page.tsx`: Added `diagramBusy`, `diagramsHarvested`, and `handleHarvestDiagrams` coordinating diagram extraction and state reset.
+- `scripts/test-diagram-contract.cjs`: Unit tests verifying diagram types, bbox geometries, and perimeter crop coordinates.
+
+### T-078 Multi-Key Provider Quota Fallback Pool (API#1, API#2, API#3)
+- `lib/api-key-manager.ts`: Core key pool manager resolving primary + backup keys (`API_KEY_2`, `API_KEY_3`, and delimited list strings) with deduplication, trimming, and masked logging; implements `executeWithKeyRotation` cascading across keys on HTTP 429/403 quota exhaustion.
+- `lib/diagram-service.ts`: Integrates `executeWithKeyRotation("gemini", ...)` for resilient diagram extraction.
+- `lib/source-answer-service.ts`: Integrates `executeWithKeyRotation("gemini", ...)` for source answer detection.
+- `lib/ocr-service.ts`: Integrates multi-key fallback loop for Google Cloud Vision API and Typhoon OCR.
+- `scripts/test-provider-keys.cjs`: Unit tests verifying key resolution, quota error classification, and 429 recovery.
+
+### T-079 Document Draft & OCR Cache Store, Diagram Label Crop Inclusivity, Step Icon Timeline & 30-Per-Row Nav
+- `lib/document-draft-store.ts`: Client-side persistent cache for raw OCR text and structured formatted items, supporting auto-saving, 1-click restore banners, and quota-safe trimming up to 15 drafts.
+- `lib/diagram-service.ts`: Enriched Gemini diagram prompt with mandatory inclusivity instructions for apparatus callouts, text labels, and leader lines on all four sides.
+- `lib/diagram-client.ts`: `cropBboxFromImage` updated with adaptive border padding (min 12px, up to 24px) preventing sliced edge labels.
+- `components/SplitDocumentEditor.tsx`: Replaced right-panel text buttons with compact Icon Timeline (Step 1: Format -> Step 2: Diagram Harvest -> Step 3: Source Answers -> Step 4: Issue Review) with status dots and tooltips; wrapped question navigation into rows of 30 buttons.
+- `app/page.tsx`: Added "แบบร่าง & แคช" modal, auto-draft check on file parse, and automatic draft saving upon OCR/conversion/diagrams.
+- `scripts/test-document-drafts.cjs`: Unit test contract validating draft save, load, find, overwrite, clear, and corrupted storage recovery.
+
+### T-080 Captured Text Deduplication, 12pt Standard Typography Default, and Connected Stepper Timeline
+- `lib/exam-parser.ts`: Added `stripCapturedTableText` export to detect and filter redundant table headers/rows/cells while preserving directive preamble instructions and narrative experiment text; integrated into `finish()`.
+- `lib/diagram-client.ts`: Automatically strips captured table/diagram text from `sharedContextText` when a shared context figure is attached, and clears `choice.text` when visual choice figures are harvested.
+- `components/SplitDocumentEditor.tsx`: Enforced Master Design Constitution 12 pt standard typography (`text-[12pt]`, Sarabun) across editor container, question stems, choices, shared contexts, and explanations; redesigned pipeline header into a connected horizontal stepper with connector lines, status badges (`Check`), active breathing animations, and accessible button names; integrated `stripCapturedTableText` in manual crop dialog.
+- `scripts/test-parser.cjs`: Added regression assertions for `stripCapturedTableText` validating that captured table text is stripped and narrative text is preserved.
+
+### T-081 Unbounded Stepper Resizing, Full Table Boundary Inclusivity, and Table Row Stripping
+- `components/SplitDocumentEditor.tsx`: Removed the outer rounded rectangle wrapper border (`bg-white border rounded-xl px-2.5 py-1 shadow-2xs`) from the Stepper Timeline; resized circular action buttons to compact dimensions (`w-6 h-6 sm:w-6.5 sm:h-6.5`) with proportional icons (`w-3 h-3 sm:w-3.5 sm:h-3.5`), connector lines (`h-0.5 w-2 sm:w-3.5`), and subtle `scale-102` active animations.
+- `lib/diagram-service.ts`: Refined the Gemini Vision prompt for `shared_context` and tables to mandate 100% complete outer table boundaries starting safely above the topmost horizontal border stroke and including all column headers.
+- `lib/diagram-client.ts`: Enhanced `cropBboxFromImage` with an extra top padding bonus (`padTop = Math.max(padY, Math.min(40, Math.round(padY * 1.25)))`) and generous padding (up to 22px) for shared context tables, ensuring full outer frames and headers are never clipped.
+- `lib/exam-parser.ts`: Upgraded `stripCapturedTableText` with Thai-safe boundaries to filter table headers ("สาร", "ผลการทดลอง") and sample row data lines (`^[A-Za-zก-ฮ0-9]\s*(?:[:：|]|\s)\s*(?:ได้|เป็น|มี|สาร|ของเหลว|ตกผลึก|สี|ใส|\d)`), eliminating leaked table rows while keeping narrative experiment procedures.
+- `scripts/test-parser.cjs`: Added regression test asserting table row and header elimination while preserving narrative experiment text.
+
+### T-082 Smart Table Edge Trimming, Configurable Safe Margins, and Skew Tolerance
+- `lib/diagram-client.ts`: Added `trimIntruderTextAndMargin` to perform row-by-row pixel darkness profiling. Detects intruder text lines at top or bottom edges separated by a whitespace gutter (>= 2px) from the table frame; trims intruder text cleanly with a calibrated `targetMargin` (default 3px) outside the outermost solid border line. Tolerates document tilt/skew (0.5° - 2°) across horizontal extents without clipping table corners.
+- `lib/diagram-client.ts`: Calibrated `cropBboxFromImage` to use `paddingPx = 10` and `targetMargin = 3` with `trimIntruderTextAndMargin`. Calibrated `harvestExamDiagrams` padding parameters (`shared_context: 14`, `question: 12`, `choice: 8`, targetMargin: 3).
+- `components/SplitDocumentEditor.tsx`: Updated Region Snipping modal to inform user of automatic 2-3px edge trimming and skew/tilt tolerance during manual diagram captures.
+- `scripts/test-diagram-contract.cjs`: Added unit regression test verifying smart gutter trimming algorithm cuts outer intruder text lines while preserving table content and maintaining clean margins.
+
+
+
+
+
+

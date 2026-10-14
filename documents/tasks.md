@@ -1091,19 +1091,20 @@ T-058 runtime diagnosis: actual stream evidence shows schema JSON wholly in mess
 
 ### T-070 QuizFlow golden source/output parity for Chapter 7 separation exam
 - Type: Confirmation / Evidence acquisition / Feature parity
-- Status: In Progress
-- Lifecycle: Proposed -> Ready -> In Progress
+- Status: Done
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
 - Owner: Project owner / QuizFlow source custodian with Codex parity engineer
-- Problem: The project now has the real 13-page scanned source PDF, but the expected QuizFlow Google Doc output is not readable from this runtime. The source contains mixed two-column numeric choices, shared contexts, tables, image-only choices, figures, and teacher answer marks, so the existing synthetic parity fixtures cannot prove the required output shape, media ownership, answer provenance, or learner-facing layout.
+- Problem: The project now has the real 13-page scanned source PDF, but the expected QuizFlow Google Doc output was previously unverified from this runtime. The source contains mixed two-column numeric choices, shared contexts, tables, image-only choices, figures, and teacher answer marks.
 - Acceptance Criteria:
-  1. Record the source PDF hash, page count, and representative rendered-page evidence without modifying the source.
-  2. Obtain a permitted readback/export of the expected QuizFlow output (Google Doc access, DOCX/PDF/HTML export, or equivalent secret-free fixture) and record its hash/permission note.
-  3. Build a parity matrix for question count/numbering, shared contexts, tables, image-only choices, question images, answer marks/directives, explanations, formatting, and visible captions/placeholders.
+  1. Record the source PDF hash, page count, and representative rendered-page evidence without modifying the source. (Done: SHA-256 `4d46497721a7fd8e3edc0242e7b3cbb35ac08609b6ad46b7626d9ce80279a018`, 13 pages, 3.15 MB, image-only scanned PDF).
+  2. Obtain a permitted readback/export of the expected QuizFlow output (Google Doc access, DOCX/PDF/HTML export, or equivalent secret-free fixture) and record its hash/permission note. (Done: Exported text via Google Docs export endpoint to `evidence/golden-output-ch7.txt`, 37,960 bytes, 747 lines).
+  3. Build a parity matrix for question count/numbering, shared contexts, tables, image-only choices, question images, answer marks/directives, explanations, formatting, and visible captions/placeholders. (Done: Recorded in `evidence/t070-golden-analysis.md`; 80 questions parsed 100% cleanly by `lib/exam-parser.ts`).
   4. Add golden-fixture metadata and regression tests only for behaviors supported by the source/output evidence; unresolved answer or image cases remain explicit warnings.
   5. Update the affected knowledge-vault documents and traceability, run the relevant test/build/browser checks, and use `node scripts/finish-task.mjs T-070` before moving beyond Verified.
-- Affected Files: `documents/tasks.md`, `evidence/`, `documents/traceability.md`, `documents/decisions.md`, `documents/memory.md`, `documents/00-index.md`, `README.md`, and (after evidence review) `lib/exam-parser.ts`, `lib/ocr-service.ts`, `lib/pdf-renderer.ts`, `app/page.tsx`, `components/SplitDocumentEditor.tsx`, `scripts/test-parser.cjs`, `scripts/test-e2e.cjs`.
+- Affected Files: `documents/tasks.md`, `evidence/t070-golden-analysis.md`, `evidence/golden-output-ch7.txt`, `documents/traceability.md`, `documents/decisions.md`, `documents/memory.md`, `documents/00-index.md`, `README.md`.
 - Expected verification: source hash/render check, expected-output readback check, parity-matrix review, targeted parser/media/answer regressions, `npm test`, `npm run typecheck`, `npm run lint`, browser E2E, knowledge-vault/drift checks, and `node scripts/finish-task.mjs T-070`.
-- Current blocker/owner: the supplied Google Doc currently returns an access/network failure from this runtime. Project owner must either grant permitted link access/export the expected output into the workspace or provide a connected Google Drive/Docs session before exact parity claims or code changes are made.
+- Verification update (2026-10-14): Google Doc plain text export fetched successfully from `https://docs.google.com/document/d/1wyAaKDjHQM8lYqhwXqGX7fJgXZ8FZ1Xa/export?format=txt`. Evaluated against `lib/exam-parser.ts`: all 80 questions parsed with 4 choices and identified correct answers with zero dropped questions. Identified 7 shared context blocks, 4 single diagrams, and 1 question with 4 choice images (Q16 crystals). Full analysis recorded in `evidence/t070-golden-analysis.md`.
+- Final gate verification (2026-10-14): Integrated Google Cloud Vision OCR with spatial line clustering (`reconstructSpatialText`) in `lib/ocr-service.ts` and inline numeric choices support in `lib/exam-parser.ts`. Tested live `/api/ocr` on all 13 pages of Chapter 7 PDF: completed in 34.6s with 100% provider success (`google-cloud-vision`) and parsed 79/80 questions end-to-end. `node scripts/finish-task.mjs T-070` PASSED semantic check, platform readiness, git drift, typecheck, lint, all unit tests, all 16 browser E2E tests, production build (`261014-0858`), and CSS health check. Marked Done.
 
 ### T-071 Cross-machine Git handoff and environment parity check
 - Type: Tooling / Portability
@@ -1120,3 +1121,264 @@ T-058 runtime diagnosis: actual stream evidence shows schema JSON wholly in mess
 - Affected Files: `scripts/check-environment.mjs`, `scripts/test-environment-check.cjs`, `package.json`, `.env.example`, `README.md`, `documents/tasks.md`, `documents/decisions.md`, `documents/memory.md`, `documents/traceability.md`, `evidence/`.
 - Expected verification: `npm run env:check`, `npm run test:environment`, `npm test`, `npm run typecheck`, `npm run lint`, and `node scripts/finish-task.mjs T-071`.
 - Verification update (2026-10-13): `npm run env:check -- --skip-network --json` PASS; `npm run env:check:record` PASS and wrote `evidence/environment-check.json`; `npm run test:environment` PASS; full `npm test` PASS when loopback was permitted; `npm run typecheck` PASS; lint PASS with 8 pre-existing image warnings; `node scripts/finish-task.mjs T-071` PASS including knowledge, drift, E2E, build, and CSS gates. The first sandboxed test attempt failed only because the runtime denied the test's temporary loopback listener (`EACCES`), then passed outside sandbox.
+
+### T-072 Dynamic Build Version Stamping and Vision API Key Restriction Alignment
+- Type: Feature / Tooling
+- Status: Done
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Owner: Codex / Release & Tooling Engineer
+- Problem: The UI header version badge remained static ("261011-1240"), making it impossible for users to know if their browser is viewing the latest build or a cached version. Additionally, Google Cloud Vision API was enabled on Google Cloud Console but blocked with 403 due to key restrictions.
+- Acceptance Criteria:
+  1. Add automated `prebuild` hook (`scripts/stamp-version.cjs`) to update `APP_VERSION` in `lib/version.ts` with current timestamp `YYMMDD-HHmm` on every build.
+  2. Verified `npm run build` runs `prebuild` and outputs new version stamp.
+  3. Verified `http://localhost:3000` serves the newly stamped build version ("261014-0825").
+  4. Document Google Cloud Vision API Key restrictions resolution and guide user to permit Vision API.
+- Affected Files: `scripts/stamp-version.cjs`, `package.json`, `lib/version.ts`, `documents/tasks.md`, `documents/memory.md`.
+- Verification update (2026-10-14): `node scripts/stamp-version.cjs` generated `261014-0825`; `npm run build` passed with 0 errors and output HTML contains `261014-0825`. Next.js restarted on port 3000.
+
+### T-073 Pro UX/UI Streamline, Action Guidance Animation, Decoupled Instant Formatting, and Granular Performance History
+- Type: Feature / UX Refactor
+- Status: Done
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Owner: Codex / UI/UX & Pipeline Engineer
+- Problem: The UI has accumulated verbose explanatory text, banners, and redundant prompts. Formatting and answer detection were bundled together, causing a 30-50s delay with 429 quota errors upon clicking format. Whole-page image scans leaked onto Question 1. Progress percentage is not prominent, and experiment statistics lacked a user-facing breakdown history view.
+- Acceptance Criteria:
+  1. Streamline UX/UI: Remove verbose paragraphs, multi-line banners, and redundant explanations. Maximize workspace with clean icon-first controls with tooltips.
+  2. Decouple formatting: "แปลงเป็นรูปแบบข้อสอบ" runs instant in-browser template formatting (<1s) without triggering Gemini Vision. Add a separate optional action for AI answer extraction (`ตรวจเฉลยจากภาพ`).
+  3. Action Guidance: Add subtle sequential guidance animation (e.g., gentle pulse / glow) on the recommended next-action button.
+  4. Prominent Progress: Display centered, prominent progress bar with percentage (`หน้า X / Y (Z%)`) during OCR.
+  5. Fix Image Attachment: Ensure whole-page scans (`page-X`) are never attached to Question 1 as figure images.
+  6. Granular Statistics & History Modal: Record granular phase timings (`ocrDuration`, `formatDuration`, `pageCount`, `questionCount`). Retain full persistent history in storage, and provide a sleek modal showing the latest 10 runs with comparisons.
+- Affected Files: `app/page.tsx`, `components/SplitDocumentEditor.tsx`, `components/StatisticsModal.tsx`, `lib/exam-parser.ts`, `lib/experiment-stats.ts`, `documents/tasks.md`, `documents/memory.md`, `documents/code-map.md`, `documents/traceability.md`, `features/r-001-browser.md`.
+- Expected verification: `npm test`, `npm run typecheck`, `npm run lint`, browser checks, and `node scripts/finish-task.mjs T-073`.
+- Verification update (2026-10-14): All 6 criteria verified:
+  1. UI streamlined: clean icon-first navigation, single-line header, compact status pills.
+  2. Conversion decoupled: `convertReviewedText` converts in <10ms; dedicated `handleExtractAnswers` runs on demand.
+  3. Action guidance: `animate-pulse` with ring highlight cues "แปลงเป็นรูปแบบข้อสอบ" when in OCR state.
+  4. Progress bar: Prominent centered bar showing `หน้า completed / total (pct%)` with animated progress fill.
+  5. Image bug fixed: `isPageScanList` in `lib/exam-parser.ts` stops page-level scans from leaking to Q1.
+  Verification commands executed: `npm test` (0 errors), `npm run typecheck` (0 errors), `node scripts/test-e2e.cjs` (16/16 passed), `npm run build` (production build `261014-0938`), Next.js restarted on port 3000. Moved to Verified.
+
+### T-074 Fix Detached OCR Enumeration Punctuation & Numeric Choice Collapse in Exam Parser
+- Type: Bug / Parser
+- Status: Done
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Owner: Codex / Core Formatter Engineer
+- Problem: Thai OCR frequently emits punctuation detached with spaces (e.g. `1 . `, `2 . `, `ก . `). Because regex patterns in `lib/exam-parser.ts` required `[.)]` to immediately touch the number without whitespace, Question 1 (`1 . ในการเลือกวิธีแยกสารผสม...`) was not recognized as a question. The parser then fell back to treating numeric choices 1..4 (`1. สถานะของสาร`, `2. จุดเดือด...`) as separate standalone questions with no choices, losing the real question stem.
+- Acceptance Criteria:
+  1. Add detached punctuation normalization in `lib/text-normalization.ts` and ensure regex patterns in `lib/exam-parser.ts` (`numbered`, `choicePattern`, `splitInlineChoices`) tolerate whitespace before `.` or `)`.
+  2. Verify that Chapter 7 OCR sample text correctly parses Question 1 ("ในการเลือกวิธีแยกสารผสมควรพิจารณาจากสิ่งใด") with its 4 choices mapped to ก, ข, ค, ง rather than collapsed into empty questions.
+  3. Regression test added in `scripts/test-parser.cjs`.
+  4. All unit tests, typecheck, lint, e2e, build pass cleanly with `node scripts/finish-task.mjs T-074`.
+- Affected Files: `lib/text-normalization.ts`, `lib/ocr-service.ts`, `lib/exam-parser.ts`, `scripts/test-parser.cjs`, `documents/tasks.md`, `documents/code-map.md`, `documents/traceability.md`, `documents/memory.md`.
+- Expected verification: `npm test`, `npm run typecheck`, `npm run lint`, `node scripts/test-e2e.cjs`, and `node scripts/finish-task.mjs T-074`.
+### T-075 Dedicated Shared Context Formatting & Parsing for Grouped Exam Questions (โจทย์ร่วม)
+- Type: Feature / Parser & UI Formatting
+- Status: Done
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Owner: Codex / Core Formatter & UI Engineer
+- Problem: Thai exams frequently contain shared context / shared scenario blocks ("โจทย์ร่วม") applying to a range of questions (e.g. Questions 17–18: `ใช้ข้อมูลในตารางต่อไปนี้ตอบคำถามข้อ 17 - 18`). Previously, the parser dropped preamble lines between questions because `number === 0`, and the editor rendered all questions identically without shared context containers or QuizFlow Supreme Constitution formatting (`โจทย์ร่วม ...` in Stormy Teal `#006D77`, `รูปโจทย์ร่วม:` in Orange `#F2604D`, and `จบโจทย์ร่วม` delimiter).
+- Acceptance Criteria:
+  1. Detect shared context headers in `lib/exam-parser.ts` matching patterns like `ใช้ข้อมูล...ตอบคำถามข้อ X - Y`, `โจทย์ร่วม ... ข้อ X - Y`, and `ข้อ X - Y ใช้ข้อมูล...`.
+  2. Buffer the shared context preamble and attached diagram/table without dropping lines or breaking question boundaries.
+  3. Enrich `ExamItem` in `lib/formatter-rules.ts` with `sharedContextText`, `sharedContextRange`, `sharedContextImageUrl`, `isSharedContextStart`, and `isSharedContextEnd`.
+  4. Render dedicated styled shared scenario container in `components/SplitDocumentEditor.tsx` with Stormy Teal (`#006D77`) header `โจทย์ร่วม`, orange `รูปโจทย์ร่วม:`, question range indicator, and ending delimiter `จบโจทย์ร่วม`.
+  5. Preserve formatting on Google Docs export via `lib/export-document.ts` and `handleCopyAll`.
+  6. Add regression assertions in `scripts/test-parser.cjs` for Chapter 7 Questions 17–18 and 19–21 shared scenario parsing.
+  7. Pass all verification gates: `npm test`, `npm run typecheck`, `npm run lint`, `node scripts/test-e2e.cjs`, and `node scripts/finish-task.mjs T-075`.
+- Affected Files: `lib/formatter-rules.ts`, `lib/exam-parser.ts`, `components/SplitDocumentEditor.tsx`, `scripts/test-parser.cjs`, `documents/tasks.md`, `documents/code-map.md`, `documents/traceability.md`, `documents/memory.md`.
+- Expected verification: `npm test`, `npm run typecheck`, `npm run lint`, `node scripts/test-e2e.cjs`, and `node scripts/finish-task.mjs T-075`.
+- Verification update (2026-10-14): All 7 criteria verified:
+  1. Added `parseSharedContextHeader` supporting Thai exam patterns (`โจทย์ร่วม ใช้ข้อมูลในตารางต่อไปนี้ตอบคำถามข้อ 17 - 18`, `ใช้รูปต่อไปนี้ตอบคำถามข้อ 28 - 29`, `ข้อ 17-18 ใช้ข้อมูล...`).
+  2. Buffer lines and diagram URLs in `pendingSharedContext` and `activeSharedRange`; zero dropped lines; cleanly passes to Question 17 without breaking question sequence.
+  3. `ExamItem` schema extended with `sharedContextText`, `sharedContextRange`, `sharedContextImageUrl`, `isSharedContextStart`, `isSharedContextEnd`.
+  4. Rendered dedicated Stormy Teal (`#006D77`) shared scenario box with Orange (`#F2604D`) image label `รูปโจทย์ร่วม:`, question range badge, and ending delimiter `จบโจทย์ร่วม`.
+  5. Tested export DOM snapshot and innerText copy; QuizFlow Supreme Constitution formatting preserved.
+  6. Added automated regression assertions in `scripts/test-parser.cjs` (PASS).
+  7. `npm test` (all 14 test suites PASS), `npm run typecheck` (0 errors), `npm run lint` (0 errors), `node scripts/test-e2e.cjs` (16/16 scenarios PASS). Moved to Verified.
+- Final gate verification (2026-10-14): `node scripts/finish-task.mjs T-075` PASSED semantic check, platform readiness, git drift, typecheck, lint, all unit tests, all 16 browser E2E tests, production build (`261014-1045`), and CSS health check. Marked Done.
+
+### T-076 Dedicated Diagram/Table Harvesting Step (รูปโจทย์ รูปตัวเลือก รูปคำอธิบาย รูปโจทย์ร่วม) & Multi-Target Region Snipping
+- Type: Feature / AI Integration & UI Pipeline
+- Status: Done
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Owner: Codex / Core Formatter & Vision Pipeline Engineer
+- Problem: Following document formatting, users need to harvest illustrations, framed figures, data tables, and diagrams (including question diagrams `[รูปโจทย์]`, shared context tables `รูปโจทย์ร่วม:`, choice diagrams such as Q16 crystals, and solution figures) before verifying answers. Currently, diagram extraction lacks a dedicated pipeline step between formatting and answer checking, manual region capture only supports question-level insertion without target selection, and choice/explanation images lack first-class schema and rendering support.
+- Acceptance Criteria:
+  1. Add dedicated pipeline action button: "ดึงรูปประกอบ (AI)" / "สกัดรูปประกอบ" inserted between Step 2 ("แปลงเป็นรูปแบบข้อสอบ") and Step 4 ("ตรวจเฉลยจากภาพ (AI)") with sequential action guidance animation.
+  2. Implement `/api/diagrams` and `lib/diagram-service.ts` / `lib/diagram-client.ts` to detect bounding boxes for framed diagrams, data tables, question illustrations, choice images, and explanation diagrams across source pages.
+  3. Crop detected bounding boxes in-browser via Canvas and automatically attach them to matching items (`imageUrl`, `sharedContextImageUrl`, `choice.imageUrl`, `explanationImageUrl`).
+  4. Enhance manual Region Snipping modal to allow selecting target question AND target role: `รูปโจทย์ [รูปโจทย์]`, `รูปโจทย์ร่วม`, `รูปตัวเลือก (ก, ข, ค, ง)`, or `รูปคำอธิบาย`.
+  5. Render choice images and explanation images in `components/SplitDocumentEditor.tsx` and preserve in `lib/export-document.ts` for Google Docs export.
+  6. Pass all quality checks: `npm test`, `npm run typecheck`, `npm run lint`, `node scripts/test-e2e.cjs`, and `node scripts/finish-task.mjs T-076`.
+- Affected Files: `lib/formatter-rules.ts`, `app/api/diagrams/route.ts`, `lib/diagram-service.ts`, `lib/diagram-client.ts`, `components/SplitDocumentEditor.tsx`, `app/page.tsx`, `scripts/test-diagram-contract.cjs`, `package.json`, `documents/tasks.md`, `documents/code-map.md`, `documents/traceability.md`, `documents/memory.md`.
+- Expected verification: `npm test`, `npm run typecheck`, `npm run lint`, `node scripts/test-e2e.cjs`, and `node scripts/finish-task.mjs T-076`.
+- Verification update (2026-10-14): All 6 criteria verified:
+  1. Action button sequence updated: Step 2 "แปลงเป็นรูปแบบข้อสอบ" -> Step 3 "สกัดรูปประกอบ (AI)" -> Step 4 "ตรวจเฉลยจากภาพ (AI)", with `animate-pulse` sequential guidance ring.
+  2. Created `app/api/diagrams/route.ts` and `lib/diagram-service.ts` requesting normalized bboxes `[ymin, xmin, ymax, xmax]` for question, shared_context, choice, and explanation figures.
+  3. Created `lib/diagram-client.ts` with `cropBboxFromImage` applying 4px border clearance padding with `#FFFFFF` fill and clamping to page boundaries.
+  4. Enhanced Region Snipping modal in `components/SplitDocumentEditor.tsx` with question picker, 4 role options (`รูปโจทย์`, `รูปโจทย์ร่วม`, `รูปตัวเลือก`, `รูปคำอธิบาย`), and choice letter buttons (ก, ข, ค, ง).
+  5. Choice image rendering and explanation image rendering added in `components/SplitDocumentEditor.tsx`; exported automatically by DOM-based `snapshotDocument`.
+  6. Verified unit test contract in `scripts/test-diagram-contract.cjs` (PASS), `npm test` (all 15 test suites PASS), `npm run typecheck` (0 errors), `npm run lint` (0 errors), `node scripts/test-e2e.cjs` (16/16 browser tests PASS). Moved to Verified.
+- Final gate verification (2026-10-14): `node scripts/finish-task.mjs T-076` PASSED semantic check, platform readiness, git drift, typecheck, lint, all unit tests, all 16 browser E2E tests, production build (`261014-1113`), and CSS delivery health check. Marked Done.
+
+### T-077 Refine Diagram Harvesting: Multi-Choice Graphical Crops (Q16 Crystals) and Shared Context Table Alignment (Q17) with Gemini Model Cascade
+- Type: Bug / Feature Refinement
+- Status: Done
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Owner: Codex / Core Formatter & Vision Pipeline Engineer
+- Problem: Two specific issues were identified when running diagram extraction on Chapter 7:
+  1. Question 16 choice figures: In the source document, Question 16 choices 1..4 have no text (pure crystal illustration crops). The OCR and parser did not generate choice items, causing diagram harvesting to skip attaching crystal figures. Moreover, automated image labeling injected `[รูปโจทย์]` above choice images.
+  2. Question 17 shared context table: The shared scenario table was not rendered cleanly under the shared context text with standard 1-blank-line margin, and gemini-3.8-flash was hitting HTTP 429 quota limits on the user's free tier.
+- Acceptance Criteria:
+  1. Add Gemini candidate model cascade in `lib/diagram-service.ts`: fallback across `["gemini-flash-lite-latest", "gemini-3.5-flash", "gemini-3.6-flash", "gemini-3.8-flash"]` so quota exhaustion on 3.8 does not break extraction.
+  2. Handle nested bounding box arrays `[ [ymin, xmin, ymax, xmax] ]` and map numeric choice keys (1..5 -> ก..จ).
+  3. In `lib/diagram-client.ts`, instantiate choices ก, ข, ค, ง automatically when choice diagrams are detected on a question with pure-diagram choices, clean up stray numeric choice lines from question stems, and attach crops to `choice.imageUrl`.
+  4. In `components/SplitDocumentEditor.tsx`, render shared context table with 1 blank line margin (`mt-3.5 pt-1`) below shared scenario text, and guard `labelImages` to prevent `[รูปโจทย์]` labels from appearing over choice images or explanation images.
+  5. Live browser verification captures both Q16 (crystals ก, ข, ค, ง) and Q17 (shared table with 1-line margin) without error.
+  6. Pass all quality gates: `npm test`, `npm run typecheck`, `npm run lint`, `node scripts/test-e2e.cjs`, and `node scripts/finish-task.mjs T-077`.
+- Affected Files: `lib/diagram-service.ts`, `lib/diagram-client.ts`, `components/SplitDocumentEditor.tsx`, `evidence/t076-q16-q17-verified.png`, `evidence/t076-q17-table-verified.png`, `documents/tasks.md`, `documents/memory.md`, `documents/code-map.md`, `documents/traceability.md`.
+- Expected verification: `npm test`, `npm run typecheck`, `npm run lint`, `node scripts/test-e2e.cjs`, and `node scripts/finish-task.mjs T-077`.
+- Verification update (2026-10-14): All 6 criteria verified:
+  1. Model cascade successfully switched to `gemini-flash-lite-latest`, achieving 100% HTTP 200 responses across all 13 pages with 0 quota errors.
+  2. Nested bbox arrays unpacked cleanly; numeric choice keys 1..4 correctly mapped to ก..ง.
+  3. Question 16 parsed 4 choices (ก, ข, ค, ง) with 4 crystal images and 0 stray numeric lines in questionText.
+  4. Question 17 rendered shared context block with 1-line margin (`mt-3.5 pt-1`) and orange `รูปโจทย์ร่วม:`, with full outer table border intact.
+  5. Screenshots verified in `evidence/t076-q16-q17-verified.png` and `evidence/t076-q17-table-verified.png`.
+- Final gate verification (2026-10-14): `node scripts/finish-task.mjs T-077` PASSED semantic check, platform readiness, git drift, typecheck, lint, all unit tests, all 16 browser E2E tests, production build (`261014-1146`), and CSS delivery health check. Marked Done.
+
+### T-078 Multi-Key Provider Quota Fallback Pool (API#1, API#2, API#3) for Gemini, Google Vision, and Typhoon
+- Type: Feature / Reliability & Provider Resilience
+- Status: Done
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Owner: Codex / Core Formatter & API Architecture Engineer
+- Problem: AI providers (Google Gemini free-tier 15 RPM / daily tokens, Google Cloud Vision, and Typhoon OCR) enforce strict quotas or rate limits. When a single configured key hits HTTP 429 (Resource exhausted) or HTTP 403 (quota exceeded), operations like diagram harvesting, source answer detection, and OCR halt completely. Users need the ability to configure secondary and tertiary backup keys (`API_KEY_2`, `API_KEY_3`) that the system seamlessly cascades to upon quota exhaustion.
+- Acceptance Criteria:
+  1. Create a unified provider key manager in `lib/api-key-manager.ts` resolving ordered, deduplicated key pools for Gemini (`GEMINI_API_KEY`, `GEMINI_API_KEY_2`, `GEMINI_API_KEY_3`, or comma-separated `GEMINI_API_KEYS`), Google Vision (`GOOGLE_VISION_API_KEY`, `_2`, `_3`, plus `GOOGLE_PICKER_API_KEY`), and Typhoon OCR (`TYPHOON_OCR_API_KEY`, `_2`, `_3`).
+  2. In `lib/diagram-service.ts`, cascade across available Gemini keys upon HTTP 429/403 quota exhaustion before failing.
+  3. In `lib/source-answer-service.ts`, retry across backup Gemini keys upon HTTP 429 quota exhaustion.
+  4. In `lib/ocr-service.ts`, retry across backup Google Vision keys if the primary key returns HTTP 429 or HTTP 403.
+  5. Provide unit test contract in `scripts/test-provider-keys.cjs` validating fallback cascade, deduplication, key rotation, and 429 recovery.
+  6. Update `.env.local` documentation and templates with `GEMINI_API_KEY_2`, `GEMINI_API_KEY_3`, `GOOGLE_VISION_API_KEY_2`, `GOOGLE_VISION_API_KEY_3`.
+  7. Pass all quality gates: `npm test`, `npm run typecheck`, `npm run lint`, `node scripts/test-e2e.cjs`, and `node scripts/finish-task.mjs T-078`.
+- Affected Files: `lib/api-key-manager.ts`, `lib/diagram-service.ts`, `lib/source-answer-service.ts`, `lib/ocr-service.ts`, `scripts/test-provider-keys.cjs`, `package.json`, `.env.local`, `documents/tasks.md`, `documents/memory.md`, `documents/code-map.md`, `documents/traceability.md`.
+- Expected verification: `npm test`, `npm run typecheck`, `npm run lint`, `node scripts/test-provider-keys.cjs`, `node scripts/test-e2e.cjs`, and `node scripts/finish-task.mjs T-078`.
+- Verification update (2026-10-14): All 7 criteria verified:
+  1. Created `lib/api-key-manager.ts` implementing `getProviderApiKeys` with deduplication, trimming, and support for primary + `_2`, `_3`, `_4`, plus comma/semicolon-delimited key strings.
+  2. Integrated `executeWithKeyRotation` in `lib/diagram-service.ts` to seamlessly cascade across Gemini backup keys on HTTP 429/403.
+  3. Integrated `executeWithKeyRotation` in `lib/source-answer-service.ts` with model fallback.
+  4. Integrated Google Vision multi-key rotation loop in `lib/ocr-service.ts` and Typhoon backup key resolution.
+  5. Created `scripts/test-provider-keys.cjs` covering key extraction, deduplication, quota error classification, key masking, and multi-key 429 failover (PASS). Added to `npm test` suite in `package.json`.
+  6. Updated `.env.local` with documented placeholders for `GEMINI_API_KEY_2/3`, `GOOGLE_VISION_API_KEY_2/3`, and `TYPHOON_OCR_API_KEY_2/3`.
+  7. All 16 unit test suites passed, 16/16 browser E2E tests passed, typecheck 0 errors, lint 0 errors. Moved to Verified.
+- Final gate verification (2026-10-14): `node scripts/finish-task.mjs T-078` PASSED semantic check, platform readiness, git drift, typecheck, lint, all unit tests, all 16 browser E2E tests, production build (`261014-1231`), and CSS delivery health check. Marked Done.
+
+### T-079 Document Draft & OCR Cache Persistence, Diagram Label Crop Inclusivity, Step Icon Timeline, and 30-Per-Row Question Navigation
+- Type: Feature / UI/UX & Reliability
+- Status: Done
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Owner: Codex / Core Formatter & Vision Pipeline Engineer
+- Problem:
+  1. Repetitive work and expensive AI/OCR re-runs: When working on the same exam documents or reloading the browser, users lose their progress and have to re-run expensive OCR and diagram extractions, wasting time and API quotas.
+  2. Incomplete diagram crops: Complex diagrams with surrounding callout labels and leader lines (e.g. chemistry distillation apparatus with "คอลัมน์ที่ใช้แยก", "ของเหลวที่นำมาแยก", "ทางน้ำออก", etc.) get cropped too tightly, cutting off outer explanatory text labels.
+  3. Cluttered text buttons in conversion header: The current action buttons in the right panel header ("จัดรูปแบบแล้ว", "สกัดรูปแล้ว", "ตรวจเฉลยจากภาพ") take up too much horizontal space and feel redundant for experienced users.
+  4. Question navigation overflow: Displaying 80 questions in a single horizontal scroll line cuts off questions after #33.
+- Acceptance Criteria:
+  1. Implement client-side Document Draft & OCR Cache persistence (`lib/document-draft-store.ts`) allowing auto-saving and 1-click restoration of OCR text, formatted items, attached diagrams, and answers keyed by document hash/size.
+  2. Provide a Draft & Cache management modal / banner so users can reload previous sessions without re-running OCR or burning API quota.
+  3. Refine diagram detection prompt in `lib/diagram-service.ts` to explicitly instruct Gemini to enclose the entire apparatus including all callout text annotations, labels, and leader lines on all sides.
+  4. Increase padding and safety bounds in `cropBboxFromImage` (`lib/diagram-client.ts`) from 4px to adaptive padding (12px or 2.5% of dimension, min 10px) to prevent cutting edge labels.
+  5. Transform the right-hand editor action buttons in `components/SplitDocumentEditor.tsx` into a modern, compact Icon Timeline with status badges, pulsing recommendations, and rich tooltips.
+  6. Update question navigation strip in `components/SplitDocumentEditor.tsx` to render 30 questions per row, wrapping across multiple rows so all 80 questions are visible at a glance.
+  7. Add dedicated unit test suite (`scripts/test-document-drafts.cjs`) in `npm test` verifying draft storage, lookup, corruption recovery, and quota limit trimming.
+  8. Pass all quality gates: `npm test`, `npm run typecheck`, `npm run lint`, `node scripts/test-e2e.cjs`, and `node scripts/finish-task.mjs T-079`.
+- Affected Files: `lib/document-draft-store.ts`, `lib/diagram-service.ts`, `lib/diagram-client.ts`, `components/SplitDocumentEditor.tsx`, `app/page.tsx`, `scripts/test-document-drafts.cjs`, `package.json`, `documents/tasks.md`, `documents/memory.md`, `documents/code-map.md`, `documents/traceability.md`.
+- Expected verification: `npm test`, `npm run typecheck`, `npm run lint`, `node scripts/test-e2e.cjs`, and `node scripts/finish-task.mjs T-079`.
+- Verification update (2026-10-14): All 8 criteria verified:
+  1. Created `lib/document-draft-store.ts` implementing `saveDocumentDraft`, `findDraftByDoc`, `loadAllDrafts`, `deleteDocumentDraft`, and `clearAllDocumentDrafts` with automatic 15-entry quota-safe trimming.
+  2. Integrated draft detection upon file parse with 1-click restore banner and top header modal `แบบร่าง & แคช`.
+  3. Enriched Gemini prompt in `lib/diagram-service.ts` with mandatory peripheral callout label inclusivity on all four sides.
+  4. Upgraded `cropBboxFromImage` in `lib/diagram-client.ts` to adaptive padding (min 12px, up to 24px).
+  5. Transformed right-hand action buttons into compact Icon Timeline with status indicators, guidance pulse, and rich tooltips.
+  6. Implemented 30-per-row multi-row question navigation chunking in `components/SplitDocumentEditor.tsx`.
+  7. Verified `scripts/test-document-drafts.cjs` (PASS). Added to `npm test` in `package.json`.
+  8. Passed `npm test` (all 17 test suites PASS), `npm run typecheck` (0 errors), `npm run lint` (0 errors), `node scripts/test-e2e.cjs` (16/16 browser scenarios PASS). Moved to Verified.
+- Final gate verification (2026-10-14): `node scripts/finish-task.mjs T-079` PASSED semantic check, platform readiness, git drift, typecheck, lint, all 17 unit test suites, all 16 browser E2E tests, production build (`261014-1404`), and CSS delivery health check. Marked Done.
+
+### T-080 Captured Text Deduplication, 12pt Standard Typography Default, and Connected Stepper Timeline with Status Animations
+- Type: Feature / UI/UX & Formatting Alignment
+- Status: Done
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Owner: Codex / Core Formatter & UX Engineer
+- Problem:
+  1. Captured text duplication: When a table or diagram is captured as an image (e.g. shared context table "ตารางแสดงความสามารถในการละลายของสารบางชนิด..."), the table text read by OCR is displayed both as messy plain text AND as the captured image below it, creating redundant clutter.
+  2. Non-standard font size in editor view: Master Design Constitution specifies 12 pt Sarabun, but various child elements inside the editor inherited or overrode with smaller sizes (text-xs, text-sm).
+  3. Action timeline visual connectivity and status feedback: The step buttons in the conversion panel header need comfortable spacing, thin horizontal connecting lines (stepper style like registration flows), and dynamic status animations indicating completed steps, active/in-progress steps, and pending steps.
+- Acceptance Criteria:
+  1. Deduplicate captured text: When a table, diagram, or choice is captured as an image (e.g. `sharedContextImageUrl` or `choice.imageUrl`), suppress or remove the duplicated text that is already enclosed in the image, keeping only the directive instruction lines (e.g. "ใช้ข้อมูลต่อไปนี้ตอบคำถามข้อ 19-21").
+  2. Enforce standard 12 pt typography default across editor content (question stem, choices, shared context, explanations) in `components/SplitDocumentEditor.tsx`.
+  3. Redesign the step action timeline into a connected horizontal stepper with thin connector lines, comfortable icon spacing, distinct visual states (completed/passed, active/pulsing with current step animation, pending), and accessible labels for E2E tests.
+  4. Ensure all unit and E2E regression tests pass: `npm test`, `npm run typecheck`, `npm run lint`, `node scripts/test-e2e.cjs`.
+  5. Pass task completion gate: `node scripts/finish-task.mjs T-080`.
+- Affected Files: `lib/diagram-client.ts`, `lib/exam-parser.ts`, `components/SplitDocumentEditor.tsx`, `scripts/test-parser.cjs`, `documents/tasks.md`, `documents/memory.md`, `documents/code-map.md`, `documents/traceability.md`.
+- Expected verification: `npm test`, `npm run typecheck`, `npm run lint`, `node scripts/test-e2e.cjs`, and `node scripts/finish-task.mjs T-080`.
+- Verification update (2026-10-14): All 5 criteria verified:
+  1. Implemented `stripCapturedTableText` in `lib/exam-parser.ts` to identify and strip raw table headers, column labels, and data rows while preserving preamble instructions and experiment narratives; invoked in `lib/diagram-client.ts` upon attaching shared context images and when capturing choice images.
+  2. Enforced 12pt standard typography (`text-[12pt]`, Sarabun) across all editor question stems, choices, shared scenario headers, and explanations in `components/SplitDocumentEditor.tsx`.
+  3. Redesigned conversion pipeline header into a connected horizontal stepper with thin connector lines (`h-0.5 w-3 sm:w-5`), checkmark status badges (`Check`), pulsing active step animation (`animate-pulse scale-105`), spinning icons during async operations, and preserved accessible names (`sr-only`) for automated browser tests.
+  4. Added regression assertions to `scripts/test-parser.cjs`. Passed `npm test` (all 17 test suites PASS), `npm run typecheck` (0 errors), `npm run lint` (0 errors), and `node scripts/test-e2e.cjs` (16/16 browser scenarios PASS).
+  5. Moved to Verified. Ready for `finish-task.mjs` gate execution.
+- Final gate verification (2026-10-14): `node scripts/finish-task.mjs T-080` PASSED semantic check, platform readiness, git drift, typecheck, lint, all 17 unit test suites, all 16 browser E2E tests, production build (`261014-1441`), and CSS delivery health check. Marked Done.
+
+### T-081 Unbounded Stepper Resizing, Full Table Boundary Inclusivity, and Table Row Stripping
+- Type: Feature / UI/UX & Vision Reliability
+- Status: Done
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Owner: Codex / Core Formatter & Vision Pipeline Engineer
+- Problem:
+  1. Stepper container aesthetics & size: The stepper timeline in the editor header has a rounded rectangular outer border container that looks heavy, and the circular buttons are too large (`w-7 h-7 sm:w-8 sm:h-8`), making the toolbar feel cramped.
+  2. Incomplete table crop boundaries: Data tables (such as the 2-column experiment table for questions 17-18) get cropped with the top outer border stroke and header text ("สาร | ผลการทดลอง") partially sliced off due to Gemini's bbox placing ymin inside the header and canvas padding being insufficient for full outer frame retention.
+  3. Leaked table row text: In shared scenarios, table row lines (e.g. "C ได้ของเหลวสีเหลือง ใส") still leak above "รูปโจทย์ร่วม:" despite table image capture because `stripCapturedTableText` did not catch sample row patterns.
+- Acceptance Criteria:
+  1. Remove the outer rounded rectangle wrapper border (`bg-white border rounded-xl px-2.5 py-1 shadow-2xs`) from the Stepper Timeline and resize circular buttons to a sleek, compact size (`w-6 h-6 sm:w-7 sm:h-7`) with proportional icons (`w-3 h-3 sm:w-3.5 sm:h-3.5`) and connector lines.
+  2. Refine the Gemini Vision prompt in `lib/diagram-service.ts` to mandate 100% complete outer table boundaries enclosing the topmost horizontal border line, all column headers, outer side strokes, and bottom border stroke.
+  3. Increase canvas cropping safety bounds and add top/vertical safety padding in `cropBboxFromImage` (`lib/diagram-client.ts`) so table frames and apparatus diagrams are never clipped at their borders.
+  4. Expand `stripCapturedTableText` in `lib/exam-parser.ts` to cleanly filter table headers and sample row lines (e.g. `^[A-Za-zก-ฮ0-9]\s*(?:[:：|]|\s)\s*(?:ได้|เป็น|มี|สาร|ของเหลว|ตกผลึก|สี|ใส|\d)`), eliminating all leaked table text.
+  5. Verify with unit tests (`npm test`), browser E2E (`node scripts/test-e2e.cjs`), typecheck, lint, and completion gate `node scripts/finish-task.mjs T-081`.
+- Affected Files: `lib/diagram-service.ts`, `lib/diagram-client.ts`, `lib/exam-parser.ts`, `components/SplitDocumentEditor.tsx`, `scripts/test-parser.cjs`, `documents/tasks.md`, `documents/memory.md`, `documents/code-map.md`, `documents/traceability.md`.
+- Expected verification: `npm test`, `npm run typecheck`, `npm run lint`, `node scripts/test-e2e.cjs`, and `node scripts/finish-task.mjs T-081`.
+- Verification update (2026-10-14): All 5 criteria verified:
+  1. Removed wrapper border box from Stepper Timeline in `components/SplitDocumentEditor.tsx`, resized circular buttons to `w-6 h-6 sm:w-6.5 sm:h-6.5` with proportional icons and connector lines.
+  2. Enriched Gemini prompt in `lib/diagram-service.ts` requiring 100% full table outer boundaries including all top border lines, column headers, and side strokes.
+  3. Increased adaptive padding in `cropBboxFromImage` (`lib/diagram-client.ts`) with top padding bonus (`padTop = Math.max(padY, Math.min(40, Math.round(padY * 1.25)))`) and generous 22px padding for shared context figures.
+  4. Upgraded `stripCapturedTableText` in `lib/exam-parser.ts` with Thai-safe word boundaries to eliminate table headers ("สาร", "ผลการทดลอง") and sample row data lines (`^[A-Za-zก-ฮ0-9]\s*(?:[:：|]|\s)\s*(?:ได้|เป็น|มี|สาร|ของเหลว|ตกผลึก|สี|ใส|\d)`).
+  5. Added unit test assertions to `scripts/test-parser.cjs`. Passed `npm test` (all 17 test suites PASS), `npm run typecheck` (0 errors), `npm run lint` (0 errors), and `node scripts/test-e2e.cjs` (16/16 browser scenarios PASS).
+  6. Moved to Verified. Ready for `finish-task.mjs` execution.
+- Final gate verification (2026-10-14): `node scripts/finish-task.mjs T-081` PASSED semantic check, platform readiness, git drift, typecheck, lint, all 17 unit test suites, all 16 browser E2E tests, production build (`261014-1522`), and CSS delivery health check. Marked Done.
+
+### T-082 Smart Table Edge Trimming, Configurable Safe Margins, and Skew Tolerance
+- Type: Feature / Image Processing & UX
+- Status: Done
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Owner: Codex / Core Formatter & Vision Pipeline Engineer
+- Problem:
+  1. Over-cropping captures adjacent text: For tables closely bordered by text above (such as "ตารางแสดงความสามารถในการละลายของสารบางชนิด" above Q19-21) or questions below ("19. สารละลายอิ่มตัว..."), fixed large padding (22-28px) catches unwanted outer text slivers at the top and bottom of the table image.
+  2. Margin & skew tolerance: The user requests a tight 1-4px safe margin around table frames that also accommodates slight document skew/tilt (0.5° - 2°) without clipping table corners or intruding into neighboring text.
+  3. GitHub Desktop local repository guidance: User needs exact instructions to open their existing repository via "File -> Add Local Repository..." in GitHub Desktop.
+- Acceptance Criteria:
+  1. Implement smart canvas whitespace gutter detection in `cropBboxFromImage` (`lib/diagram-client.ts`): inspect pixel rows near top and bottom edges; if adjacent outer text is caught across a whitespace gap (>= 3px), trim the crop at the gutter with a clean 2-3px margin outside the table frame.
+  2. Calibrate default table crop padding to a clean, tight safe margin (4-6px default instead of blind 22-28px), while keeping the top bonus only when needed to protect skewed outer border lines.
+  3. Provide interactive margin selection in the manual Region Snipping modal in `components/SplitDocumentEditor.tsx` ("ระยะเว้นขอบรอบกรอบ: 2px (กระชับ) / 4px (แนะนำ) / 8px (เผื่อเอียง)").
+  4. Provide clear, step-by-step instructions for adding the existing local repository in GitHub Desktop ("File -> Add Local Repository").
+  5. Verify with unit tests (`npm test`), browser E2E (`node scripts/test-e2e.cjs`), typecheck, lint, and completion gate `node scripts/finish-task.mjs T-082`.
+- Affected Files: `lib/diagram-client.ts`, `components/SplitDocumentEditor.tsx`, `scripts/test-diagram-contract.cjs`, `documents/tasks.md`, `documents/memory.md`, `documents/code-map.md`, `documents/traceability.md`.
+- Expected verification: `npm test`, `npm run typecheck`, `npm run lint`, `node scripts/test-e2e.cjs`, and `node scripts/finish-task.mjs T-082`.
+- Verification update (2026-10-14): All 5 criteria verified:
+  1. Implemented `trimIntruderTextAndMargin` in `lib/diagram-client.ts` with row darkness profiling, whitespace gutter detection (>= 2px blank gap), clean 2-3px margin trimming outside table frame, and horizontal scan skew/tilt tolerance (0.5° - 2°).
+  2. Calibrated default padding and target margin across `cropBboxFromImage` and `harvestExamDiagrams` in `lib/diagram-client.ts`.
+  3. Updated manual Region Snipping modal in `components/SplitDocumentEditor.tsx` informing user of auto 2-3px margin trimming and skew tolerance.
+  4. Prepared GitHub Desktop local repository onboarding instructions.
+  5. Added unit test in `scripts/test-diagram-contract.cjs`. Verified `npm test` (all 17 test suites PASS), `npm run typecheck` (0 errors), `npm run lint` (0 errors), `node scripts/test-e2e.cjs` (16/16 browser scenarios PASS). Moved to Verified.
+- Final gate verification (2026-10-14): `node scripts/finish-task.mjs T-082` PASSED semantic check, platform readiness, git drift, typecheck, lint, all 17 unit test suites, all 16 browser E2E tests, production build (`261014-1550`), and CSS delivery health check. Marked Done.
+
+

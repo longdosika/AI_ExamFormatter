@@ -8,7 +8,7 @@ require.extensions['.ts'] = (module, filename) => {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true }
   }).outputText, filename);
 };
-const { parseExamText, reconcileAnswerKey } = require('../lib/exam-parser.ts');
+const { parseExamText, reconcileAnswerKey, parseSharedContextHeader, stripCapturedTableText } = require('../lib/exam-parser.ts');
 const { normalizeOcrText } = require('../lib/ocr-service.ts');
 assert.equal(parseExamText(normalizeOcrText('## 1\\. escaped question\nก\\. first\nข\\. second')).length, 1);
 assert.deepEqual(parseExamText('unstructured source', [], 'การแยกสาร.docx'), []);
@@ -61,6 +61,14 @@ assert.equal(inlineChoices[0].choices[2].text, 'น้ำกะทิ น้ำ�
 assert.equal(inlineChoices[0].choices[3].key, 'ง');
 assert.equal(inlineChoices[0].choices[3].text, 'น้ำส้มสายชู น้ำโซดา');
 assert.equal(inlineChoices[0].reconciledAnswerKey, 'ง');
+// T-070 Inline numeric choices (1..2, 3..4 on same line)
+const inlineNumeric = parseExamText('1. โจทย์ทดสอบตัวเลือกเลข\n1. ตัวเลือกหนึ่ง 2. ตัวเลือกสอง\n3. ตัวเลือกสาม 4. ตัวเลือกสี่');
+assert.equal(inlineNumeric.length, 1);
+assert.equal(inlineNumeric[0].choices.length, 4);
+assert.equal(inlineNumeric[0].choices[0].text, 'ตัวเลือกหนึ่ง');
+assert.equal(inlineNumeric[0].choices[1].text, 'ตัวเลือกสอง');
+assert.equal(inlineNumeric[0].choices[2].text, 'ตัวเลือกสาม');
+assert.equal(inlineNumeric[0].choices[3].text, 'ตัวเลือกสี่');
 // T-027 Neutral Fallback (No fabricated chromatography questions)
 const { generateFallbackExamItems } = require('../lib/exam-fallback.ts');
 const fallbackItems = generateFallbackExamItems({ fileName: 'ชุดที่ 2 การแยกสาร.pdf', rawContent: '', extractedImages: [], fileSize: 100, fileType: 'application/pdf', extension: '.pdf', isClean: true, statusMessage: '' });
@@ -246,3 +254,150 @@ const allNumericItems = parseExamText(allNumeric);
 assert.equal(allNumericItems.length, 80);
 assert.deepEqual(allNumericItems.map(item => item.questionNumber), Array.from({length:80}, (_, i) => i + 1));
 console.log('T-069 long 80-question/page-owned-image regression passed.');
+
+// T-074 detached enumeration punctuation and numeric choice preservation
+const detachedPunctuationOcr = [
+  '[PAGE 1]',
+  '1 . ในการเลือกวิธีแยกสารผสมควรพิจารณาจากสิ่งใด',
+  '1. สถานะของสาร 2. จุดเดือดและจุดหลอมเหลวของสาร',
+  '3. ลักษณะเนื้อสาร 4. การละลายน้ำ',
+  '2 . วิธีการใดใช้แยกสารเนื้อเดียวได้ทั้งหมด',
+  '1. การกรองและการระเหย 2. โครมาโทกราฟีและการกลั่น',
+  '3. การตกผลึกและการใช้แม่เหล็ก 4. การระเหิดและการสกัดด้วยตัวทำละลาย'
+].join('\n');
+const detachedItems = parseExamText(detachedPunctuationOcr);
+assert.equal(detachedItems.length, 2, 'Detached punctuation 1 . must not collapse choices into separate questions');
+assert.equal(detachedItems[0].questionNumber, 1);
+assert.equal(detachedItems[0].questionText, 'ในการเลือกวิธีแยกสารผสมควรพิจารณาจากสิ่งใด');
+assert.equal(detachedItems[0].choices.length, 4);
+assert.equal(detachedItems[0].choices[0].key, 'ก');
+assert.equal(detachedItems[0].choices[0].text, 'สถานะของสาร');
+assert.equal(detachedItems[1].questionNumber, 2);
+assert.equal(detachedItems[1].questionText, 'วิธีการใดใช้แยกสารเนื้อเดียวได้ทั้งหมด');
+assert.equal(detachedItems[1].choices.length, 4);
+console.log('T-074 detached punctuation and numeric choice preservation passed.');
+
+// T-075 Shared Context (โจทย์ร่วม) Parsing & Scoping Regressions
+assert.deepEqual(parseSharedContextHeader('โจทย์ร่วม ใช้ข้อมูลในตารางต่อไปนี้ตอบคำถามข้อ 17 - 18'), {
+  start: 17,
+  end: 18,
+  description: 'ใช้ข้อมูลในตารางต่อไปนี้ตอบคำถามข้อ 17 - 18',
+});
+assert.deepEqual(parseSharedContextHeader('ใช้รูปต่อไปนี้ตอบคำถามข้อ 28 - 29'), {
+  start: 28,
+  end: 29,
+  description: 'ใช้รูปต่อไปนี้ตอบคำถามข้อ 28 - 29',
+});
+assert.deepEqual(parseSharedContextHeader('ข้อ 17-18 ใช้ข้อมูลในตารางต่อไปนี้ตอบคำถาม'), {
+  start: 17,
+  end: 18,
+  description: 'ข้อ 17-18 ใช้ข้อมูลในตารางต่อไปนี้ตอบคำถาม',
+});
+assert.equal(parseSharedContextHeader('17. จากการทดลอง สารใดมีสภาพการละลายได้น้อยที่สุด'), null);
+
+const sharedContextSample = [
+  'โจทย์ร่วม ใช้ข้อมูลในตารางต่อไปนี้ตอบคำถามข้อ 17 - 18',
+  'ทำการทดลองที่อุณหภูมิห้อง โดยนำของแข็ง A, B และ C จำนวน 5 กรัม ใส่ในบีกเกอร์แต่ละใบ',
+  'รูปโจทย์ร่วม:',
+  '![ตาราง](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=)',
+  '17. จากการทดลอง สารใดมีสภาพการละลายได้น้อยที่สุด',
+  'ตัวเลือก:',
+  'ก. สาร A',
+  'ข. สาร B *',
+  'ค. สาร C',
+  'ง. ทุกสารเท่ากัน',
+  '18. ถ้าให้ความร้อนแก่สารทั้ง 3 ชนิด แล้วทิ้งไว้ให้เย็นลงอย่างรวดเร็ว สารใดน่าจะตกผลึกเร็วที่สุด',
+  'ตัวเลือก:',
+  'ก. สาร A',
+  'ข. สาร B *',
+  'ค. สาร C',
+  'ง. ไม่มีสารใดตกผลึก',
+  'จบโจทย์ร่วม',
+  '19. สารละลายอิ่มตัวของเกลือแกงในน้ำ 200 กรัม',
+  'ตัวเลือก:',
+  'ก. 37.3 กรัม',
+  'ข. 39.8 กรัม',
+  'ค. 74.6 กรัม *',
+  'ง. 79.6 กรัม',
+].join('\n');
+
+const parsedSharedItems = parseExamText(sharedContextSample);
+assert.equal(parsedSharedItems.length, 3, 'Must parse exactly 3 questions');
+// Question 17 assertions
+assert.equal(parsedSharedItems[0].questionNumber, 17);
+assert.equal(parsedSharedItems[0].isSharedContextStart, true);
+assert.equal(parsedSharedItems[0].isSharedContextEnd, false);
+assert.deepEqual(parsedSharedItems[0].sharedContextRange, { start: 17, end: 18 });
+assert.ok(parsedSharedItems[0].sharedContextText.includes('ใช้ข้อมูลในตารางต่อไปนี้ตอบคำถามข้อ 17 - 18'));
+assert.ok(parsedSharedItems[0].sharedContextText.includes('ทำการทดลองที่อุณหภูมิห้อง'));
+assert.ok(parsedSharedItems[0].sharedContextImageUrl.startsWith('data:image/png;base64,'));
+assert.equal(parsedSharedItems[0].choices.length, 4);
+assert.equal(parsedSharedItems[0].reconciledAnswerKey, 'ข');
+
+// Question 18 assertions
+assert.equal(parsedSharedItems[1].questionNumber, 18);
+assert.equal(parsedSharedItems[1].isSharedContextStart, false);
+assert.equal(parsedSharedItems[1].isSharedContextEnd, true);
+assert.deepEqual(parsedSharedItems[1].sharedContextRange, { start: 17, end: 18 });
+assert.equal(parsedSharedItems[1].choices.length, 4);
+
+// Question 19 assertions (Outside shared context)
+assert.equal(parsedSharedItems[2].questionNumber, 19);
+assert.equal(parsedSharedItems[2].isSharedContextStart, false);
+assert.equal(parsedSharedItems[2].isSharedContextEnd, false);
+assert.equal(parsedSharedItems[2].sharedContextRange, undefined);
+assert.equal(parsedSharedItems[2].sharedContextText, undefined);
+
+console.log('T-075 shared context parsing and bounding regressions passed.');
+
+// T-080: Captured text deduplication assertions
+const duplicatedTableRaw = [
+  'ใช้ข้อมูลต่อไปนี้ตอบคำถามข้อ 19-21',
+  'ตารางแสดงความสามารถในการละลายของสารบางชนิด',
+  'ปริมาณ สารที่ละลายได้ ig) ในน้ำ 100 g ที่อุณหภูมิ',
+  'สาร สูตร',
+  '20°C 60°C 100°C',
+  'เกลือแกง NaCl 36.0 37.3 39.8',
+  'จุนสี CuSO4 77.0 110.0 246.0'
+].join('\n');
+
+const cleanedTableText = stripCapturedTableText(duplicatedTableRaw);
+assert.equal(cleanedTableText, 'ใช้ข้อมูลต่อไปนี้ตอบคำถามข้อ 19-21', 'Must strip captured table rows and header text when image is present');
+assert.ok(!cleanedTableText.includes('ตารางแสดงความสามารถในการละลาย'));
+assert.ok(!cleanedTableText.includes('เกลือแกง'));
+
+// Narrative passage test: preserve story text before image
+const narrativeWithTable = [
+  'โจทย์ร่วม ใช้ข้อมูลในตารางต่อไปนี้ตอบคำถามข้อ 17 - 18',
+  'ทำการทดลองที่อุณหภูมิห้อง โดยนำของแข็ง A, B และ C จำนวน 5 กรัม ใส่ในบีกเกอร์แต่ละใบ',
+  'ตารางที่ 1 ผลการละลายของสาร',
+  'หลอดที่ 1 20°C 30°C'
+].join('\n');
+const cleanedNarrative = stripCapturedTableText(narrativeWithTable);
+assert.ok(cleanedNarrative.includes('ใช้ข้อมูลในตารางต่อไปนี้ตอบคำถามข้อ 17 - 18'));
+assert.ok(cleanedNarrative.includes('ทำการทดลองที่อุณหภูมิห้อง'));
+assert.ok(!cleanedNarrative.includes('ตารางที่ 1'));
+assert.ok(!cleanedNarrative.includes('หลอดที่ 1'));
+
+console.log('T-080 captured text deduplication regressions passed.');
+
+// T-081: Table column headers and sample row lines stripping
+const tableWithSampleRows = [
+  'โจทย์ร่วม ใช้ข้อมูลในตารางต่อไปนี้ตอบคำถามข้อ 17 - 18',
+  'ทำการทดลองที่อุณหภูมิห้อง โดยนำของแข็ง A, B และ C จำนวน 5 กรัม ใส่ในบีกเกอร์แต่ละใบเติมน้ำลงไปบีกเกอร์ละ 20 ลูกบาศก์เซนติเมตร ใช้แท่งแก้วคนให้ละลายได้ผลการทดลองเป็นดังนี้',
+  'สาร',
+  'ผลการทดลอง',
+  'A ได้ของเหลวใส ไม่มีสี',
+  'B ได้ของเหลวสีฟ้า ใส มีตะกอนสีฟ้านอนก้นอยู่เล็กน้อย',
+  'C ได้ของเหลวสีเหลือง ใส'
+].join('\n');
+const cleanedSampleRows = stripCapturedTableText(tableWithSampleRows);
+assert.ok(cleanedSampleRows.includes('ใช้ข้อมูลในตารางต่อไปนี้ตอบคำถามข้อ 17 - 18'));
+assert.ok(cleanedSampleRows.includes('ทำการทดลองที่อุณหภูมิห้อง'));
+assert.ok(!cleanedSampleRows.split('\n').some(l => l.trim() === 'ผลการทดลอง'));
+assert.ok(!cleanedSampleRows.split('\n').some(l => l.trim() === 'สาร'));
+assert.ok(!cleanedSampleRows.includes('A ได้ของเหลวใส'));
+assert.ok(!cleanedSampleRows.includes('B ได้ของเหลวสีฟ้า'));
+assert.ok(!cleanedSampleRows.includes('C ได้ของเหลวสีเหลือง'));
+console.log('T-081 table row and header stripping regressions passed.');
+

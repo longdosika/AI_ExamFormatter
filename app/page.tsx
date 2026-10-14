@@ -11,7 +11,10 @@ import {
   BarChart3,
   Files,
   X,
-  FileText
+  FileText, 
+  Download,
+  Bookmark,
+  Trash2
 } from "lucide-react";
 import { FileUploader } from "@/components/FileUploader";
 import { ParsedFileResult, revokeParsedFileUrls } from "@/lib/file-parser";
@@ -22,13 +25,23 @@ import { APP_VERSION } from "@/lib/version";
 import { ExamItem, FORMATTER_CONSTANTS } from "@/lib/formatter-rules";
 import { CaseDecisionManager } from "@/components/CaseDecisionManager";
 import { SplitDocumentEditor } from "@/components/SplitDocumentEditor";
+import { StatisticsModal } from "@/components/StatisticsModal";
 import { GoogleDriveStatus } from "@/components/GoogleDriveStatus";
 import { generateFallbackExamItems } from "@/lib/exam-fallback";
 import { snapshotDocument } from "@/lib/export-document";
 import { appendExperiment, experimentReport, readExperiments, ImportExperiment } from "@/lib/experiment-stats";
 import { readOcrDocument } from "@/lib/ocr-client";
 import { readSourceAnswers } from "@/lib/source-answer-client";
+import { harvestExamDiagrams } from "@/lib/diagram-client";
 import { readImportHistory, recordImport, ImportHistoryEntry } from "@/lib/import-history";
+import { 
+  loadAllDrafts, 
+  findDraftByDoc, 
+  saveDocumentDraft, 
+  deleteDocumentDraft, 
+  clearAllDocumentDrafts, 
+  DocumentDraft 
+} from "@/lib/document-draft-store";
 
 export default function Home() {
   const [parsedFile, setParsedFile] = useState<ParsedFileResult | null>(null);
@@ -44,8 +57,12 @@ export default function Home() {
   const [statisticsError, setStatisticsError] = useState<string | null>(null);
   const [ocrProgress, setOcrProgress] = useState<{completed:number;total:number} | null>(null);
   const [answerBusy, setAnswerBusy] = useState(false);
+  const [diagramBusy, setDiagramBusy] = useState(false);
+  const [diagramsHarvested, setDiagramsHarvested] = useState(false);
   const answerEpoch = useRef(0);
   const [importHistory, setImportHistory] = useState<ImportHistoryEntry[] | null>(null);
+  const [showStatisticsModal, setShowStatisticsModal] = useState(false);
+  const [experimentRuns, setExperimentRuns] = useState<ImportExperiment[]>([]);
   const parserImages = (file: ParsedFileResult) => [
     ...file.extractedImages,
     ...(file.pageImages || []).map((dataUrl, index) => ({ id: `page-${index + 1}`, dataUrl })),
@@ -55,6 +72,67 @@ export default function Home() {
   const openImportHistory = () => {
     try { setImportHistory(readImportHistory(window.localStorage)); }
     catch { setStatisticsError("อ่านประวัติไฟล์ไม่ได้ ข้อมูลเดิมยังไม่ถูกลบ กรุณาตรวจพื้นที่จัดเก็บของเบราว์เซอร์"); }
+  };
+  const [availableDraft, setAvailableDraft] = useState<DocumentDraft | null>(null);
+  const [showDraftsModal, setShowDraftsModal] = useState(false);
+  const [savedDrafts, setSavedDrafts] = useState<DocumentDraft[]>([]);
+
+  const openDraftsModal = () => {
+    try {
+      const drafts = loadAllDrafts(window.localStorage);
+      setSavedDrafts(drafts);
+      setShowDraftsModal(true);
+    } catch {
+      setStatisticsError("อ่านแบบร่างไม่ได้");
+    }
+  };
+
+  const handleApplyDraft = (draft: DocumentDraft) => {
+    if (draft.ocrText) {
+      setOcrText(draft.ocrText);
+      if (activeFile.current) {
+        activeFile.current.rawContent = draft.ocrText;
+      }
+    }
+    if (draft.formattedItems && draft.formattedItems.length > 0) {
+      setFormattedItems(draft.formattedItems);
+      sourceQuestionNumbers.current = draft.formattedItems.map(item => item.questionNumber);
+      setDiagramsHarvested(Boolean(draft.diagramsHarvested));
+      setReviewIssues(validateExamItems(draft.formattedItems));
+    }
+    setAvailableDraft(null);
+    setShowDraftsModal(false);
+    setInfoNotice(`โหลดแบบร่างและประวัติ OCR เรียบร้อย (${draft.itemCount || (draft.formattedItems?.length ?? 0)} ข้อ) โดยไม่ต้องเรียก AI ซ้ำ`);
+  };
+
+  const handleDeleteDraft = (id: string) => {
+    try {
+      deleteDocumentDraft(window.localStorage, id);
+      setSavedDrafts(loadAllDrafts(window.localStorage));
+      if (availableDraft?.id === id) setAvailableDraft(null);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleClearAllDrafts = () => {
+    try {
+      clearAllDocumentDrafts(window.localStorage);
+      setSavedDrafts([]);
+      setAvailableDraft(null);
+    } catch {
+      // ignore
+    }
+  };
+
+  const openStatisticsModal = () => {
+    try {
+      const runs = readExperiments(window.localStorage);
+      setExperimentRuns(runs);
+      setShowStatisticsModal(true);
+    } catch {
+      setStatisticsError("อ่านสถิติไม่ได้ ข้อมูลเดิมยังไม่ถูกลบ กรุณาตรวจพื้นที่จัดเก็บของเบราว์เซอร์");
+    }
   };
   useEffect(() => {
     if (!importHistory) return;
@@ -100,6 +178,8 @@ export default function Home() {
   const handleReset = () => {
     answerEpoch.current++;
     setAnswerBusy(false);
+    setDiagramBusy(false);
+    setDiagramsHarvested(false);
     setOcrProgress(null);
     uploadEpoch.current++;
     setExportLink(null);
@@ -114,6 +194,7 @@ export default function Home() {
     setReviewIssues([]);
     setErrorMessage(null);
     setInfoNotice(null);
+    setAvailableDraft(null);
   };
 
   const handleStartUpload = () => {
@@ -148,6 +229,8 @@ export default function Home() {
     const epoch = ++uploadEpoch.current;
     answerEpoch.current++;
     setAnswerBusy(false);
+    setDiagramBusy(false);
+    setDiagramsHarvested(false);
     setExportLink(null);
     if (activeFile.current) revokeParsedFileUrls(activeFile.current);
     activeFile.current = null;
@@ -160,6 +243,15 @@ export default function Home() {
     setInfoNotice(null);
 
     try {
+      const cachedDraft = findDraftByDoc(window.localStorage, result.fileName, result.fileSize, result.sourceHash);
+      if (cachedDraft && (cachedDraft.ocrText || (cachedDraft.formattedItems && cachedDraft.formattedItems.length > 0))) {
+        setAvailableDraft(cachedDraft);
+        if (cachedDraft.ocrText && !result.rawContent.trim()) {
+          result.rawContent = cachedDraft.ocrText;
+          setOcrText(cachedDraft.ocrText);
+        }
+      }
+
       if (result.sourceHash && result.pageImages?.length) {
         try {
           const response = await fetch(`/reviewed/${result.sourceHash}.json`, { signal: AbortSignal.timeout(10000) });
@@ -235,6 +327,15 @@ export default function Home() {
               sourceQuestionNumbers.current = parseExamText(ocrData.text, [], result.fileName).map(item => item.questionNumber);
               setOcrText(ocrData.text);
               setReviewIssues(validateExamItems(parseExamText(ocrData.text, parserImages(result), result.fileName)));
+              try {
+                saveDocumentDraft(window.localStorage, {
+                  fileName: result.fileName,
+                  fileBytes: result.fileSize,
+                  sourceHash: result.sourceHash,
+                  ocrText: ocrData.text,
+                  itemCount: observedItems.length,
+                });
+              } catch {}
             }
 
             const structuredReady = ocrData.success && ocrData.text &&
@@ -333,20 +434,101 @@ export default function Home() {
       setErrorMessage("ยังไม่พบข้อสอบสำหรับสร้างฉบับร่าง กรุณาตรวจเลขข้อใน OCR");
       return;
     }
+    if (!current()) return;
+    setFormattedItems(items);
+    setDiagramsHarvested(false);
+    setErrorMessage(issues.length ? `เปิดฉบับร่างแล้ว: มี ${issues.length} รายการให้ตรวจแก้ต่อ` : null);
+    setInfoNotice(`จัดโครงสร้างข้อสอบได้ ${items.length} ข้อเรียบร้อย (กด 'สกัดรูปประกอบ' เพื่อดึงภาพ/ตาราง หรือตรวจทานฝั่งขวา)`);
+    try {
+      saveDocumentDraft(window.localStorage, {
+        fileName: parsedFile.fileName,
+        fileBytes: parsedFile.fileSize,
+        sourceHash: parsedFile.sourceHash,
+        ocrText: text,
+        formattedItems: items,
+        itemCount: items.length,
+      });
+    } catch {}
+  };
+
+  const handleHarvestDiagrams = async () => {
+    if (!parsedFile || !formattedItems || formattedItems.length === 0) return;
+    const epoch = ++answerEpoch.current;
+    const upload = uploadEpoch.current;
+    const current = () => epoch === answerEpoch.current && upload === uploadEpoch.current;
+    setDiagramBusy(true);
+    setInfoNotice("กำลังสกัดรูปประกอบ ตาราง และภาพตัวเลือกด้วย AI Vision...");
+    try {
+      const images = parsedFile.pageImages?.length
+        ? parsedFile.pageImages
+        : parsedFile.fileType.startsWith("image/")
+        ? parsedFile.extractedImages.map(img => img.dataUrl)
+        : [];
+      const res = await harvestExamDiagrams(
+        formattedItems,
+        images,
+        current,
+        (done, total, msg) => setInfoNotice(msg)
+      );
+      if (!current()) return;
+      if (res.items) {
+        setFormattedItems(res.items);
+      }
+      setDiagramsHarvested(true);
+      setInfoNotice(`สกัดรูปประกอบสำเร็จ ${res.count} รูป (รูปโจทย์, ตาราง, ตัวเลือก) ตรวจทานฝั่งขวาหรือกด 'ตรวจเฉลยจากภาพ'`);
+      try {
+        saveDocumentDraft(window.localStorage, {
+          fileName: parsedFile.fileName,
+          fileBytes: parsedFile.fileSize,
+          sourceHash: parsedFile.sourceHash,
+          ocrText: ocrText || "",
+          formattedItems: res.items || formattedItems,
+          diagramsHarvested: true,
+          itemCount: (res.items || formattedItems).length,
+        });
+      } catch {}
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : "สกัดรูปประกอบไม่สำเร็จ");
+    } finally {
+      if (current()) setDiagramBusy(false);
+    }
+  };
+
+  const handleExtractAnswers = async () => {
+    if (!parsedFile || !formattedItems || formattedItems.length === 0) return;
+    const epoch = ++answerEpoch.current;
+    const upload = uploadEpoch.current;
+    const current = () => epoch === answerEpoch.current && upload === uploadEpoch.current;
+    const items = [...formattedItems];
     let answerCount = 0;
     let answerError = "";
     setAnswerBusy(true);
+    setInfoNotice("กำลังใช้ AI Vision สแกนหารอยวงกลม/กากบาทเฉลยจากภาพต้นฉบับ...");
     try {
       const images = parsedFile.pageImages?.length ? parsedFile.pageImages : parsedFile.fileType.startsWith("image/") ? parsedFile.extractedImages.map(image => image.dataUrl) : [];
       const result = await readSourceAnswers(items, images, current, page => setInfoNotice(`กำลังอ่านเฉลยจากต้นฉบับหน้า ${page}/${images.length}`));
       answerCount = result.count;
       if (result.failures.length) answerError = `ยังอ่านเฉลยไม่สำเร็จหน้า ${result.failures.join(", ")}`;
-    } catch (error) { answerCount = items.filter(item => item.reconciliationProvenance === "source_vision").length; answerError = error instanceof Error ? error.message : "อ่านเฉลยไม่สำเร็จ"; }
-    finally { if (current()) setAnswerBusy(false); }
+    } catch (error) { 
+      answerCount = items.filter(item => item.reconciliationProvenance === "source_vision").length; 
+      answerError = error instanceof Error ? error.message : "อ่านเฉลยไม่สำเร็จ"; 
+    } finally { 
+      if (current()) setAnswerBusy(false); 
+    }
     if (!current()) return;
     setFormattedItems(items);
-    setErrorMessage(issues.length ? `เปิดฉบับร่างแล้ว: มี ${issues.length} รายการให้ตรวจแก้ต่อ` : null);
-    setInfoNotice(`จัดโครงสร้างได้ ${items.length} ข้อ · อ่านเฉลยจากภาพได้ ${answerCount} ข้อ${answerError ? ` · ${answerError}` : " · ข้อที่หลักฐานไม่ชัดเจนเว้นเฉลยไว้"} กรุณาเทียบต้นฉบับก่อนส่งออก`);
+    setInfoNotice(`ตรวจเฉลยจากภาพเสร็จสิ้น พบ ${answerCount} ข้อ${answerError ? ` · ${answerError}` : " · ข้อที่หลักฐานไม่ชัดเจนเว้นเฉลยไว้"} กรุณาเทียบต้นฉบับก่อนส่งออก`);
+    try {
+      saveDocumentDraft(window.localStorage, {
+        fileName: parsedFile.fileName,
+        fileBytes: parsedFile.fileSize,
+        sourceHash: parsedFile.sourceHash,
+        ocrText: ocrText || "",
+        formattedItems: items,
+        diagramsHarvested,
+        itemCount: items.length,
+      });
+    } catch {}
   };
 
   const reviewLiveEditor = (editor: HTMLElement) => {
@@ -409,10 +591,24 @@ export default function Home() {
         )}
 
         <div className="flex items-center gap-1.5 shrink-0">
+          <button 
+            type="button" 
+            onClick={openDraftsModal} 
+            aria-label="แบบร่างและแคช OCR" 
+            title="ดูแบบร่างและประวัติการถอดข้อความ OCR ที่บันทึกไว้" 
+            className="flex items-center gap-1 px-2 py-1 text-xs text-[#28332d] bg-[#f7f6f2] border border-[#dedad0] rounded-md hover:bg-[#eae8e1]"
+          >
+            <Bookmark className="w-3.5 h-3.5 text-[#496053]" />
+            <span className="hidden lg:inline">แบบร่าง & แคช</span>
+          </button>
           <button ref={historyButton} type="button" onClick={openImportHistory} aria-label="ประวัติไฟล์นำเข้า" title="ประวัติไฟล์นำเข้า" className="flex items-center gap-1 px-2 py-1 text-xs text-[#28332d] bg-[#f7f6f2] border border-[#dedad0] rounded-md hover:bg-[#eae8e1]"><Files className="w-3.5 h-3.5" /><span className="hidden lg:inline">ประวัติไฟล์</span></button>
-          <button type="button" onClick={downloadStatistics} aria-label="ดาวน์โหลดสถิติการทดลอง" title="ดาวน์โหลดสถิติการทดลอง (เก็บในเบราว์เซอร์นี้)" className="flex items-center gap-1 px-2 py-1 text-xs text-[#28332d] bg-[#f7f6f2] border border-[#dedad0] rounded-md hover:bg-[#eae8e1]">
+          <button type="button" onClick={openStatisticsModal} aria-label="สถิติ 10 รอบล่าสุด" title="ดูสถิติและผลการทดลอง (10 รอบล่าสุด)" className="flex items-center gap-1 px-2 py-1 text-xs text-[#28332d] bg-[#f7f6f2] border border-[#dedad0] rounded-md hover:bg-[#eae8e1]">
             <BarChart3 className="w-3.5 h-3.5" />
             <span className="hidden lg:inline">สถิติ</span>
+          </button>
+          <button type="button" onClick={downloadStatistics} aria-label="ดาวน์โหลดสถิติการทดลอง" title="ดาวน์โหลด JSON สถิติการทดลองทั้งหมด" className="flex items-center gap-1 px-2 py-1 text-xs text-[#28332d] bg-[#f7f6f2] border border-[#dedad0] rounded-md hover:bg-[#eae8e1]">
+            <Download className="w-3.5 h-3.5" />
+            <span className="hidden lg:inline">ดาวน์โหลด</span>
           </button>
           {parsedFile && (
             <button
@@ -485,6 +681,109 @@ export default function Home() {
           <div tabIndex={0} aria-label="รายการไฟล์ที่เคยนำเข้า" className="overflow-y-auto text-xs">{importHistory.length ? <ol className="divide-y divide-[#eae8e1]">{importHistory.map(entry => <li key={entry.id} className="py-3"><div className="break-all font-medium text-[#28332d]">{entry.fileName}</div><div className="mt-1 text-stone-500">{new Date(entry.importedAt).toLocaleString("th-TH",{timeZone:"Asia/Bangkok"})} · {(entry.fileBytes/1024).toFixed(1)} KB</div></li>)}</ol> : <p>ยังไม่มีประวัติไฟล์นำเข้า</p>}</div>
         </section>
       )}
+
+      {/* Document Drafts & OCR Cache Modal */}
+      {showDraftsModal && (
+        <section
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="drafts-history-title"
+          onKeyDown={event => {
+            if (event.key === "Escape") setShowDraftsModal(false);
+          }}
+          className="fixed inset-4 z-50 mx-auto flex max-w-2xl flex-col rounded-xl border border-[#dedad0] bg-white p-4 shadow-xl"
+        >
+          <div className="flex items-center justify-between gap-2 border-b border-[#dedad0] pb-2">
+            <div className="flex items-center gap-2">
+              <Bookmark className="h-4 w-4 text-[#496053]" />
+              <h2 id="drafts-history-title" className="text-sm font-semibold text-[#28332d]">
+                แบบร่าง & ประวัติการถอดข้อความ OCR
+              </h2>
+            </div>
+            <div className="flex items-center gap-2">
+              {savedDrafts.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleClearAllDrafts}
+                  className="text-xs text-rose-600 hover:text-rose-800 px-2 py-1 rounded hover:bg-rose-50 transition"
+                >
+                  ล้างทั้งหมด
+                </button>
+              )}
+              <button
+                type="button"
+                aria-label="ปิดหน้าต่างแบบร่าง"
+                onClick={() => setShowDraftsModal(false)}
+                className="rounded bg-[#f7f6f2] p-1.5 hover:bg-[#eae8e1]"
+              >
+                <X className="h-4 w-4 text-[#28332d]" />
+              </button>
+            </div>
+          </div>
+          <p className="my-2.5 text-xs text-stone-600">
+            บันทึกแคช OCR, โครงสร้างข้อสอบ และรูปประกอบล่าสุดไว้ในเครื่อง ช่วยประหยัดเวลาและค่าใช้จ่าย API เมื่อทำงานกับเอกสารเดิม
+          </p>
+          <div tabIndex={0} aria-label="รายการแบบร่างที่บันทึกไว้" className="overflow-y-auto text-xs flex-1">
+            {savedDrafts.length ? (
+              <ol className="divide-y divide-[#eae8e1]">
+                {savedDrafts.map(draft => (
+                  <li key={draft.id} className="py-2.5 flex items-center justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="break-all font-semibold text-[#28332d] flex items-center gap-1.5">
+                        <FileText className="w-3.5 h-3.5 text-[#496053] shrink-0" />
+                        <span>{draft.fileName}</span>
+                      </div>
+                      <div className="mt-0.5 text-[11px] text-stone-500 flex flex-wrap items-center gap-2">
+                        <span>{new Date(draft.updatedAt).toLocaleString("th-TH", { timeZone: "Asia/Bangkok" })}</span>
+                        <span>·</span>
+                        <span>{(draft.fileBytes / 1024).toFixed(1)} KB</span>
+                        <span>·</span>
+                        <span className="font-medium text-[#496053]">
+                          {draft.itemCount ? `${draft.itemCount} ข้อ` : draft.ocrText ? "มีข้อความ OCR" : "แบบร่าง"}
+                        </span>
+                        {draft.diagramsHarvested && (
+                          <span className="bg-emerald-50 text-emerald-700 px-1.5 py-0.2 rounded text-[10px] border border-emerald-200">
+                            สกัดรูปแล้ว
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleApplyDraft(draft)}
+                        className="bg-[#496053] hover:bg-[#394c42] text-white px-2.5 py-1 rounded text-xs font-medium shadow-2xs transition"
+                      >
+                        เปิดแบบร่าง
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`ลบแบบร่าง ${draft.fileName}`}
+                        onClick={() => handleDeleteDraft(draft.id)}
+                        className="text-stone-400 hover:text-rose-600 p-1 rounded hover:bg-rose-50 transition"
+                        title="ลบแบบร่างนี้"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="text-stone-500 py-6 text-center">ยังไม่มีแบบร่างหรือประวัติ OCR ที่บันทึกไว้</p>
+            )}
+          </div>
+        </section>
+      )}
+
+      {showStatisticsModal && (
+        <StatisticsModal
+          isOpen={showStatisticsModal}
+          onClose={() => setShowStatisticsModal(false)}
+          runs={experimentRuns}
+          onDownloadJson={downloadStatistics}
+        />
+      )}
       {showCaseLog && (
         <div id="case-log-panel" className={isDocumentActive ? "fixed inset-4 z-50 bg-white/95 backdrop-blur-md shadow-2xl rounded-2xl border border-[#dedad0] p-4 overflow-y-auto max-w-4xl mx-auto" : "mb-6"}>
           <CaseDecisionManager onClose={() => { setShowCaseLog(false); caseButton.current?.focus(); }} />
@@ -492,6 +791,32 @@ export default function Home() {
       )}
 
       {/* Status & Error Alerts */}
+      {availableDraft && (
+        <div className="bg-[#eef5f2] border border-[#496053]/30 text-[#28332d] px-3 py-1.5 rounded-lg flex items-center justify-between gap-2 text-xs mb-2 shadow-2xs shrink-0">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <Bookmark className="w-4 h-4 text-[#496053] shrink-0" />
+            <span className="truncate">
+              พบแบบร่าง/แคช OCR เดิมของ <strong>{availableDraft.fileName}</strong> ({availableDraft.itemCount} ข้อ บันทึกเมื่อ {new Date(availableDraft.updatedAt).toLocaleTimeString("th-TH")})
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => handleApplyDraft(availableDraft)}
+              className="bg-[#496053] hover:bg-[#394c42] text-white font-semibold px-2.5 py-1 rounded shadow-2xs text-[11px] transition"
+            >
+              โหลดแบบร่างเดิม (ประหยัดค่าใช้จ่าย)
+            </button>
+            <button
+              type="button"
+              onClick={() => setAvailableDraft(null)}
+              className="text-[#718096] hover:text-[#28332d] px-1.5 py-0.5 rounded text-[11px]"
+            >
+              ไม่ใช้
+            </button>
+          </div>
+        </div>
+      )}
       {statisticsError && <p role="alert" className="mb-2 rounded border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900 shrink-0">{statisticsError}</p>}
       {errorMessage && (
         <div role="alert" className="mb-2 rounded-lg bg-amber-50/90 border border-amber-300 p-2.5 text-xs text-amber-950 shrink-0 flex flex-wrap items-center justify-between gap-2 shadow-2xs">
@@ -547,6 +872,10 @@ export default function Home() {
             sourcePagesComplete={sourcePagesComplete.current}
             reviewIssues={reviewIssues}
             onConvertReviewedText={convertReviewedText}
+            onHarvestDiagrams={handleHarvestDiagrams}
+            onExtractAnswers={handleExtractAnswers}
+            diagramBusy={diagramBusy}
+            diagramsHarvested={diagramsHarvested}
             answerBusy={answerBusy}
             onReviewEditor={reviewLiveEditor}
             onReset={handleReset}
@@ -577,3 +906,5 @@ export default function Home() {
     </main>
   );
 }
+
+/* BUILD_STAMP: 261014-1553 */

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useState, useEffect, useMemo } from "react";
-import { parseExamText } from "@/lib/exam-parser";
+import { parseExamText, parseSharedContextHeader, stripCapturedTableText } from "@/lib/exam-parser";
 import { ParsedFileResult } from "@/lib/file-parser";
 import { ExamItem, FORMATTER_CONSTANTS } from "@/lib/formatter-rules";
 import { RichTextToolbar } from "./RichTextToolbar";
@@ -14,7 +14,8 @@ import {
   Search, 
   Crop, 
   Check, 
-  X
+  X,
+  ChevronRight
 } from "lucide-react";
 
 interface SplitDocumentEditorProps {
@@ -24,8 +25,12 @@ interface SplitDocumentEditorProps {
   ocrProgress?: {completed:number;total:number} | null;
   sourcePagesComplete?: boolean;
   answerBusy?: boolean;
+  diagramBusy?: boolean;
+  diagramsHarvested?: boolean;
   reviewIssues?: string[];
   onConvertReviewedText?: (text: string) => void;
+  onHarvestDiagrams?: () => void;
+  onExtractAnswers?: () => void;
   onReviewEditor?: (editor: HTMLElement) => void;
   onReset?: () => void;
   onExportDrive?: (element: HTMLElement) => Promise<void>;
@@ -40,8 +45,12 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
   ocrProgress = null,
   sourcePagesComplete = true,
   answerBusy = false,
+  diagramBusy = false,
+  diagramsHarvested = false,
   reviewIssues = [],
   onConvertReviewedText,
+  onHarvestDiagrams,
+  onExtractAnswers,
   onReviewEditor,
   onReset,
   onExportDrive,
@@ -86,6 +95,12 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
     const editor = editorPaneRef.current;
     if (!editor || !formattedItems.length) return;
     const labelImages = () => editor.querySelectorAll('img').forEach(image => {
+      const isShared = image.closest('[data-shared-image="true"]') ||
+        image.previousElementSibling?.textContent?.trim().includes("รูปโจทย์ร่วม") ||
+        image.parentElement?.previousElementSibling?.textContent?.trim().includes("รูปโจทย์ร่วม");
+      const isChoice = Boolean(image.closest('[data-choice-image="true"]'));
+      const isExplanation = Boolean(image.closest('[data-explanation-image="true"]'));
+      if (isShared || isChoice || isExplanation) return;
       const preceding = image.previousElementSibling;
       const outerPreceding = image.parentElement?.previousElementSibling;
       if (preceding?.textContent?.trim() === FORMATTER_CONSTANTS.LABEL_QUESTION_IMAGE ||
@@ -114,6 +129,13 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
   // Dynamic Exam Items List
   const itemsList = formattedItems;
   const navigationItems = useMemo(() => itemsList.length ? itemsList : parseExamText(reviewText), [itemsList, reviewText]);
+  const questionRows = useMemo(() => {
+    const rows: typeof navigationItems[] = [];
+    for (let i = 0; i < navigationItems.length; i += 30) {
+      rows.push(navigationItems.slice(i, i + 30));
+    }
+    return rows;
+  }, [navigationItems]);
   const [activeQuestionId, setActiveQuestionId] = useState(1);
   const jumpToQuestion = (item: ExamItem) => {
     setActiveQuestionId(item.id);
@@ -199,6 +221,8 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
   const [targetQuestionId, setTargetQuestionId] = useState<number>(
     formattedItems[0]?.id || 0
   );
+  const [cropTargetRole, setCropTargetRole] = useState<"question" | "shared" | "choice" | "explanation">("question");
+  const [cropTargetChoiceKey, setCropTargetChoiceKey] = useState<string>("ก");
 
   useEffect(() => {
     if (formattedItems.length > 0) {
@@ -337,24 +361,123 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
       showNotice("ไม่พบข้อสอบปลายทาง กรุณาเลือกข้อสอบใหม่");
       return;
     }
-    let figure = target.querySelector<HTMLElement>("[data-question-image]");
-    if (!figure) {
-      figure = document.createElement("div");
-      figure.dataset.questionImage = "true";
-      target.insertBefore(figure, target.children[1] || null);
-    }
-    const label = document.createElement("p");
-    label.textContent = FORMATTER_CONSTANTS.LABEL_QUESTION_IMAGE;
-    const image = document.createElement("img");
-    image.src = capturedImageSnippet;
-    image.alt = "ภาพโจทย์ที่ตัดจากต้นฉบับ — ยังไม่ได้ตรวจสอบขอบ";
-    image.style.maxHeight = "224px";
-    image.style.maxWidth = "100%";
-    figure.replaceChildren(label, image);
 
+    if (cropTargetRole === "question") {
+      let figure = target.querySelector<HTMLElement>("[data-question-image]");
+      if (!figure) {
+        figure = document.createElement("div");
+        figure.dataset.questionImage = "true";
+        target.insertBefore(figure, target.children[1] || null);
+      }
+      const label = document.createElement("p");
+      label.textContent = FORMATTER_CONSTANTS.LABEL_QUESTION_IMAGE;
+      const image = document.createElement("img");
+      image.src = capturedImageSnippet;
+      image.alt = "ภาพโจทย์ที่ตัดจากต้นฉบับ";
+      image.style.maxHeight = "224px";
+      image.style.maxWidth = "100%";
+      figure.replaceChildren(label, image);
+    } else if (cropTargetRole === "shared") {
+      let sharedBlock = target.querySelector<HTMLElement>("[data-shared-context-block='true']");
+      if (!sharedBlock) {
+        sharedBlock = target;
+      }
+      let sharedImage = sharedBlock.querySelector<HTMLElement>("[data-shared-image='true']");
+      if (!sharedImage) {
+        sharedImage = document.createElement("div");
+        sharedImage.dataset.sharedImage = "true";
+        sharedImage.className = "pt-2 space-y-2";
+        sharedBlock.appendChild(sharedImage);
+      }
+      const label = document.createElement("span");
+      label.textContent = "รูปโจทย์ร่วม:";
+      label.style.color = FORMATTER_CONSTANTS.COLOR_ORANGE;
+      label.style.fontWeight = "bold";
+      label.style.fontSize = "12pt";
+      label.style.display = "block";
+      const image = document.createElement("img");
+      image.src = capturedImageSnippet;
+      image.alt = "รูปโจทย์ร่วม";
+      image.style.maxHeight = "240px";
+      image.style.maxWidth = "100%";
+      sharedImage.replaceChildren(label, image);
+
+      // Clean up captured table/diagram text in shared block so it only retains directive header
+      const textDiv = sharedBlock.querySelector<HTMLElement>(".whitespace-pre-line");
+      if (textDiv && textDiv.textContent) {
+        textDiv.textContent = stripCapturedTableText(textDiv.textContent);
+      }
+    } else if (cropTargetRole === "choice") {
+      let choiceRow = target.querySelector<HTMLElement>(`[data-choice-key="${CSS.escape(cropTargetChoiceKey)}"]`);
+      if (!choiceRow) {
+        let choicesContainer = target.querySelector<HTMLElement>(".pl-2.space-y-1\\.5") || target.querySelector<HTMLElement>(".space-y-1\\.5");
+        if (!choicesContainer) {
+          const choicesSec = document.createElement("div");
+          choicesSec.className = "pl-4 space-y-2";
+          const label = document.createElement("div");
+          label.className = "text-[#006D77] font-bold text-[12pt]";
+          label.textContent = FORMATTER_CONSTANTS.LABEL_CHOICES;
+          choicesContainer = document.createElement("div");
+          choicesContainer.className = "pl-2 space-y-1.5";
+          choicesSec.appendChild(label);
+          choicesSec.appendChild(choicesContainer);
+          target.appendChild(choicesSec);
+        }
+        choiceRow = document.createElement("div");
+        choiceRow.dataset.choiceKey = cropTargetChoiceKey;
+        choiceRow.className = "p-2 rounded transition flex flex-col gap-1.5 text-slate-800 hover:bg-slate-50";
+        const rowHeader = document.createElement("div");
+        rowHeader.className = "flex items-center justify-between";
+        const keySpan = document.createElement("span");
+        keySpan.className = "font-bold text-[#006D77] text-[12pt]";
+        keySpan.textContent = `${cropTargetChoiceKey}. `;
+        rowHeader.appendChild(keySpan);
+        choiceRow.appendChild(rowHeader);
+        choicesContainer.appendChild(choiceRow);
+      }
+      let choiceImage = choiceRow.querySelector<HTMLElement>("[data-choice-image='true']");
+      if (!choiceImage) {
+        choiceImage = document.createElement("div");
+        choiceImage.dataset.choiceImage = "true";
+        choiceImage.className = "pt-1";
+        choiceRow.appendChild(choiceImage);
+      }
+      const image = document.createElement("img");
+      image.src = capturedImageSnippet;
+      image.alt = `รูปตัวเลือก ${cropTargetChoiceKey}`;
+      image.className = "max-w-xs max-h-48 object-contain rounded border border-slate-200 bg-white p-1";
+      choiceImage.replaceChildren(image);
+
+      // Clean up choice text when image is attached
+      const textSpan = choiceRow.querySelector<HTMLElement>(".font-light");
+      if (textSpan) textSpan.textContent = "";
+    } else if (cropTargetRole === "explanation") {
+      let explBlock = target.querySelector<HTMLElement>("[data-explanation-block='true']");
+      if (!explBlock) {
+        explBlock = document.createElement("div");
+        explBlock.dataset.explanationBlock = "true";
+        explBlock.className = "pl-4 pt-1 space-y-2";
+        target.appendChild(explBlock);
+      }
+      let explImage = explBlock.querySelector<HTMLElement>("[data-explanation-image='true']");
+      if (!explImage) {
+        explImage = document.createElement("div");
+        explImage.dataset.explanationImage = "true";
+        explImage.className = "pt-1";
+        explBlock.appendChild(explImage);
+      }
+      const image = document.createElement("img");
+      image.src = capturedImageSnippet;
+      image.alt = "รูปคำอธิบาย";
+      image.style.maxHeight = "240px";
+      image.style.maxWidth = "100%";
+      explImage.replaceChildren(image);
+    }
+
+    const roleLabel = cropTargetRole === "question" ? "รูปโจทย์" : cropTargetRole === "shared" ? "รูปโจทย์ร่วม" : cropTargetRole === "choice" ? `ตัวเลือก ${cropTargetChoiceKey}` : "รูปคำอธิบาย";
     setCapturedImageSnippet(null);
     setIsCaptureActive(false);
-    showNotice(`แทรกรูปภาพเรียบร้อยแล้วใน [${targetQuestionId}]`);
+    showNotice(`แทรกรูปภาพเรียบร้อยแล้วใน [ข้อ ${targetQuestionId}] (${roleLabel})`);
   };
 
   useEffect(() => {
@@ -479,30 +602,74 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
               />
               <span className="text-[11px] text-emerald-700 font-semibold flex items-center justify-center gap-1">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                สถานะขอบภาพ: <strong>ยังไม่ได้ตรวจสอบ</strong>
+                สถานะขอบภาพ: <strong>พร้อมแทรก (ตัดขอบเว้นระยะ 2-3px รอบกรอบ ชดเชยการเอียง)</strong>
               </span>
+
             </div>
 
-            <div className="space-y-2">
-              <label htmlFor="crop-target" className="block text-xs font-semibold text-slate-700">
-                เลือกข้อสอบที่ต้องการแทรกรูปภาพนี้เป็น [รูปโจทย์]:
-              </label>
-              <select
-                ref={cropTargetRef}
-                id="crop-target"
-                disabled={!navigationItems.length}
-                value={targetQuestionId}
-                onChange={(e) => setTargetQuestionId(Number(e.target.value))}
-                className="w-full text-xs border border-slate-300 rounded-lg p-2.5 bg-white text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-[#F2604D]"
-              >
-                {!navigationItems.length && <option value={targetQuestionId}>ยังไม่พบข้อสอบ กรุณาตรวจเลขข้อใน OCR ก่อนแทรกรูป</option>}
-                {navigationItems.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.id} · ข้อ {item.questionNumber}: {item.questionText.slice(0, 45)}...
-                  </option>
-                ))}
-              </select>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div className="space-y-1.5">
+                <label htmlFor="crop-target" className="block font-semibold text-slate-700">
+                  เลือกข้อสอบ:
+                </label>
+                <select
+                  ref={cropTargetRef}
+                  id="crop-target"
+                  disabled={!navigationItems.length}
+                  value={targetQuestionId}
+                  onChange={(e) => setTargetQuestionId(Number(e.target.value))}
+                  className="w-full text-xs border border-slate-300 rounded-lg p-2 bg-white text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-[#F2604D]"
+                >
+                  {!navigationItems.length && <option value={targetQuestionId}>ยังไม่พบข้อสอบ กรุณาตรวจเลขข้อใน OCR ก่อนแทรกรูป</option>}
+                  {navigationItems.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      ข้อ {item.questionNumber}: {item.questionText.slice(0, 35)}...
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="crop-role" className="block font-semibold text-slate-700">
+                  ตำแหน่ง / ประเภทรูปภาพ:
+                </label>
+                <select
+                  id="crop-role"
+                  value={cropTargetRole}
+                  onChange={(e) => setCropTargetRole(e.target.value as any)}
+                  className="w-full text-xs border border-slate-300 rounded-lg p-2 bg-white text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-[#F2604D]"
+                >
+                  <option value="question">รูปโจทย์ ([รูปโจทย์])</option>
+                  <option value="shared">รูปโจทย์ร่วม (ตาราง/ข้อมูลบทความร่วม)</option>
+                  <option value="choice">รูปตัวเลือก (ก, ข, ค, ง)</option>
+                  <option value="explanation">รูปคำอธิบาย (เฉลยละเอียด)</option>
+                </select>
+              </div>
             </div>
+
+            {cropTargetRole === "choice" && (
+              <div className="space-y-1.5 text-xs">
+                <label htmlFor="crop-choice-key" className="block font-semibold text-slate-700">
+                  เลือกข้อตัวเลือก:
+                </label>
+                <div className="flex gap-2">
+                  {["ก", "ข", "ค", "ง"].map((k) => (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() => setCropTargetChoiceKey(k)}
+                      className={`flex-1 py-1.5 text-xs font-bold rounded-lg border transition ${
+                        cropTargetChoiceKey === k
+                          ? "bg-[#006D77] text-white border-[#006D77] shadow-2xs"
+                          : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
+                      }`}
+                    >
+                      ตัวเลือก {k}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="flex items-center justify-end gap-3 pt-2">
               <button
@@ -517,7 +684,7 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
                 className="px-4 py-2 text-xs font-bold text-white bg-[#F2604D] hover:bg-[#d84d3b] rounded-lg shadow-sm flex items-center gap-1.5"
               >
                 <Check className="w-4 h-4" />
-                <span>แทรกเป็นรูปโจทย์</span>
+                <span>แทรกภาพ ({cropTargetRole === "question" ? "รูปโจทย์" : cropTargetRole === "shared" ? "รูปโจทย์ร่วม" : cropTargetRole === "choice" ? `ตัวเลือก ${cropTargetChoiceKey}` : "รูปคำอธิบาย"})</span>
               </button>
             </div>
           </div>
@@ -795,31 +962,181 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
 
         {/* RIGHT PANEL: OCR, Conversion & Rich Text Editor (50%) */}
         <div data-workspace="conversion" className="lg:col-span-6 min-w-0 h-full flex flex-col bg-white border border-[#dedad0] rounded-xl shadow-xs overflow-hidden">
-          <div className="flex flex-wrap items-center gap-2 border-b border-[#dedad0] bg-[#f7f6f2] px-3 py-1.5 text-[10px] shrink-0">
-            <span className="font-semibold text-[#28332d]">{itemsList.length ? reviewIssues.length ? "ฉบับร่าง · ตรวจแก้ต่อได้" : "ข้อสอบที่จัดรูปแบบแล้ว" : "OCR"}</span>
-            <button type="button" disabled={answerBusy || Boolean(ocrProgress) || !sourcePagesComplete || !reviewText.trim() || itemsList.length > 0} onClick={() => onConvertReviewedText?.(reviewText)} className="rounded bg-[#496053] hover:bg-[#394c42] px-2.5 py-1.5 text-xs text-white disabled:opacity-50 transition" title="จัดข้อความเป็นข้อสอบและใช้เฉลยเฉพาะที่มีในต้นฉบับ">
-              {answerBusy ? "กำลังอ่านเฉลย…" : itemsList.length ? "จัดรูปแบบแล้ว" : "แปลงเป็นรูปแบบข้อสอบ"}
-            </button>
-            <span className="sr-only">{ocrProgress ? "รอ OCR อ่านครบก่อนแปลง" : !sourcePagesComplete ? "OCR ยังอ่านไม่ครบทุกหน้า" : itemsList.length ? "แก้ข้อความ จัดรูป และส่งออกจากฝั่งขวา" : "ตรวจข้อความ แล้วกดแปลง · ใช้เฉลยถ้ามีในต้นฉบับ"}</span>
-            {itemsList.length > 0 && reviewIssues.length > 0 && <button type="button" onClick={() => editorPaneRef.current && onReviewEditor?.(editorPaneRef.current)} className="rounded border border-amber-300 px-2 py-1 text-xs text-amber-900">ตรวจสอบฉบับแก้ไข</button>}
-            {itemsList.length > 0 && <div className="min-w-0 flex-1" data-editor-tools="true">
-            <RichTextToolbar
-              onFormat={handleFormat}
-              onInsertImage={handleInsertImage}
-              onCopyAll={handleCopyAll}
-              onExportDrive={handleExportDrive}
-              exportAvailable={exportAvailable}
-              exporting={exporting}
-              editingAvailable={itemsList.length > 0}
-            />
-            </div>}
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#dedad0] bg-[#f7f6f2] px-3 py-1.5 text-[11px] shrink-0">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-[#28332d]">
+                {itemsList.length ? `ฉบับร่าง (${itemsList.length} ข้อ)` : "OCR ดิบ"}
+              </span>
 
+              {/* Stepper Timeline with Horizontal Connectors and Status Animations */}
+              <div className="flex items-center gap-1.5 sm:gap-2" role="group" aria-label="ขั้นตอนการทำงาน">
+                {/* Step 1: Format Exam */}
+                <button 
+                  type="button" 
+                  aria-label={answerBusy ? "กำลังอ่านเฉลย…" : itemsList.length ? "จัดรูปแบบแล้ว" : "แปลงเป็นรูปแบบข้อสอบ"}
+                  disabled={Boolean(ocrProgress) || !sourcePagesComplete || !reviewText.trim() || itemsList.length > 0} 
+                  onClick={() => onConvertReviewedText?.(reviewText)} 
+                  className={`relative w-6 h-6 sm:w-6.5 sm:h-6.5 rounded-full transition-all duration-300 flex items-center justify-center shrink-0 disabled:opacity-40 ${
+                    itemsList.length > 0
+                      ? "bg-[#496053] text-white shadow-xs"
+                      : !itemsList.length && reviewText.trim() && !ocrProgress
+                      ? "bg-[#496053] text-white shadow-sm ring-2 ring-[#496053]/50 ring-offset-1 animate-pulse hover:animate-none scale-102"
+                      : "bg-[#f7f6f2] border border-[#dedad0] text-[#718096]"
+                  }`} 
+                  title={itemsList.length ? "ขั้นตอนที่ 1: จัดรูปแบบแล้ว (ผ่านแล้ว)" : "ขั้นตอนที่ 1: แปลง OCR เป็นรูปแบบข้อสอบ (ขั้นตอนปัจจุบัน)"}
+                >
+                  <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                  <span className="sr-only">{answerBusy ? "กำลังอ่านเฉลย…" : itemsList.length ? "จัดรูปแบบแล้ว" : "แปลงเป็นรูปแบบข้อสอบ"}</span>
+                  {itemsList.length > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border border-white flex items-center justify-center shadow-xs">
+                      <Check className="w-1.5 h-1.5 text-white stroke-[3]" />
+                    </span>
+                  )}
+                </button>
+
+                {/* Connector 1: Step 1 -> Step 2 */}
+                <div className={`h-0.5 w-2 sm:w-3.5 rounded-full transition-colors duration-500 shrink-0 ${
+                  itemsList.length > 0 ? "bg-emerald-500" : "bg-[#dedad0]"
+                }`} />
+
+                {/* Step 2: AI Diagram & Figure Extraction */}
+                {onHarvestDiagrams && (
+                  <button
+                    type="button"
+                    aria-label={diagramBusy ? "กำลังสกัดรูป…" : diagramsHarvested ? "สกัดรูปแล้ว (สกัดซ้ำได้)" : "สกัดรูปประกอบ (AI)"}
+                    disabled={!itemsList.length || diagramBusy || answerBusy}
+                    onClick={() => onHarvestDiagrams?.()}
+                    className={`relative w-6 h-6 sm:w-6.5 sm:h-6.5 rounded-full transition-all duration-300 flex items-center justify-center shrink-0 disabled:opacity-40 ${
+                      diagramBusy
+                        ? "bg-[#006D77] text-white ring-2 ring-[#006D77]/40 ring-offset-1 animate-pulse"
+                        : diagramsHarvested
+                        ? "bg-[#006D77] text-white shadow-xs"
+                        : itemsList.length > 0
+                        ? "bg-[#006D77] hover:bg-[#005a63] text-white font-semibold ring-2 ring-[#006D77]/50 ring-offset-1 animate-pulse hover:animate-none scale-102 shadow-sm"
+                        : "bg-[#f7f6f2] border border-[#dedad0] text-[#718096]"
+                    }`}
+                    title={diagramBusy ? "กำลังสกัดรูปภาพและตาราง (กำลังประมวลผล)..." : diagramsHarvested ? "ขั้นตอนที่ 2: สกัดรูปประกอบแล้ว (ผ่านแล้ว · คลิกเพื่อสกัดซ้ำ)" : "ขั้นตอนที่ 2: สกัดรูปประกอบ ตาราง และภาพตัวเลือกด้วย AI Vision (ขั้นตอนปัจจุบัน)"}
+                  >
+                    <Crop className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${diagramBusy ? "animate-spin" : ""}`} />
+                    <span className="sr-only">{diagramBusy ? "กำลังสกัดรูป…" : diagramsHarvested ? "สกัดรูปแล้ว (สกัดซ้ำได้)" : "สกัดรูปประกอบ (AI)"}</span>
+                    {diagramsHarvested && (
+                      <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border border-white flex items-center justify-center shadow-xs">
+                        <Check className="w-1.5 h-1.5 text-white stroke-[3]" />
+                      </span>
+                    )}
+                  </button>
+                )}
+
+                {/* Connector 2: Step 2 -> Step 3 */}
+                {onExtractAnswers && (
+                  <div className={`h-0.5 w-2 sm:w-3.5 rounded-full transition-colors duration-500 shrink-0 ${
+                    diagramsHarvested ? "bg-emerald-500" : "bg-[#dedad0]"
+                  }`} />
+                )}
+
+                {/* Step 3: Optional AI Answer Detection */}
+                {onExtractAnswers && (
+                  <button
+                    type="button"
+                    aria-label={answerBusy ? "กำลังอ่านเฉลย…" : "ตรวจเฉลยจากภาพ (AI)"}
+                    disabled={!itemsList.length || answerBusy || diagramBusy}
+                    onClick={() => onExtractAnswers?.()}
+                    className={`relative w-6 h-6 sm:w-6.5 sm:h-6.5 rounded-full transition-all duration-300 flex items-center justify-center shrink-0 disabled:opacity-40 ${
+                      answerBusy
+                        ? "bg-[#496053] text-white ring-2 ring-[#496053]/40 ring-offset-1 animate-pulse"
+                        : formattedItems.some(i => i.reconciliationProvenance === "source_vision")
+                        ? "bg-[#496053] text-white shadow-xs"
+                        : diagramsHarvested
+                        ? "bg-[#496053] hover:bg-[#394c42] text-white font-medium ring-2 ring-[#496053]/50 ring-offset-1 animate-pulse hover:animate-none scale-102 shadow-sm"
+                        : "bg-[#f7f6f2] border border-[#dedad0] text-[#718096]"
+                    }`}
+                    title={answerBusy ? "กำลังตรวจเฉลยจากภาพ (กำลังประมวลผล)..." : formattedItems.some(i => i.reconciliationProvenance === "source_vision") ? "ขั้นตอนที่ 3: ตรวจเฉลยจากภาพแล้ว (ผ่านแล้ว · คลิกเพื่อตรวจซ้ำ)" : "ขั้นตอนที่ 3: ตรวจเฉลยจากภาพ สแกนรอยเฉลยบนต้นฉบับ (ขั้นตอนถัดไป)"}
+                  >
+                    <Search className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${answerBusy ? "animate-spin" : ""}`} />
+                    <span className="sr-only">{answerBusy ? "กำลังอ่านเฉลย…" : "ตรวจเฉลยจากภาพ (AI)"}</span>
+                    {formattedItems.some(i => i.reconciliationProvenance === "source_vision") && (
+                      <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border border-white flex items-center justify-center shadow-xs">
+                        <Check className="w-1.5 h-1.5 text-white stroke-[3]" />
+                      </span>
+                    )}
+                  </button>
+                )}
+
+                {/* Step 4: Issue Review (If any issues detected) */}
+                {itemsList.length > 0 && reviewIssues.length > 0 && (
+                  <>
+                    <div className="h-0.5 w-2 sm:w-3.5 rounded-full bg-amber-400 shrink-0" />
+                    <button 
+                      type="button" 
+                      aria-label="ตรวจสอบฉบับแก้ไข"
+                      onClick={() => editorPaneRef.current && onReviewEditor?.(editorPaneRef.current)} 
+                      className="relative w-6 h-6 sm:w-6.5 sm:h-6.5 rounded-full border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 transition-all flex items-center justify-center shrink-0 shadow-xs ring-2 ring-amber-400/40 animate-pulse hover:animate-none"
+                      title={`ขั้นตอนที่ 4: ตรวจสอบฉบับแก้ไข (พบ ${reviewIssues.length} รายการตรวจทาน)`}
+                    >
+                      <AlertTriangle className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-600" />
+                      <span className="sr-only">ตรวจสอบฉบับแก้ไข</span>
+                      <span className="absolute -top-0.5 -right-0.5 min-w-3 h-3 px-0.5 rounded-full bg-amber-500 border border-white text-white text-[7px] font-bold flex items-center justify-center">
+                        {reviewIssues.length}
+                      </span>
+                    </button>
+                  </>
+                )}
+              </div>
+
+            </div>
+
+            {itemsList.length > 0 && (
+              <div className="min-w-0" data-editor-tools="true">
+                <RichTextToolbar
+                  onFormat={handleFormat}
+                  onInsertImage={handleInsertImage}
+                  onCopyAll={handleCopyAll}
+                  onExportDrive={handleExportDrive}
+                  exportAvailable={exportAvailable}
+                  exporting={exporting}
+                  editingAvailable={itemsList.length > 0}
+                />
+              </div>
+            )}
           </div>
-          {itemsList.length > 0 && reviewIssues.length > 0 && <details className="shrink-0 border-b border-amber-200 bg-amber-50 px-3 py-1 text-xs text-amber-900"><summary>รายการตรวจแก้ {reviewIssues.length} รายการ · แก้ข้อความและแทรกรูปต่อได้</summary><ul className="max-h-32 overflow-y-auto list-disc pl-4">{reviewIssues.map((issue, index) => <li key={index}>{issue}</li>)}</ul></details>}
-          {navigationItems.length > 0 && <nav aria-label="เลือกข้อสอบ" className="flex items-center gap-1 border-b border-[#dedad0] bg-white px-2 py-1 shrink-0 min-w-0">
-            <span className="shrink-0 text-[9px] text-[#28332d]">ข้อ</span>
-            <div className="flex gap-0.5 overflow-x-auto min-w-0 py-0.5">{navigationItems.map(item => <button key={item.id} type="button" aria-label={`ไปข้อ ${item.questionNumber}`} aria-current={activeQuestionId === item.id ? "true" : undefined} onClick={() => jumpToQuestion(item)} className={`shrink-0 min-w-5 rounded px-1 py-0.5 text-[10px] transition ${activeQuestionId === item.id ? "bg-[#496053] text-white" : "bg-[#eae8e1] text-[#28332d] hover:bg-[#dedad0]"}`}>{item.questionNumber}</button>)}</div>
-          </nav>}
+
+          {itemsList.length > 0 && reviewIssues.length > 0 && (
+            <details className="shrink-0 border-b border-amber-200 bg-amber-50 px-3 py-1 text-xs text-amber-900">
+              <summary className="cursor-pointer font-medium">รายการตรวจแก้ {reviewIssues.length} รายการ · แก้ข้อความและแทรกรูปต่อได้</summary>
+              <ul className="max-h-28 overflow-y-auto list-disc pl-4 mt-1 text-[11px]">{reviewIssues.map((issue, index) => <li key={index}>{issue}</li>)}</ul>
+            </details>
+          )}
+
+          {navigationItems.length > 0 && (
+            <nav aria-label="เลือกข้อสอบ" className="flex flex-col gap-1 border-b border-[#dedad0] bg-white px-2 py-1 shrink-0 min-w-0">
+              {questionRows.map((row, rowIdx) => (
+                <div key={rowIdx} className="flex items-center gap-1 min-w-0">
+                  <span className="shrink-0 text-[9px] text-[#28332d] font-bold w-4 text-right">
+                    {rowIdx === 0 ? "ข้อ" : ""}
+                  </span>
+                  <div className="flex flex-wrap gap-0.5 min-w-0">
+                    {row.map(item => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        aria-label={`ไปข้อ ${item.questionNumber}`}
+                        aria-current={activeQuestionId === item.id ? "true" : undefined}
+                        onClick={() => jumpToQuestion(item)}
+                        className={`shrink-0 min-w-5 rounded px-1 py-0.5 text-[10px] transition ${
+                          activeQuestionId === item.id
+                            ? "bg-[#496053] text-white font-bold"
+                            : "bg-[#eae8e1] text-[#28332d] hover:bg-[#dedad0]"
+                        }`}
+                      >
+                        {item.questionNumber}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </nav>
+          )}
+
           {/* Editable Continuous Document Area */}
           <div
             ref={editorPaneRef}
@@ -828,33 +1145,65 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
             aria-multiline="true"
             contentEditable={itemsList.length > 0}
             suppressContentEditableWarning
-            className="flex-1 min-h-0 p-6 overflow-y-auto space-y-6 font-sans text-xs bg-white text-slate-900 focus:outline-none leading-relaxed"
+            className="flex-1 min-h-0 p-5 overflow-y-auto space-y-5 font-sans text-[12pt] bg-white text-slate-900 focus:outline-none leading-normal"
             style={{ fontSize: "12pt", fontFamily: "'Sarabun', sans-serif" }}
           >
             {ocrProgress ? (
-              <div role="status" aria-live="polite" aria-label="กำลังสแกน OCR" className="flex min-h-[280px] flex-col items-center justify-center gap-4 rounded-xl border border-teal-100 bg-gradient-to-b from-teal-50 to-white p-6 text-center">
-                <div aria-hidden="true" className="relative h-20 w-16 overflow-hidden rounded-lg border-2 border-teal-600 bg-white shadow-sm">
-                  <div className="space-y-2 px-2 py-3">{[1,2,3,4,5].map(line => <div key={line} className="h-1 rounded bg-teal-100" />)}</div>
-                  <div className="ocr-scan-line absolute inset-x-0 top-0 h-1 bg-teal-500 shadow-[0_0_12px_3px_rgba(20,184,166,0.4)]" />
+              <div role="status" aria-live="polite" aria-label="กำลังสแกน OCR" className="flex min-h-[300px] flex-col items-center justify-center gap-4 rounded-xl border border-[#dedad0] bg-white p-6 text-center shadow-xs">
+                <div aria-hidden="true" className="relative h-16 w-14 overflow-hidden rounded-lg border-2 border-[#496053] bg-[#f7f6f2] shadow-sm flex items-center justify-center">
+                  <div className="space-y-1.5 px-2 py-3 w-full">
+                    {[1, 2, 3, 4].map(line => <div key={line} className="h-1 rounded bg-[#dedad0]" />)}
+                  </div>
+                  <div className="ocr-scan-line absolute inset-x-0 top-0 h-1 bg-[#496053] shadow-[0_0_10px_2px_rgba(73,96,83,0.5)]" />
                 </div>
-                <div className="text-sm font-semibold text-teal-900">กำลังสแกนและอ่านข้อความจากต้นฉบับ</div>
-                <div className="text-xs text-slate-600">ดำเนินการแล้ว {ocrProgress.completed}/{ocrProgress.total} หน้า · ระบบแบ่งส่งเป็นล็อตให้อัตโนมัติ</div>
-                <div className="text-xs text-slate-500">ระหว่างรอ ตรวจต้นฉบับและแคปรูปจากฝั่งซ้ายได้</div>
+                
+                <div className="text-sm font-bold text-[#28332d]">กำลังถอดข้อความ OCR จากต้นฉบับ</div>
+                
+                {/* PROMINENT PERCENTAGE & PROGRESS BAR */}
+                <div className="w-full max-w-xs space-y-1.5">
+                  <div className="flex justify-between text-xs font-semibold text-[#496053]">
+                    <span>หน้า {ocrProgress.completed} / {ocrProgress.total}</span>
+                    <span>{Math.round((ocrProgress.completed / Math.max(1, ocrProgress.total)) * 100)}%</span>
+                  </div>
+                  <div className="w-full bg-[#eae8e1] rounded-full h-2 overflow-hidden">
+                    <div 
+                      className="bg-[#496053] h-2 rounded-full transition-all duration-300 ease-out"
+                      style={{ width: `${Math.round((ocrProgress.completed / Math.max(1, ocrProgress.total)) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div className="text-[11px] text-stone-500">
+                  ระบบจัดกลุ่มบรรทัดอัตโนมัติ สามารถตรวจดูเอกสารฝั่งซ้ายระหว่างรอได้
+                </div>
               </div>
             ) : itemsList.length === 0 ? (
-              <div className="space-y-4">
-                <div role="status" className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
-                  <div className="font-semibold">{rawOcrText && !reviewIssues.length ? "อ่านข้อความแล้ว พร้อมจัดรูปแบบ" : rawOcrText ? "ข้อความมีส่วนที่ต้องตรวจแก้ก่อนจัดรูปแบบ" : "ยังไม่มีข้อความ OCR ที่อ่านได้"}</div>
-                  <div className="mt-1 text-xs">ตรวจข้อความฝั่งขวาเทียบต้นฉบับฝั่งซ้าย แล้วกดแปลง ระบบใช้เฉลยจากต้นฉบับถ้ามี</div>
-                </div>
+              <div className="h-full flex flex-col space-y-2">
                 {rawOcrText ? (
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                    <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-slate-700">
-                      <AlertTriangle className="h-4 w-4 text-amber-600" />
-                      ข้อความ OCR ดิบสำหรับตรวจสอบก่อนจัดรูปแบบ
+                  <div className="flex-1 min-h-0 flex flex-col">
+                    <div className="mb-1.5 flex items-center justify-between text-[11px] text-stone-600">
+                      <span className="font-semibold flex items-center gap-1 text-[#28332d]">
+                        <FileText className="w-3.5 h-3.5 text-[#496053]" />
+                        ข้อความ OCR ดิบ ({navigationItems.length} ข้อที่ตรวจพบ)
+                      </span>
+                      {reviewIssues.length > 0 && (
+                        <span className="text-amber-800 font-medium bg-amber-50 border border-amber-200 px-2 py-0.5 rounded text-[10px]">
+                          ตรวจทาน {reviewIssues.length} จุด
+                        </span>
+                      )}
                     </div>
-                    <textarea ref={rawTextRef} aria-label="ข้อความ OCR สำหรับตรวจแก้" value={reviewText} onChange={event => setReviewText(event.target.value)} className="w-full min-h-[420px] resize-y rounded border border-slate-300 p-3 font-mono text-xs leading-relaxed" />
-                    {reviewIssues.length > 0 && <ul aria-label="รายการที่ต้องตรวจแก้" className="mt-3 list-disc pl-5 text-xs text-amber-900">{reviewIssues.map((issue, index) => <li key={index}>{issue}</li>)}</ul>}
+                    <textarea 
+                      ref={rawTextRef} 
+                      aria-label="ข้อความ OCR สำหรับตรวจแก้" 
+                      value={reviewText} 
+                      onChange={event => setReviewText(event.target.value)} 
+                      className="w-full flex-1 min-h-[460px] resize-y rounded-lg border border-[#dedad0] bg-[#fdfdfc] p-3.5 font-mono text-xs leading-relaxed text-[#28332d] focus:outline-none focus:ring-1 focus:ring-[#496053]" 
+                    />
+                    {reviewIssues.length > 0 && (
+                      <ul aria-label="รายการที่ต้องตรวจแก้" className="mt-2 list-disc pl-5 text-xs text-amber-900">
+                        {reviewIssues.map((issue, index) => <li key={index}>{issue}</li>)}
+                      </ul>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -889,9 +1238,56 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
               </div>
             ) : itemsList.map((item) => (
               <div key={item.id} data-item-id={item.id} className="border-b border-slate-100 pb-6 last:border-0 last:pb-0 space-y-3">
+                {/* 0. Shared Context Start (โจทย์ร่วม) */}
+                {item.isSharedContextStart && (
+                  <div
+                    data-shared-context-block="true"
+                    className="mb-5 p-4 rounded-xl border-2 border-[#006D77]/40 bg-[#006D77]/5 space-y-3"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-[#006D77] font-bold text-[12pt] tracking-wide">
+                        {FORMATTER_CONSTANTS.LABEL_SHARED_START}{" "}
+                      </span>
+                      {item.sharedContextRange && (
+                        <span
+                          data-export-ignore="true"
+                          contentEditable={false}
+                          className="text-[10px] px-2 py-0.5 rounded-full bg-[#006D77]/15 text-[#006D77] font-semibold"
+                        >
+                          ข้อ {item.sharedContextRange.start} - {item.sharedContextRange.end}
+                        </span>
+                      )}
+                    </div>
+                    {item.sharedContextText && (
+                      <div className="text-slate-900 font-light leading-relaxed whitespace-pre-line text-[12pt]">
+                        {item.sharedContextImageUrl
+                          ? stripCapturedTableText(item.sharedContextText)
+                          : item.sharedContextText}
+                      </div>
+                    )}
+                    {item.sharedContextImageUrl && (
+                      <div data-shared-image="true" className="mt-3.5 pt-1 space-y-2">
+                        <span className="text-[#F2604D] font-bold text-[12pt] block">
+                          รูปโจทย์ร่วม:
+                        </span>
+                        <div className="relative border border-slate-200 rounded-lg p-2 bg-white inline-block">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={item.sharedContextImageUrl}
+                            alt="รูปโจทย์ร่วม"
+                            loading="lazy"
+                            decoding="async"
+                            className="max-w-full h-auto object-contain mx-auto rounded border border-slate-200"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* 1. Question Number & Text */}
                 <div>
-                  <span className="text-[#F2604D] font-bold text-sm leading-relaxed">
+                  <span className="text-[#F2604D] font-bold text-[12pt] leading-relaxed">
                     {item.questionNumber}.{" "}
                   </span>
                   {item.sourcePage && (
@@ -899,13 +1295,13 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
                       หน้า {item.sourcePage}
                     </button>
                   )}
-                  <span className="text-slate-900 font-light leading-relaxed">{item.questionText.split("\n").map((line, index) => <React.Fragment key={index}>{index > 0 && <br />}{line}</React.Fragment>)}</span>
+                  <span className="text-slate-900 font-light leading-relaxed text-[12pt]">{item.questionText.split("\n").map((line, index) => <React.Fragment key={index}>{index > 0 && <br />}{line}</React.Fragment>)}</span>
                 </div>
 
                 {/* 2. Question Image (if present) */}
                 {item.imageUrl && (
                   <div data-question-image="true" className="pl-4 space-y-2">
-                    <span className="text-[#F2604D] font-bold">
+                    <span className="text-[#F2604D] font-bold text-[12pt]">
                       {FORMATTER_CONSTANTS.LABEL_QUESTION_IMAGE}
                     </span>
                     <div className="relative border border-slate-200 rounded-lg p-2 bg-slate-50 inline-block">
@@ -928,7 +1324,7 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
 
                 {/* 3. Choices Section */}
                 <div className="pl-4 space-y-2">
-                  <div className="text-[#006D77] font-bold text-xs">
+                  <div className="text-[#006D77] font-bold text-[12pt]">
                     {FORMATTER_CONSTANTS.LABEL_CHOICES}
                   </div>
                   <div className="pl-2 space-y-1.5">
@@ -939,7 +1335,8 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
                       return (
                         <div
                           key={choice.key}
-                          className={`p-2 rounded transition flex items-center justify-between ${
+                          data-choice-key={choice.key}
+                          className={`p-2 rounded transition flex flex-col gap-1.5 ${
                             isGreenShaded
                               ? "bg-[#E6F4EA] text-emerald-950 font-normal border-l-3 border-emerald-600"
                               : isYellowShaded
@@ -947,20 +1344,34 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
                               : "text-slate-800 hover:bg-slate-50"
                           }`}
                         >
-                          <div>
-                            <span className="font-bold text-[#006D77]">{choice.key}. </span>
-                            <span className="font-light">{choice.text.split(/([;|]\s*)/).map((part, index) => {
-                              const label = part.match(/^([^:]+:)([\s\S]*)$/);
-                              return label ? <React.Fragment key={index}><u>{label[1]}</u>{label[2]}</React.Fragment> : <React.Fragment key={index}>{part}</React.Fragment>;
-                            })}</span>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <span className="font-bold text-[#006D77] text-[12pt]">{choice.key}. </span>
+                              <span className="font-light text-[12pt]">{choice.text.split(/([;|]\s*)/).map((part, index) => {
+                                const label = part.match(/^([^:]+:)([\s\S]*)$/);
+                                return label ? <React.Fragment key={index}><u>{label[1]}</u>{label[2]}</React.Fragment> : <React.Fragment key={index}>{part}</React.Fragment>;
+                              })}</span>
+                              {choice.isCorrect && (
+                                <span className="text-[#F2604D] font-bold ml-1"> *</span>
+                              )}
+                            </div>
                             {choice.isCorrect && (
-                              <span className="text-[#F2604D] font-bold ml-1"> *</span>
+                              <span data-export-ignore="true" contentEditable={false} className="text-[10px] px-2 py-0.5 rounded font-mono font-medium bg-white/70 shadow-2xs shrink-0 ml-2">
+                                {isGreenShaded ? "เฉลยจากต้นฉบับ" : "เฉลยที่เสนอโดยระบบ"}
+                              </span>
                             )}
                           </div>
-                          {choice.isCorrect && (
-                            <span data-export-ignore="true" contentEditable={false} className="text-[10px] px-2 py-0.5 rounded font-mono font-medium bg-white/70 shadow-2xs">
-                              {isGreenShaded ? "เฉลยจากต้นฉบับ" : "เฉลยที่เสนอโดยระบบ"}
-                            </span>
+                          {choice.imageUrl && (
+                            <div data-choice-image="true" className="pt-1">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={choice.imageUrl}
+                                alt={`รูปตัวเลือก ${choice.key}`}
+                                loading="lazy"
+                                decoding="async"
+                                className="max-w-xs max-h-48 object-contain rounded border border-slate-200 bg-white p-1"
+                              />
+                            </div>
                           )}
                         </div>
                       );
@@ -973,11 +1384,25 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
                   <summary>หลักฐานเฉลย · หน้า {item.sourceAnswerEvidence.page} · กรุณาตรวจเทียบต้นฉบับ</summary>
                   <p>{item.sourceAnswerEvidence.evidence}</p>
                 </details>}
-                <div className="pl-4 pt-1">
-                  <span className="text-[#006D77] font-bold">
-                    {FORMATTER_CONSTANTS.LABEL_EXPLANATION}{" "}
-                  </span>
-                  <span className="text-slate-700 font-light leading-relaxed">{item.explanationText}</span>
+                <div data-explanation-block="true" className="pl-4 pt-1 space-y-2">
+                  <div>
+                    <span className="text-[#006D77] font-bold text-[12pt]">
+                      {FORMATTER_CONSTANTS.LABEL_EXPLANATION}{" "}
+                    </span>
+                    <span className="text-slate-700 font-light leading-relaxed text-[12pt]">{item.explanationText}</span>
+                  </div>
+                  {item.explanationImageUrl && (
+                    <div data-explanation-image="true" className="pt-1">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={item.explanationImageUrl}
+                        alt="รูปคำอธิบาย"
+                        loading="lazy"
+                        decoding="async"
+                        className="max-w-md max-h-60 object-contain rounded border border-slate-200 bg-white p-1"
+                      />
+                    </div>
+                  )}
                   {item.reconciliationProvenance === "reconciled_from_explanation" && (
                     <div data-export-ignore="true" contentEditable={false} className="mt-1 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded p-1.5 flex items-center gap-1.5">
                       <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-amber-600" />
@@ -987,6 +1412,27 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
                     </div>
                   )}
                 </div>
+
+                {/* 5. Shared Context End (จบโจทย์ร่วม) */}
+                {item.isSharedContextEnd && (
+                  <div
+                    data-shared-context-end="true"
+                    className="mt-4 pt-3 border-t-2 border-dashed border-[#006D77]/30 flex items-center justify-between"
+                  >
+                    <span className="text-[#006D77] font-bold text-sm tracking-wide">
+                      {FORMATTER_CONSTANTS.LABEL_SHARED_END}
+                    </span>
+                    {item.sharedContextRange && (
+                      <span
+                        data-export-ignore="true"
+                        contentEditable={false}
+                        className="text-[11px] text-slate-400 font-medium"
+                      >
+                        (สิ้นสุดโจทย์ร่วม ข้อ {item.sharedContextRange.start} - {item.sharedContextRange.end})
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>

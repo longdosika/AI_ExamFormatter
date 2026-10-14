@@ -11,10 +11,14 @@
             "id": "ff910ebf048ccc50",
             "type": "leaf",
             "state": {
-              "type": "empty",
-              "state": {},
+              "type": "markdown",
+              "state": {
+                "file": "documents/prd.md",
+                "mode": "source",
+                "source": false
+              },
               "icon": "lucide-file",
-              "title": "New tab"
+              "title": "prd"
             }
           }
         ]
@@ -79,8 +83,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300,
-    "collapsed": true
+    "width": 300
   },
   "right": {
     "id": "329e7737d7075334",
@@ -184,17 +187,21 @@
   },
   "active": "ff910ebf048ccc50",
   "lastOpenFiles": [
-    "node_modules/js-yaml",
-    "node_modules/json-stable-stringify-without-jsonify",
-    "node_modules/json-schema-traverse",
-    "node_modules/json-bigint",
-    "node_modules/jiti",
-    "node_modules/json-buffer",
-    "node_modules/jackspeak",
-    "node_modules/js-tokens",
-    "node_modules/is-weakset",
-    "node_modules/is-weakref",
-    "node_modules/iterator.prototype",
+    "scripts/test-provider-keys.cjs",
+    "lib/api-key-manager.ts",
+    "evidence/t076-q17-table-verified.png",
+    "evidence/t076-q16-q17-verified.png",
+    "scratch/verify-q16-q17.cjs",
+    "scratch/test-e2e-harvest-verify.cjs",
+    "scratch/test-full-harvest.cjs",
+    "scratch/test-gemini-page3.cjs",
+    "evidence/t076-debug-harvest.png",
+    "evidence/t076-pipeline-step.png",
+    "scripts/test-diagram-contract.cjs",
+    "lib/diagram-client.ts",
+    "app/api/diagrams/route.ts",
+    "app/api/diagrams",
+    "lib/diagram-service.ts",
     "node_modules/next/README.md",
     "node_modules/next/dist/compiled/@babel/runtime/README.md",
     "node_modules/next/license.md",
@@ -225,10 +232,6 @@
     "node_modules/playwright-core/lib/vite/traceViewer/playwright-logo.svg",
     "node_modules/playwright-core/lib/vite/recorder/playwright-logo.svg",
     "node_modules/playwright-core/lib/vite/dashboard/assets/firefox-nightly-Cp5nfeDT.svg",
-    "node_modules/playwright-core/lib/vite/dashboard/assets/firefox-beta-k3eOH_eK.svg",
-    "node_modules/playwright-core/lib/vite/dashboard/assets/firefox-1bWoP6pv.svg",
-    "node_modules/playwright-core/lib/tools/dashboard/appIcon.png",
-    "node_modules/pdfjs-dist/web/images/loading-icon.gif",
-    "node_modules/pdfjs-dist/web/images/annotation-pushpin.svg"
+    "node_modules/playwright-core/lib/vite/dashboard/assets/firefox-beta-k3eOH_eK.svg"
   ]
 }

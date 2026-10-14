@@ -4,6 +4,7 @@
  */
 
 import { normalizeThaiOcrText } from "./text-normalization";
+import { getProviderApiKeys } from "./api-key-manager";
 
 export interface OcrResult {
   success: boolean;
@@ -65,7 +66,7 @@ export function getOcrProviderConfig(): OcrProviderConfig {
   return {
     baseUrl,
     models: configuredModel ? [configuredModel] : TYPHOON_MODELS,
-    apiKey: process.env.TYPHOON_OCR_API_KEY?.trim() || undefined,
+    apiKey: getProviderApiKeys("typhoon")[0] || undefined,
     maxConcurrency: Number.isFinite(concurrency) ? Math.max(1, Math.min(2, Math.floor(concurrency))) : defaultConcurrency,
   };
 }
@@ -105,7 +106,171 @@ async function acquireProvider(config: OcrProviderConfig): Promise<(() => void) 
   };
 }
 
+/**
+ * Google Cloud Vision API Integration (Document Text Detection)
+ * Official high-accuracy Thai OCR matching QuizFlow engine.
+ */
+interface VisionSymbol { 
+  text?: string;
+  property?: {
+    detectedBreak?: {
+      type?: string;
+    };
+  };
+}
+interface VisionWord { 
+  symbols?: VisionSymbol[]; 
+  boundingBox?: { vertices?: { x?: number; y?: number }[] } 
+}
+interface VisionParagraph { words?: VisionWord[] }
+interface VisionBlock { paragraphs?: VisionParagraph[] }
+interface VisionPage { blocks?: VisionBlock[] }
+
+function reconstructSpatialText(visionPage?: VisionPage): string | null {
+  if (!visionPage || !visionPage.blocks) return null;
+  const words: { 
+    text: string; 
+    minX: number; 
+    maxX: number;
+    minY: number; 
+    maxY: number; 
+    midY: number; 
+    height: number;
+    hasBreak: boolean;
+  }[] = [];
+
+  for (const block of visionPage.blocks) {
+    if (!block.paragraphs) continue;
+    for (const para of block.paragraphs) {
+      if (!para.words) continue;
+      for (const word of para.words) {
+        if (!word.symbols || !word.boundingBox?.vertices) continue;
+        const text = word.symbols.map(s => s.text || "").join("");
+        const minX = Math.min(...word.boundingBox.vertices.map(v => v.x ?? 0));
+        const maxX = Math.max(...word.boundingBox.vertices.map(v => v.x ?? 0));
+        const minY = Math.min(...word.boundingBox.vertices.map(v => v.y ?? 0));
+        const maxY = Math.max(...word.boundingBox.vertices.map(v => v.y ?? 0));
+        const midY = (minY + maxY) / 2;
+        const height = Math.max(1, maxY - minY);
+        const lastSymbol = word.symbols[word.symbols.length - 1];
+        const breakType = lastSymbol?.property?.detectedBreak?.type;
+        const hasBreak = Boolean(breakType && ["SPACE", "SURE_SPACE", "EOL_SURE_SPACE", "LINE_BREAK"].includes(breakType));
+        words.push({ text, minX, maxX, minY, maxY, midY, height, hasBreak });
+      }
+    }
+  }
+  if (!words.length) return null;
+
+  words.sort((a, b) => a.minY - b.minY);
+
+  const lines: typeof words[] = [];
+  for (const word of words) {
+    let placed = false;
+    for (const line of lines) {
+      const avgY = line.reduce((sum, w) => sum + w.midY, 0) / line.length;
+      const avgH = line.reduce((sum, w) => sum + w.height, 0) / line.length;
+      if (Math.abs(word.midY - avgY) < Math.max(avgH, word.height) * 0.6) {
+        line.push(word);
+        placed = true;
+        break;
+      }
+    }
+    if (!placed) {
+      lines.push([word]);
+    }
+  }
+
+  lines.sort((a, b) => {
+    const minYa = Math.min(...a.map(w => w.minY));
+    const minYb = Math.min(...b.map(w => w.minY));
+    return minYa - minYb;
+  });
+
+  return lines.map(line => {
+    line.sort((a, b) => a.minX - b.minX);
+    let lineText = "";
+    for (let i = 0; i < line.length; i++) {
+      const curr = line[i];
+      if (i === 0) {
+        lineText += curr.text;
+      } else {
+        const prev = line[i - 1];
+        const gap = curr.minX - prev.maxX;
+        const avgH = (curr.height + prev.height) / 2;
+        const isPunctuation = /^[.):,;]$/.test(curr.text);
+        const shouldSpace = !isPunctuation && (prev.hasBreak || gap >= Math.max(6, avgH * 0.28));
+        if (shouldSpace) {
+          lineText += " " + curr.text;
+        } else {
+          lineText += curr.text;
+        }
+      }
+    }
+    return lineText;
+  }).join("\n");
+}
+
+export async function requestGoogleVisionOcr(imageDataUrl: string, apiKey: string): Promise<OcrResult> {
+  const base64Data = imageDataUrl.replace(/^data:image\/[a-zA-Z0-9.-]+;base64,/, "");
+  try {
+    const response = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        requests: [
+          {
+            image: { content: base64Data },
+            features: [{ type: "DOCUMENT_TEXT_DETECTION" }],
+          },
+        ],
+      }),
+      signal: AbortSignal.timeout(45_000),
+    });
+    if (!response.ok) {
+      const errText = await response.text();
+      return { success: false, text: "", error: `Google Vision HTTP ${response.status}: ${errText}` };
+    }
+    const data = await response.json();
+    const page = data.responses?.[0]?.fullTextAnnotation?.pages?.[0];
+    const spatial = reconstructSpatialText(page);
+    const rawText = spatial || data.responses?.[0]?.fullTextAnnotation?.text;
+    if (!rawText || !rawText.trim()) {
+      return { success: false, text: "", error: "ไม่พบข้อความที่อ่านได้จากภาพ (Google Vision)" };
+    }
+    return {
+      success: true,
+      text: normalizeOcrText(rawText),
+      modelUsed: "google-cloud-vision",
+    };
+  } catch (err) {
+    return {
+      success: false,
+      text: "",
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
 export async function processImageOcr(imageDataUrl: string): Promise<OcrResult> {
+  // 1. Google Cloud Vision API Multi-Key Pool (First priority when keys are configured)
+  const googleKeys = getProviderApiKeys("google-vision");
+  for (let i = 0; i < googleKeys.length; i++) {
+    const googleKey = googleKeys[i];
+    try {
+      const gv = await requestGoogleVisionOcr(imageDataUrl, googleKey);
+      if (gv.success) {
+        return gv;
+      }
+      // If error is quota or rate-limit and more keys exist, rotate to next backup key
+      if (gv.error && /429|403|quota|limit|blocked|exhausted/i.test(gv.error) && i < googleKeys.length - 1) {
+        console.warn(`[OCR] Google Vision key #${i + 1} quota/blocked. Rotating to backup key #${i + 2}...`);
+        continue;
+      }
+    } catch {
+      if (i < googleKeys.length - 1) continue;
+    }
+  }
+
   const config = getOcrProviderConfig();
   const isLocal = isLocalProvider(config.baseUrl);
   if (!config.apiKey && !isLocal) {

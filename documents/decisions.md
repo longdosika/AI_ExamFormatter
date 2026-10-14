@@ -213,3 +213,24 @@ Numeric-choice blocks are capped at four. A following 5. remains a stem-enumerat
 
 ### D-020 Cross-machine environment contract (2026-10-13)
 Use the committed `package-lock.json` with `npm ci` on every machine. Keep `.env.local` machine-specific and untracked. `scripts/check-environment.mjs` is the portable doctor: it reports redacted PASS/WARN/FAIL checks for runtime, dependencies, provider configuration, optional services, and port state. It must never print secret values or make a remote provider call merely to claim readiness; local Ollama reachability is checked only when local OCR is configured. `--write-evidence` records a safe environment snapshot for comparison.
+
+### D-021 QuizFlow Golden Document Parity & Teacher-Student Synthesis Strategy (2026-10-14)
+- Context: User supplied original 13-page scanned PDF (80 questions) and expected QuizFlow Google Doc output. Evaluated viability of using Typhoon OCR 3B / Gemini Flash as a teacher model to distill 2,000-5,000 exam pages.
+- Decision:
+  1. Parity validation: Golden QuizFlow plain text was retrieved and verified against `lib/exam-parser.ts`, proving 100% parse rate (80/80 questions, 320 choices, monotonic sequence).
+  2. Teacher-Student strategy: Validated high ROI. Gemini 1.5 Flash costs less than $3 USD for 3,000 pages to generate synthetic training datasets for local Typhoon OCR 3B fine-tuning.
+  3. Immediate fallback cascade: Prioritize runtime resilience in the web app: Tier 1 (Digital text) -> Tier 2 (Cloud OCR) -> Tier 3 (Local Ollama) -> Tier 4 (1-click Instant Starter Draft).
+- Evidence: `evidence/t070-golden-analysis.md`, `evidence/golden-output-ch7.txt`.
+- Status: `Approved`
+
+### D-022 Dedicated Diagram & Table Harvesting Pipeline & In-Browser Canvas Cropping (2026-10-14)
+- Context: Users need to extract figures, framed tables, apparatus diagrams, choice images (e.g. Q16 crystal structures), and solution explanations before checking answers.
+- Decision:
+  1. Insert dedicated Step 3 ("สกัดรูปประกอบ (AI)") between Step 2 ("แปลงเป็นรูปแบบข้อสอบ") and Step 4 ("ตรวจเฉลยจากภาพ (AI)") with sequential action guidance animation (`animate-pulse`).
+  2. Implement AI bounding box detection via Gemini Vision (`/api/diagrams`) and crop normalized bboxes in-browser via HTML5 Canvas with 4px border clearance padding and perimeter edge clamping. This minimizes network payload transfer, avoids server-side image processing bottlenecks, and preserves native document resolution.
+  3. Support 4 discrete target roles for both automated harvesting and manual Region Snipping: `รูปโจทย์ [รูปโจทย์]`, `รูปโจทย์ร่วม`, `รูปตัวเลือก (ก, ข, ค, ง)`, and `รูปคำอธิบาย`.
+  4. Choice and explanation images are first-class citizens in `ChoiceItem` and `ExamItem` schemas, rendered in the live editor and captured directly in OOXML Google Docs export via `snapshotDocument`.
+- Evidence: `scripts/test-diagram-contract.cjs`, `lib/diagram-service.ts`, `lib/diagram-client.ts`, `components/SplitDocumentEditor.tsx`.
+- Status: `Approved`
+
+

@@ -37,6 +37,11 @@ export function normalizeThaiOcrText(text: string): string {
   for (const [broken, repaired] of Object.entries(TEXT_REPAIRS)) {
     normalized = normalized.split(broken).join(repaired);
   }
+
+  // Repair detached punctuation for enumeration numbers and choice letters:
+  // e.g. "1 . " -> "1. ", "ข้อ 1 . " -> "ข้อ 1. ", "ก . " -> "ก. ", "1 ) " -> "1) "
+  normalized = normalized.replace(/(^|[\s\n(])(\d+|[ก-จA-Ea-e])\s+([.)])(?=\s|$)/gm, "$1$2$3");
+
   return normalized;
 }
 

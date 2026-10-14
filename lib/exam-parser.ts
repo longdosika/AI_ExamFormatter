@@ -46,9 +46,9 @@ export function splitInlineChoices(rawText: string): string[] {
   const rawLines = cleaned.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
   const resultLines: string[] = [];
 
-  const choiceBoundary = /(?<=\S)\s+(?=(?:[-*+]\s+)?(?:\*{0,2}[ข-จB-Eb-e][.)]\*{0,2}|\([ข-จB-Eb-e]\))\s*)/gi;
-  const inlineFirstChoice = /(?<=\S)\s+(?=(?:[-*+]\s+)?(?:\*{0,2}[กAa][.)]\*{0,2}|\(([กAa])\))\s*)/gi;
-  const subsequentChoiceTest = /(?<=\S)\s+(?:[-*+]\s+)?(?:\*{0,2}[ข-จB-Eb-e][.)]\*{0,2}|\([ข-จB-Eb-e]\))\s*/i;
+  const choiceBoundary = /(?<=\S)\s+(?=(?:[-*+]\s+)?(?:\*{0,2}[ข-จB-Eb-e]\s*[.)]\*{0,2}|\([ข-จB-Eb-e]\))\s*)/gi;
+  const inlineFirstChoice = /(?<=\S)\s+(?=(?:[-*+]\s+)?(?:\*{0,2}[กAa]\s*[.)]\*{0,2}|\(([กAa])\))\s*)/gi;
+  const subsequentChoiceTest = /(?<=\S)\s+(?:[-*+]\s+)?(?:\*{0,2}[ข-จB-Eb-e]\s*[.)]\*{0,2}|\([ข-จB-Eb-e]\))\s*/i;
 
   for (const line of rawLines) {
     let current = line;
@@ -67,18 +67,23 @@ export function splitInlineChoices(rawText: string): string[] {
     // Split on subsequent choice boundaries (ข-จ, B-E)
     current = current.replace(choiceBoundary, "\n");
 
+    // Split inline subsequent numeric choices when line starts with 1 or 3 and has 2 or 4
+    if (/^\s*(?:[-*+]\s+)?(?:[13])\s*[.)]\s+/.test(current)) {
+      current = current.replace(/(?<=\S)\s+(?=(?:[-*+]\s+)?(?:[24])\s*[.)]\s+)/g, "\n");
+    }
+
     const split = current.split(/\r?\n/).map(s => {
       let l = s.trim();
       // Clean leading bullets if newly exposed after split
       l = l.replace(/^[-*+]\s+/, "");
       // Clean bold questions
-      l = l.replace(/^\*\*(\d+)[.)]\*\*/, "$1.");
-      l = l.replace(/^\*\*(\d+)\*\*[.)]/, "$1.");
-      l = l.replace(/^\*\*ข้อ\s*(?:ที่)?\s*(\d+)[.)]?\*\*/, "ข้อ $1.");
+      l = l.replace(/^\*\*(\d+)\s*[.)]\*\*/, "$1.");
+      l = l.replace(/^\*\*(\d+)\*\*\s*[.)]/, "$1.");
+      l = l.replace(/^\*\*ข้อ\s*(?:ที่)?\s*(\d+)\s*[.)]?\*\*/, "ข้อ $1.");
       // Clean bold choices
-      l = l.replace(/^\*\*([ก-จA-E1-5])[.)]\*\*/i, "$1.");
-      l = l.replace(/^\*\*([ก-จA-E1-5])\*\*[.)]/i, "$1.");
-      l = l.replace(/^\*\*([ก-จA-E1-5])[.)]\s*(.*?)\*\*/i, "$1. $2");
+      l = l.replace(/^\*\*([ก-จA-E1-5])\s*[.)]\*\*/i, "$1.");
+      l = l.replace(/^\*\*([ก-จA-E1-5])\*\*\s*[.)]/i, "$1.");
+      l = l.replace(/^\*\*([ก-จA-E1-5])\s*[.)]\s*(.*?)\*\*/i, "$1. $2");
       return l;
     }).filter(Boolean);
 
@@ -87,6 +92,71 @@ export function splitInlineChoices(rawText: string): string[] {
 
   return resultLines;
 }
+
+/**
+ * Detect shared context headers (โจทย์ร่วม)
+ * Examples:
+ * - "โจทย์ร่วม ใช้ข้อมูลในตารางต่อไปนี้ตอบคำถามข้อ 17 - 18"
+ * - "ใช้ข้อมูลในตารางต่อไปนี้ตอบคำถามข้อ 17-18"
+ * - "ใช้รูปต่อไปนี้ตอบคำถามข้อ 28 - 29"
+ * - "ข้อ 17 - 18 ใช้ข้อมูลในตารางต่อไปนี้ตอบคำถาม"
+ */
+export function parseSharedContextHeader(line: string): { start: number; end: number; description: string } | null {
+  const trimmed = line.trim();
+  if (!trimmed) return null;
+  const m1 = trimmed.match(/^(?:โจทย์ร่วม\s*)?(?:(?:ใช้)?(?:ข้อมูล|รูป|ภาพ|ตาราง|ข้อความ|เนื้อหา)?(?:จาก|ใน)?(?:การทดลอง|ตาราง|รูป|ภาพ|ข้อความ)?ต่อไปนี้)?\s*(?:เพื่อใช้|สำหรับ|ใช้)?(?:ตอบ)?(?:คำถาม)?ข้อ\s*(\d+)\s*(?:[-–ถึง]|\s*-\s*)\s*(\d+)(.*)$/i);
+  if (m1) {
+    const start = parseInt(m1[1], 10);
+    const end = parseInt(m1[2], 10);
+    if (!isNaN(start) && !isNaN(end) && start < end && (end - start) < 30) {
+      const desc = trimmed.replace(/^โจทย์ร่วม\s*/i, "").trim();
+      return { start, end, description: desc };
+    }
+  }
+  const m2 = trimmed.match(/^(?:โจทย์ร่วม\s*)?(?:สำหรับ)?(?:คำถาม)?ข้อ\s*(\d+)\s*(?:[-–ถึง]|\s*-\s*)\s*(\d+)\s*(.*)$/i);
+  if (m2) {
+    const start = parseInt(m2[1], 10);
+    const end = parseInt(m2[2], 10);
+    const rest = m2[3].trim();
+    if (!isNaN(start) && !isNaN(end) && start < end && (end - start) < 30 && /(?:ใช้|ข้อมูล|รูป|ภาพ|ตาราง|อ่าน|จงตอบ)/i.test(rest)) {
+      const desc = trimmed.replace(/^โจทย์ร่วม\s*/i, "").trim();
+      return { start, end, description: desc };
+    }
+  }
+  return null;
+}
+
+/**
+ * When a table or diagram is captured as an image, strip duplicated table text
+ * while preserving introductory directive headers and descriptive narrative passages.
+ */
+export function stripCapturedTableText(text: string): string {
+  if (!text) return "";
+  const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
+  const kept = lines.filter((line, idx) => {
+    if (idx === 0) return true;
+    if (parseSharedContextHeader(line)) return true;
+    const t = line.trim();
+    // Narrative passages that describe experiments or instructions are preserved
+    if (/^(?:ทำการทดลอง|เมื่อนำ|นำสาร|พิจารณาข้อความ|จากการทดลอง|ให้นักเรียน|กำหนดให้)/i.test(t)) return true;
+    // Table titles
+    if (/^ตาราง(?:\s|ที่|แสดง|สรุป|ข้อมูล)/i.test(t)) return false;
+    // Table column headers or cells (e.g. "สาร", "ผลการทดลอง", "ปริมาณสาร", etc.)
+    if (/^(?:สาร(?:\s|$)|ผลการทดลอง|ปริมาณ\s*สาร|สาร\s*สูตร|สารละลาย\s*สูตร|ลำดับที่|ตัวอย่าง|หลอดที่\s*\d+|ชุดการทดลอง)/i.test(t)) return false;
+
+    if (/(?:NaCl|CuSO4|\b(?:g|กรัม)\s*ในน้ำ|\bg\/100\s*g\b)/i.test(t)) return false;
+    // Table rows starting with chemical/sample identifiers (e.g. "A ได้...", "B ได้...", "C ได้...", "1 ได้...")
+    if (/^[A-Za-zก-ฮ0-9]\s*(?:[:：|]|\s)\s*(?:ได้|เป็น|มี|สาร|ของเหลว|ตกผลึก|สี|ใส|\d)/i.test(t)) return false;
+    if (/^[A-Za-z]\s*$/i.test(t)) return false;
+    // Multiple temperature markers or multiple numbers in one line
+    if (/^(?:\d+(?:\.\d+)?(?:\s*°C)?\s*){2,}$/.test(t)) return false;
+    if (/(?:\d+\s*°C.*){2,}/.test(t)) return false;
+    if (/^[|\t]/.test(t) || (t.match(/\|/g) || []).length >= 2) return false;
+    return true;
+  });
+  return kept.join("\n").trim();
+}
+
 
 /** Parse numbered questions without substituting generated content. */
 export function parseExamText(rawText: string, embeddedImages: { id: string; dataUrl: string }[] = [], _fileName = ""): ExamItem[] {
@@ -101,8 +171,8 @@ export function parseExamText(rawText: string, embeddedImages: { id: string; dat
   let numericChoices = false;
   let currentPage: number | undefined;
   let questionSourcePage: number | undefined;
-  const numbered = /^(?:(?:ข้อ\s*(?:ที่)?\s*)?(\d+)[.)]\s*|\((\d+)\)\s*)(.*)$/;
-  const choicePattern = /^(?:([ก-จA-E1-5])[.)]\s*|\(([ก-จA-E1-5])\)\s*)(.*)$/i;
+  const numbered = /^(?:(?:ข้อ\s*(?:ที่)?\s*)?(\d+)\s*[.)]\s*|\((\d+)\)\s*)(.*)$/;
+  const choicePattern = /^(?:([ก-จA-E1-5])\s*[.)]\s*|\(([ก-จA-E1-5])\)\s*)(.*)$/i;
   const sectionPattern = /^(?:ชุด|ตอน|แบบทดสอบ|ข้อสอบ)\s*(?:ที่)?\s*\d+/i;
 
   // OCR frequently uses the same numeric form for both question numbers and
@@ -121,14 +191,14 @@ export function parseExamText(rawText: string, embeddedImages: { id: string; dat
     if (keys.length !== 4 || !keys.every((key, index) => key === index + 1)) return false;
     const following = lines.slice(lineIndex + 4).find(candidate => !/^--- หน้าที่ \d+ ---$/.test(candidate));
     if (!following) return true;
-    if (/^(?:[ก-จA-E])[.)]\s*/i.test(following)) return false;
+    if (/^(?:[ก-จA-E])\s*[.)]\s*/i.test(following)) return false;
     const nextQuestion = following.match(numbered);
     if (nextQuestion && Number(nextQuestion[1] || nextQuestion[2]) === 5) {
       // `5.` is often a fifth stem item, but it is also a valid next question
       // after question 4. Treat it as a real boundary when a letter-choice
       // block follows immediately; otherwise preserve the stem enumeration.
       const nextQuestionIndex = lines.indexOf(following, lineIndex + 4);
-      const hasImmediateLetterChoices = /^(?:[ก-จA-E])[.)]\s*/i.test(lines[nextQuestionIndex + 1] || "");
+      const hasImmediateLetterChoices = /^(?:[ก-จA-E])\s*[.)]\s*/i.test(lines[nextQuestionIndex + 1] || "");
       const numericChoiceKeys = lines.slice(nextQuestionIndex + 1, nextQuestionIndex + 5)
         .map(candidate => candidate.match(numbered)?.[1] || candidate.match(numbered)?.[2] || "");
       const hasImmediateNumericChoices = numericChoiceKeys.length === 4 && numericChoiceKeys.every((key, index) => Number(key) === index + 1);
@@ -160,8 +230,33 @@ export function parseExamText(rawText: string, embeddedImages: { id: string; dat
     return false;
   };
 
+  let inStemEnumeration = false;
+  let pendingSharedContext: {
+    start: number;
+    end: number;
+    lines: string[];
+    imageUrl?: string;
+  } | null = null;
+  let activeSharedRange: {
+    start: number;
+    end: number;
+    lines: string[];
+    imageUrl?: string;
+  } | null = null;
+
   const finish = () => {
     if (number && question) {
+      const isStart = Boolean(activeSharedRange && number === activeSharedRange.start);
+      const isEnd = Boolean(activeSharedRange && number === activeSharedRange.end);
+      const sharedContextRange = activeSharedRange ? { start: activeSharedRange.start, end: activeSharedRange.end } : undefined;
+      let sharedContextText = isStart && activeSharedRange ? activeSharedRange.lines.filter(l => !/^รูปโจทย์ร่วม\s*:?$/i.test(l.trim()) && !/!\[[^\]]*\]\(data:image\//.test(l)).join("\n").trim() : undefined;
+      const sharedContextImageUrl = isStart && activeSharedRange ? activeSharedRange.imageUrl : undefined;
+      if (sharedContextImageUrl && sharedContextText) {
+        sharedContextText = stripCapturedTableText(sharedContextText);
+      }
+      if (isEnd) {
+        activeSharedRange = null;
+      }
       const answer = reconcileAnswerKey(asteriskKeys.length === 1 ? asteriskKeys[0] : null, explanation);
       // An answer pointing outside the actual choices is unresolved.
       const resolved = choices.some(choice => choice.key === answer.finalKey);
@@ -172,8 +267,11 @@ export function parseExamText(rawText: string, embeddedImages: { id: string; dat
       const pageImage = hasFigureMarker && questionSourcePage
         ? embeddedImages.find(image => image.id === `page-${questionSourcePage}`)?.dataUrl
         : undefined;
-      const imageUrl = inlineMedia?.[1] || embeddedImages.find(image => image.id === `question-${number}`)?.dataUrl || pageImage ||
-        (embeddedImages.some(image => /^question-\d+$/.test(image.id)) ? undefined : embeddedImages[items.length]?.dataUrl);
+      const isPageScanList = embeddedImages.length > 0 && embeddedImages.every(image => /^page-\d+$/.test(image.id));
+      const fallbackIndexedImage = isPageScanList || embeddedImages.some(image => /^question-\d+$/.test(image.id))
+        ? undefined
+        : embeddedImages[items.length]?.dataUrl;
+      const imageUrl = inlineMedia?.[1] || embeddedImages.find(image => image.id === `question-${number}`)?.dataUrl || pageImage || fallbackIndexedImage;
       const visibleQuestion = question
         .replace(/!\[[^\]]*\]\(data:image\/(?:png|jpeg);base64,[A-Za-z0-9+/=]+\)/g, "")
         .replace(/\[รูป(?:ต้องตรวจสอบ|โจทย์)\]/g, "")
@@ -194,6 +292,11 @@ export function parseExamText(rawText: string, embeddedImages: { id: string; dat
         imageUrl,
         imageLabel: imageUrl ? FORMATTER_CONSTANTS.LABEL_QUESTION_IMAGE : undefined,
         imageStatus: imageUrl ? "DIRTY" : undefined,
+        sharedContextText,
+        sharedContextRange,
+        sharedContextImageUrl,
+        isSharedContextStart: isStart,
+        isSharedContextEnd: isEnd,
       });
     }
     number = 0;
@@ -206,19 +309,55 @@ export function parseExamText(rawText: string, embeddedImages: { id: string; dat
     inStemEnumeration = false;
   };
 
-  let inStemEnumeration = false;
-
   for (let index = 0; index < lines.length; index++) {
     const line = lines[index];
     const pageMarker = line.match(/^--- หน้าที่ (\d+) ---$/);
     if (pageMarker) { currentPage = Number(pageMarker[1]); continue; }
     if (sectionPattern.test(line)) { finish(); continue; }
+
+    // Check shared context delimiter "จบโจทย์ร่วม"
+    if (/^จบโจทย์ร่วม$/i.test(line.trim())) {
+      if (number) finish();
+      else if (items.length > 0) items[items.length - 1].isSharedContextEnd = true;
+      activeSharedRange = null;
+      pendingSharedContext = null;
+      continue;
+    }
+
+    // Check shared context start header
+    const sharedHeader = parseSharedContextHeader(line);
+    if (sharedHeader) {
+      if (number) finish();
+      pendingSharedContext = {
+        start: sharedHeader.start,
+        end: sharedHeader.end,
+        lines: [sharedHeader.description],
+        imageUrl: undefined,
+      };
+      activeSharedRange = pendingSharedContext;
+      continue;
+    }
+
     const cMatch = line.match(choicePattern);
     const qMatch = line.match(numbered);
     const cKey = cMatch ? (cMatch[1] || cMatch[2]) : null;
     const cText = cMatch ? cMatch[3] : "";
     const qNum = qMatch ? Number(qMatch[1] || qMatch[2]) : null;
     const qText = qMatch ? qMatch[3] : "";
+
+    // If we have a pending shared context and no active question yet, buffer description lines or images
+    if (pendingSharedContext && !number) {
+      if (!qMatch || qNum !== pendingSharedContext.start) {
+        const img = line.match(/!\[[^\]]*\]\((data:image\/[^)]+)\)/);
+        if (img) pendingSharedContext.imageUrl = img[1];
+        if (/^รูปโจทย์ร่วม\s*:?$/i.test(line.trim()) || img) continue;
+        if (!line.trim()) continue;
+        pendingSharedContext.lines.push(line);
+        continue;
+      }
+      // Reached the starting question of the shared context
+      pendingSharedContext = null;
+    }
 
     if (number && qMatch && qNum === 1 && !choices.length && isNumericChoiceBlockStart(index, number)) {
       numericChoices = true;
