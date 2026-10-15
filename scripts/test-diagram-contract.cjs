@@ -85,68 +85,94 @@ assert.equal(edgeCoords.x, 0); // clamped at 0
 assert.equal(edgeCoords.y, 0); // clamped at 0
 
 function cropPolicy(type) {
-  const cropPadding = type === "shared_context" ? 14 : type === "question" ? 56 : type === "explanation" ? 18 : 10;
-  const shouldTrimEdges = type === "shared_context" ? "all" : type === "question" ? "bottom" : "none";
+  const cropPadding = type === "shared_context" ? 16 : type === "question" ? 32 : type === "choice" ? 20 : 16;
+  const shouldTrimEdges = (type === "shared_context" || type === "question") ? "all" : "none";
   return { cropPadding, shouldTrimEdges };
 }
 
-assert.deepEqual(cropPolicy("shared_context"), { cropPadding: 14, shouldTrimEdges: "all" });
-assert.deepEqual(cropPolicy("question"), { cropPadding: 56, shouldTrimEdges: "bottom" });
-assert.deepEqual(cropPolicy("explanation"), { cropPadding: 18, shouldTrimEdges: "none" });
-assert.deepEqual(cropPolicy("choice"), { cropPadding: 10, shouldTrimEdges: "none" });
+assert.deepEqual(cropPolicy("shared_context"), { cropPadding: 16, shouldTrimEdges: "all" });
+assert.deepEqual(cropPolicy("question"), { cropPadding: 32, shouldTrimEdges: "all" });
+assert.deepEqual(cropPolicy("explanation"), { cropPadding: 16, shouldTrimEdges: "none" });
+assert.deepEqual(cropPolicy("choice"), { cropPadding: 20, shouldTrimEdges: "none" });
 
-// 3. T-082 Smart Gutter Trimming & Margin Tolerance Contract
+// 3. T-089 Robust Gutter Trimming & Margin Tolerance Contract
 function simulateGutterDetection(rowDarkness, contentThreshold = 3, targetMargin = 3, options = { top: true, bottom: true }) {
   const h = rowDarkness.length;
   let topCut = 0;
 
   if (options.top !== false) {
-    const maxSearchTop = Math.min(Math.round(h * 0.35), 65);
-    let sawDarkNearTop = false;
+    const maxSearchTop = Math.min(Math.round(h * 0.35), 140);
+    let textStart = -1;
+    let textEnd = -1;
     let gutterStart = -1;
     let gutterEnd = -1;
 
     for (let y = 0; y < maxSearchTop; y++) {
       const isDark = rowDarkness[y] >= contentThreshold;
       if (isDark) {
-        if (y < 16) sawDarkNearTop = true;
+        if (textStart === -1) textStart = y;
         if (gutterStart !== -1) {
           gutterEnd = y;
           break;
         }
       } else {
-        if (sawDarkNearTop && gutterStart === -1) gutterStart = y;
+        if (textStart !== -1 && gutterStart === -1) {
+          textEnd = y;
+          gutterStart = y;
+        }
       }
     }
 
-    if (sawDarkNearTop && gutterStart !== -1 && gutterEnd !== -1 && (gutterEnd - gutterStart) >= 2) {
+    const textHeight = (textStart !== -1 && textEnd !== -1) ? (textEnd - textStart) : 0;
+    const gutterHeight = (gutterStart !== -1 && gutterEnd !== -1) ? (gutterEnd - gutterStart) : 0;
+
+    if (textStart !== -1 && gutterEnd !== -1 && gutterHeight >= 2 && textHeight <= 36) {
       topCut = Math.max(0, gutterEnd - targetMargin);
+    } else if (textStart === -1) {
+      let firstY = 0;
+      while (firstY < maxSearchTop && rowDarkness[firstY] < contentThreshold) firstY++;
+      if (firstY > targetMargin) topCut = firstY - targetMargin;
+    } else {
+      if (textStart > targetMargin) topCut = textStart - targetMargin;
     }
   }
 
   let bottomCut = h;
 
   if (options.bottom !== false) {
-    const minSearchBottom = Math.max(h - 65, Math.round(h * 0.65));
-    let sawDarkNearBottom = false;
+    const minSearchBottom = Math.max(h - 140, Math.round(h * 0.65));
+    let bTextStart = -1;
+    let bTextEnd = -1;
     let bGutterStart = -1;
     let bGutterEnd = -1;
 
     for (let y = h - 1; y >= minSearchBottom; y--) {
       const isDark = rowDarkness[y] >= contentThreshold;
       if (isDark) {
-        if (y > h - 16) sawDarkNearBottom = true;
+        if (bTextStart === -1) bTextStart = y;
         if (bGutterStart !== -1) {
           bGutterEnd = y;
           break;
         }
       } else {
-        if (sawDarkNearBottom && bGutterStart === -1) bGutterStart = y;
+        if (bTextStart !== -1 && bGutterStart === -1) {
+          bTextEnd = y;
+          bGutterStart = y;
+        }
       }
     }
 
-    if (sawDarkNearBottom && bGutterStart !== -1 && bGutterEnd !== -1 && (bGutterStart - bGutterEnd) >= 2) {
+    const bTextHeight = (bTextStart !== -1 && bTextEnd !== -1) ? (bTextStart - bTextEnd) : 0;
+    const bGutterHeight = (bGutterStart !== -1 && bGutterEnd !== -1) ? (bGutterStart - bGutterEnd) : 0;
+
+    if (bTextStart !== -1 && bGutterEnd !== -1 && bGutterHeight >= 2 && bTextHeight <= 36) {
       bottomCut = Math.min(h, bGutterEnd + 1 + targetMargin);
+    } else if (bTextStart === -1) {
+      let lastY = h - 1;
+      while (lastY >= minSearchBottom && rowDarkness[lastY] < contentThreshold) lastY--;
+      if (h - 1 - lastY > targetMargin) bottomCut = Math.min(h, lastY + 1 + targetMargin);
+    } else {
+      if (h - 1 - bTextStart > targetMargin) bottomCut = Math.min(h, bTextStart + 1 + targetMargin);
     }
   }
 
@@ -170,14 +196,31 @@ assert.ok(trimResult.topCut >= 8 && trimResult.topCut <= 10, `Expected topCut ~9
 // Bottom cut must remove bottom intruder text and end around row 49 (45 + 1 + 3)
 assert.ok(trimResult.bottomCut >= 48 && trimResult.bottomCut <= 50, `Expected bottomCut ~49, got ${trimResult.bottomCut}`);
 
-// Case B: Question figure preserves top caption but drops neighboring option text below.
-const mockQuestionRows = new Array(120).fill(0);
-for (let y = 4; y <= 11; y++) mockQuestionRows[y] = 16; // caption belonging to figure
-for (let y = 22; y <= 82; y++) mockQuestionRows[y] = 120; // apparatus content
-for (let y = 108; y <= 119; y++) mockQuestionRows[y] = 18; // option text intruding below figure
-const questionTrimResult = simulateGutterDetection(mockQuestionRows, 3, 3, { top: false, bottom: true });
-assert.equal(questionTrimResult.topCut, 0, 'Question bottom trimming must not remove top figure captions');
-assert.ok(questionTrimResult.bottomCut >= 84 && questionTrimResult.bottomCut <= 86, `Expected bottomCut ~86, got ${questionTrimResult.bottomCut}`);
+// Case B: Question 43 & 80 scenario - deep intruder text band at top (rows 12-28, choice from Q42 or stem) and bottom (choices)
+const mockDeepContaminatedRows = new Array(200).fill(0);
+// Blank space y = 0..11
+// Intruder text y = 12..28 (17px tall text)
+for (let y = 12; y <= 28; y++) mockDeepContaminatedRows[y] = 18;
+// Gutter y = 29..45 (17px blank gutter)
+// Main apparatus content y = 46..150
+for (let y = 46; y <= 150; y++) mockDeepContaminatedRows[y] = 120;
+// Gutter y = 151..168 (18px blank gutter)
+// Bottom choices y = 169..186
+for (let y = 169; y <= 186; y++) mockDeepContaminatedRows[y] = 16;
+// Blank space y = 187..199
+
+const qDeepTrimResult = simulateGutterDetection(mockDeepContaminatedRows, 3, 3, { top: true, bottom: true });
+// Top cut must remove the intruder text (12..28) and cut cleanly at 46 - 3 = 43
+assert.equal(qDeepTrimResult.topCut, 43, `Expected topCut 43, got ${qDeepTrimResult.topCut}`);
+// Bottom cut must remove bottom choices (169..186) and cut cleanly at 150 + 1 + 3 = 154
+assert.equal(qDeepTrimResult.bottomCut, 154, `Expected bottomCut 154, got ${qDeepTrimResult.bottomCut}`);
+
+// Case C: Choice crystal diagram (Q16) - pure figure starting at y = 15, no intruder text
+const mockCrystalRows = new Array(100).fill(0);
+for (let y = 15; y <= 85; y++) mockCrystalRows[y] = 90;
+const crystalTrimResult = simulateGutterDetection(mockCrystalRows, 3, 3, { top: false, bottom: false });
+assert.equal(crystalTrimResult.topCut, 0, 'Choice crystal must not be trimmed when options are false');
+assert.equal(crystalTrimResult.bottomCut, 100, 'Choice crystal must preserve full height');
 
 // 4. T-084 visible ordering labels: question figures use the explicit heading requested by the user.
 const editorSource = fs.readFileSync(require.resolve('../components/SplitDocumentEditor.tsx'), 'utf8');

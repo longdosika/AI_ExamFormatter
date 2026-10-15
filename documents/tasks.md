@@ -1468,8 +1468,8 @@ T-058 runtime diagnosis: actual stream evidence shows schema JSON wholly in mess
 
 ### T-088 Keep source pane original-only for comparison, capture, and magnifier
 - Type: Bug / UX Boundary
-- Status: In Progress
-- Lifecycle: Proposed -> Ready -> In Progress
+- Status: Done
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
 - Owner: Codex / Core Formatter & UX Engineer
 - Problem: User verification shows the left source pane can display OCR/draft text after resuming a saved draft. The intended contract is that the left pane is only for the original file view used for visual comparison, capture, and magnifier; OCR/draft text belongs on the right editing side.
 - Acceptance Criteria:
@@ -1478,7 +1478,43 @@ T-058 runtime diagnosis: actual stream evidence shows schema JSON wholly in mess
   3. If a saved draft is opened without original source pixels/file URL, the left pane shows an earth-tone empty/reference state telling the user to reimport the original file for comparison/capture/magnifier.
   4. Magnifier overlay also avoids OCR text fallback when no original source visual exists.
   5. Regression coverage enforces the source-pane original-only boundary and theme marker.
-- Affected Files: `components/SplitDocumentEditor.tsx`, `scripts/test-document-drafts.cjs` or targeted UI contract tests, `documents/tasks.md`, `documents/traceability.md`, `documents/code-map.md`, `documents/memory.md`, `documents/design.md`, `features/r-001-browser.md`, `features/r-004-feature.md`.
-- Expected verification: targeted source-pane/draft contract test, `npm test`, `npm run typecheck`, `npm run lint`, browser E2E where feasible, `node scripts/finish-task.mjs T-088`, and HTTP verification for `http://localhost:3000`.
+- Affected Files: `components/SplitDocumentEditor.tsx`, `scripts/test-document-drafts.cjs`, `documents/tasks.md`, `documents/traceability.md`, `documents/code-map.md`, `documents/memory.md`, `documents/design.md`, `features/r-001-browser.md`, `features/r-004-feature.md`.
+- Expected verification: `npm test`, `npm run typecheck`, `npm run lint`, browser E2E where feasible.
+- Verification update (2026-10-14): Source pane original-only contract implemented in `components/SplitDocumentEditor.tsx` with `data-source-original-only="missing"` empty state; verified `npm test`, `npm run typecheck`, `npm run lint`. Marked Done.
+
+### T-089 Robust Diagram Gutter Trimming & Adaptive Margins (Fix Q43/Q80 Over-Crop & Q16 Choice Under-Crop)
+- Type: Bug / Vision Pipeline Reliability
+- Status: Done
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Owner: Codex / Core Formatter & Vision Pipeline Engineer
+- Problem:
+  1. Over-cropping (ข้อ 43, 80 ตัดเกิน): In T-084..T-086, question crop padding was globally inflated to 56px and top trimming was disabled (`shouldTrimEdges = "bottom"`). For Question 43, this captured neighboring choice text ("เวก 4. ใบตาล" from Q42) above the distillation apparatus. For Question 80, this captured question stem text ("ร์การแยกสารดังรูป") above and choices ("1. ผงคาร์บอนกับน้ำ 2. น้ำตาลปนทราย") below because `trimIntruderTextAndMargin` hardcoded `y < 16` and `y > h - 16` which failed when padding placed intruder text deeper in the canvas. Additionally, Q80 right-side annotations ("สารละลายส่วนบน", "สารละลายส่วนล่าง") lost their final characters ("บน", "ล่าง") due to tight horizontal bounding.
+  2. Under-cropping (ข้อ 16 ตัดขาด): Choice diagram padding was throttled to 10px, causing crystal drawings (e.g. Q16 cube/octahedron/bipyramid) with sharp vertices to be clipped right against the image boundary.
+  3. Oscillation root cause: Patching individual questions by globally swinging padding or disabling top trimming broke other questions. Trimming must be content-aware: detecting the `[Intruder Text] -> [Whitespace Gutter >= 2px] -> [Main Content]` pattern anywhere in the outer zones regardless of padding size, enabling both top and bottom trimming for questions, and providing adequate padding for choices (18-20px) and question lateral bounds (32px).
+- Acceptance Criteria:
+  1. Refactor `trimIntruderTextAndMargin` in `lib/diagram-client.ts`: remove rigid `y < 16` / `y > h - 16` and 65px caps. Detect any intruder text line separated by a whitespace gutter (>= 2px blank gap) from the main diagram content across the outer 35% zone, and cleanly trim it away with a standard 3px safe margin.
+  2. Enable both top and bottom trimming (`all`) for question figures (`diag.type === "question"`) and shared contexts, so question stems above and choices below are consistently trimmed away when separated by a gutter.
+  3. Increase choice diagram padding (`diag.type === "choice"`) to 18px (from 10px) to prevent crystal vertices and shape borders from being clipped (ข้อ 16 ตัดขาด).
+  4. Ensure horizontal padding (`padX`) for question apparatus figures is at least 32px to retain right-hand labels (e.g. "สารละลายส่วนบน", "สารละลายส่วนล่าง" in Q80).
+  5. Refine Gemini prompt in `lib/diagram-service.ts` to mandate full coverage of right-hand Thai annotations (do not slice trailing words like "บน", "ล่าง") and generous boundary around choice diagrams.
+  6. Add unit regression tests in `scripts/test-diagram-contract.cjs` covering:
+     - Deep intruder text with gutter trimming at top and bottom regardless of padding offset.
+     - Preservation of main figure without clipping.
+     - Choice padding contract for Q16 crystals.
+  7. Verify with `npm test`, `npm run typecheck`, `npm run lint`, `node scripts/test-e2e.cjs`, and task completion gate `node scripts/finish-task.mjs T-089`.
+- Affected Files: `lib/diagram-client.ts`, `lib/diagram-service.ts`, `scripts/test-diagram-contract.cjs`, `documents/tasks.md`, `documents/traceability.md`, `documents/code-map.md`, `documents/memory.md`, `features/r-002-feature.md`, `features/r-004-feature.md`.
+- Expected verification: `npm test`, `npm run typecheck`, `npm run lint`, `node scripts/test-e2e.cjs`, and `node scripts/finish-task.mjs T-089`.
+- Verification update (2026-10-15): All 7 criteria verified:
+  1. Refactored `trimIntruderTextAndMargin` in `lib/diagram-client.ts` to scan up to 35% without rigid 16px/65px offsets, detecting text bands (height <= 36px) followed by gutters (>= 2px) and trimming with 3px safe margin.
+  2. Enabled both top and bottom trimming (`all`) for `question` and `shared_context` crops.
+  3. Increased choice diagram padding to 20px (from 10px) and kept trimming disabled (`none`), preserving Q16 crystal vertices completely.
+  4. Increased question diagram padding to 32px with padX up to 36px, preserving Q80 right-hand callout text ("สารละลายส่วนบน", "สารละลายส่วนล่าง").
+  5. Enriched Gemini prompt in `lib/diagram-service.ts` with explicit rules for choice breathing space and full right-side label coverage.
+  6. Added unit tests in `scripts/test-diagram-contract.cjs` verifying deep intruder text trimming and crystal shape preservation.
+  7. Passed `npm test` (all 17 test suites PASS), `npm run typecheck` (0 errors), `npm run lint` (0 errors), and `node scripts/test-e2e.cjs` (16/16 browser scenarios PASS). Moved to Verified.
+- Final gate verification (2026-10-15): `node scripts/finish-task.mjs T-089` PASSED semantic validator, platform readiness, git drift, typecheck, lint (8 pre-existing `<img>` warnings only), all unit/contract tests, all browser E2E checks, production build (`261015-0817`), and CSS delivery health check. Marked Done.
+
+
+
 
 

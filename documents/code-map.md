@@ -220,6 +220,16 @@ T-058 runtime diagnosis: actual stream evidence shows schema JSON wholly in mess
 - `components/SplitDocumentEditor.tsx`: Accepts restored editor HTML, renders it inside the editable document, and emits editor input changes for debounced draft autosave.
 - `scripts/test-document-drafts.cjs`: Regression covers `editorHtml`, active draft resume hooks, editor autosave hooks, and earth-tone modal marker.
 
+### T-088 Keep Source Pane Original-Only for Comparison, Capture, and Magnifier
+- `components/SplitDocumentEditor.tsx`: Added `data-source-original-only="missing"` empty state for left panel when resuming drafts without original source pixels, preventing OCR or plain text from leaking into the visual source pane.
+- `scripts/test-document-drafts.cjs`: Added assertions for source pane original-only contract and draft modal theme styling.
+
+### T-089 Robust Diagram Gutter Trimming & Adaptive Margins (Fix Q43/Q80 Over-Crop & Q16 Choice Under-Crop)
+- `lib/diagram-client.ts`: Refactored `trimIntruderTextAndMargin` to eliminate rigid `y < 16`/`y > h - 16` offsets and 65px search clamps. Detects isolated text bands (height <= 36px) separated by a blank gutter (>= 2px) across the outer 35% zone regardless of padding depth, and cleanly trims them away with a standard 3px margin. Enabled top and bottom trimming (`all`) for question figures and shared contexts. Increased `choice` diagram padding to 20px (preventing Q16 crystal vertices from being clipped), set question crop padding to 32px with lateral expansion up to 36px (preserving Q80 right-hand annotations "สารละลายส่วนบน", "สารละลายส่วนล่าง").
+- `lib/diagram-service.ts`: Updated Gemini prompt for choice figures (mandating comfortable margin around all vertices/corners) and question apparatus diagrams (mandating full right-hand annotation coverage without truncating trailing words like "บน", "ล่าง").
+- `scripts/test-diagram-contract.cjs`: Added regression assertions for T-089 crop policies (question: 32 all, choice: 20 none, shared_context: 16 all), deep intruder text top/bottom trimming, and choice crystal preservation.
+
+
 
 
 

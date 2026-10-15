@@ -104,3 +104,7 @@ Question images must not display both `รูปโจทย์:` and `[รู�
 
 ### T-086 question figure bottom-trim fix
 Question/apparatus crops now apply smart trimming only to the bottom edge after the generous figure padding is applied. This preserves top captions such as `การแยกสารดังรูป` while removing neighboring option text below the figure when a whitespace gutter separates it from the diagram, preventing Q80-style captured choices from appearing inside `รูปโจทย์:`.
+
+### T-089 Robust Diagram Gutter Trimming & Adaptive Margins
+Resolved recurring over-crop (Q43 distillation setup capturing Q42 choices, Q80 funnel capturing stem and choices) and under-crop (Q16 crystals clipped at vertices). The previous brittle strategy of disabling top trimming and globally inflating padding to 56px caused regressions across different question layouts. T-089 replaces hardcoded offset thresholds (`y < 16`, 65px clamp) with a universal content-aware gutter scanner that detects isolated text lines (height <= 36px) separated by a blank gutter (>= 2px) anywhere in the outer 35% zone; enables both top and bottom trimming for questions and tables; increases choice diagram padding to 20px (preserving Q16 crystal vertices); and expands question lateral padding up to 36px (preserving Q80 right-hand annotations "สารละลายส่วนบน", "สารละลายส่วนล่าง").
+

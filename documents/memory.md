@@ -268,3 +268,29 @@ T-071 environment lesson (2026-10-13): A successful clone is not a ready runtime
 - A draft/cache entry must be a continuation point, not just a reference that forces reimport. If the original source file is not currently active, create a minimal parsed-file session from the draft so the right-side editor can open and export instead of staying on the landing screen.
 - `ExamItem` data alone is not enough for user-edited rich text. Store and restore `editorHtml` so manual edits, inline formatting, and inserted image DOM survive closing/reopening the draft. Review still re-parses the live DOM before marking the draft clean.
 - Draft/history UI must stay inside the earth-tone system: sand/cream surfaces, olive primary actions, terracotta destructive accents, warm borders, and no generic slate/rose styling unless it is intentionally mapped to a theme token.
+
+### T-088 Source Pane Visual Boundary (2026-10-14)
+- The left pane is strictly for original visual reference: comparison, manual region snipping, and magnifier glass. It must never fall back to plain text or OCR text. When a draft is resumed without original source pixels, render a clear earth-tone notice instructing the user to reimport the original file if they need visual comparison.
+
+### T-089 Diagram Crop Stability: Root Cause of Regression and Universal Gutter Policy (2026-10-15)
+- **ทำไมปัญหากลุ่มนี้ถึงกลับมา (Oscillation Root Cause):**
+  - เมื่อพบว่ารูปข้อ 33 ขอบล่าง/ขวาถูกตัดขาด ("ของเหลวที่แยกได้") การแก้ไขในรอบก่อนหน้าเกิดการ **"เหวี่ยงกลับสุดโต่ง" (Overcompensation)**:
+    1. ปรับ `cropPadding` ของข้อสอบทั่วไป (`question`) พุ่งสูงถึง 56px
+    2. สั่งปิดการเล็มขอบบน (`top: false`) ของรูปประเภท `question`
+    3. ลด `cropPadding` ของตัวเลือก (`choice`) เหลือเพียง 10px
+  - **ผลที่ตามมา (Unintended Regressions):**
+    - ข้อ 43 (ตัดเกิน): รูปเครื่องกลั่นอยู่ใต้ข้อ 42 เมื่อบวก padding 56px โดยไม่เล็มขอบบน จึงลากตัวเลือกของข้อ 42 ("เวก", "4. ใบตาล") เข้ามาในรูปข้อ 43
+    - ข้อ 80 (ตัดเกิน): บวก padding 56px บน-ล่าง ทำให้ดึงข้อความโจทย์ข้างบน ("ร์การแยกสารดังรูป") และตัวเลือก 1-2 ข้างล่างเข้ามา โดยตัวเลือกข้างล่างหลุดพ้นระยะตรวจจับเดิมเพราะตัวเลขออฟเซ็ตถูกฮาร์ดโค้ดไว้ที่ `y > h - 16`
+    - ข้อ 80 (ป้ายขวาแหว่ง): คำว่า "สารละลายส่วนบน", "สารละลายส่วนล่าง" โดนตัด "บน" และ "ล่าง" เพราะ Bbox แคบเกินไปและ padding แกน X ไม่ครอบคลุม
+    - ข้อ 16 (ตัดขาด): รูปผลึกตัวเลือก ก, ข, ค, ง มี padding แค่ 10px ทำให้ยอดแหลมและเหลี่ยมของผลึกลูกบาศก์/แปดหน้าโดนตัดแหว่งชิดขอบภาพ
+- **กฎสากลสำหรับการตัดรูปภาพและตาราง (Universal Diagram Capture Policy):**
+  1. **ตรวจจับร่องว่างอย่างชาญฉลาด (Pattern-based Gutter Detection):**
+     - ตรวจจับรูปแบบ `[ข้อความแปลกปลอม (สูง <= 36px)] -> [ร่องว่างสีขาว (Gutter >= 2px)] -> [รูปหลัก/อุปกรณ์/ตาราง]`
+     - ครอบคลุมโซน 35% รอบนอกของแคนวาสโดยไม่ฮาร์ดโค้ด `y < 16` หรือจำกัด 65px เพื่อให้ตรวจจับข้อความแปลกปลอมได้เสมอไม่ว่า padding จะลึกแค่ไหน
+  2. **เปิดเล็มขอบทั้งบนและล่าง (`all`) สำหรับรูปข้อสอบ (`question`):**
+     - เพื่อตัดทั้งข้อความตัวเลือกของข้อก่อนหน้า (ด้านบน) และตัวเลือกของข้อถัดไป (ด้านล่าง) ออกอย่างแม่นยำ
+  3. **กำหนด Padding ที่ปลอดภัยตามบทบาท (Role-based Safe Padding):**
+     - `choice` (เช่น ข้อ 16 ผลึก): ใช้ `paddingPx = 20` และไม่เล็มขอบ (`trimEdges = "none"`) เพื่อคุ้มครองยอดแหลมและเส้นขอบรูปทรงเรขาคณิตทุกด้าน
+     - `question` (เช่น ข้อ 43, 80 อุปกรณ์การทดลอง): ใช้ `paddingPx = 32` พร้อมขยายแกน X ได้ถึง 36px เพื่อเก็บป้ายชี้ด้านขวา ("สารละลายส่วนบน", "สารละลายส่วนล่าง") ให้ครบถ้วน
+     - `shared_context` (ตาราง/โจทย์ร่วม): ใช้ `paddingPx = 16` และเล็มขอบ `all` เพื่อให้ได้กรอบตารางเต็มและตัดข้อความภายนอกออกอย่างสะอาดตา
+
