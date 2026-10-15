@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { processImagesOcr } from "@/lib/ocr-service";
+import { getOcrProviderConfig, processImagesOcr } from "@/lib/ocr-service";
+import { ensureOllamaReady, isLocalOllamaBase } from "@/lib/ollama-runtime";
+import { getProviderApiKeys } from "@/lib/api-key-manager";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,6 +21,13 @@ export async function POST(request: NextRequest) {
 
     if (images.length > 10) {
       return NextResponse.json({ success: false, error: "รองรับครั้งละไม่เกิน 10 หน้า กรุณาแบ่งเอกสารก่อนนำเข้า" }, { status: 400 });
+    }
+    const ocrConfig = getOcrProviderConfig();
+    const localFallback = !ocrConfig.apiKey && getProviderApiKeys("google-vision").length === 0;
+    if (isLocalOllamaBase(ocrConfig.baseUrl) || localFallback) {
+      await ensureOllamaReady({
+        baseUrl: isLocalOllamaBase(ocrConfig.baseUrl) ? ocrConfig.baseUrl : "http://127.0.0.1:11434/v1",
+      });
     }
     const pageResults = await processImagesOcr(images);
 
@@ -45,9 +54,10 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "เกิดข้อผิดพลาดในการประมวลผล OCR";
+    const status = message === "OLLAMA_NOT_READY" ? 503 : 500;
     return NextResponse.json(
-      { success: false, error: message },
-      { status: 500 }
+      { success: false, error: message === "OLLAMA_NOT_READY" ? "Ollama ยังไม่พร้อม ระบบพยายามเปิดให้อัตโนมัติแล้ว แต่ไม่สำเร็จ กรุณาติดตั้ง Ollama และตรวจคำสั่ง ollama serve" : message },
+      { status }
     );
   }
 }

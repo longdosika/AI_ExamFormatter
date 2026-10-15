@@ -254,4 +254,27 @@ Use the committed `package-lock.json` with `npm ci` on every machine. Keep `.env
 - Evidence: `package.json`, `scripts/stamp-version.cjs`, `app/page.tsx`, `lib/version.ts`, `scripts/test-diagram-contract.cjs`.
 - Status: `Approved`
 
+### D-024 Keep figure-boundary rules testable and use spacing as a layout token (2026-10-15)
+- Context: Q80 crops still contained a stem line above and an option line below after the earlier padding increase. The editor header and 80-question navigation also became visually dense.
+- Decision:
+  1. Keep row-density edge detection in a pure exported helper and call it from the Canvas crop path. The helper tolerates deep padding, one-row raster gaps, and up to 54px intruder bands; it is covered by a Q80-shaped regression fixture.
+  2. Repeat the top/bottom exclusion rule in the Vision prompt, while retaining the complete apparatus and right-side labels. Provider output remains subject to source/browser verification.
+  3. Increase spacing in the conversion header, stepper, review disclosure, navigation, and editor body without changing pane ownership or export markup.
+- Tradeoff: More whitespace increases vertical use in the editor header, but reduces control collisions and improves scanning of long question lists. Heuristic trimming can still abstain when no reliable gutter exists; it must never invent or solve content.
+- Evidence: `scripts/test-diagram-contract.cjs`, `lib/diagram-client.ts`, `components/SplitDocumentEditor.tsx`, and `evidence/t092-verification.md`.
+- Status: `Approved` after the T-092 completion gate passed; exact source-PDF Vision UAT is tracked separately in T-093.
+
+### D-025 Start local Ollama on demand before OCR (2026-10-15)
+- Context: Local OCR previously required the user to run `ollama serve` manually before every session, even though the app already knows the local endpoint.
+- Decision: At the OCR API boundary, probe `/api/tags`; if the configured provider is local and the probe fails, spawn `ollama serve` detached/hidden and wait for readiness. Share one in-flight startup promise across concurrent OCR requests. Reuse a running daemon and bypass this logic for remote providers.
+- Tradeoff: The host must already have Ollama installed and discoverable on PATH; the app does not install software or pull models. A failed startup is surfaced as HTTP 503 with a clear remediation message.
+- Evidence: `scripts/test-ollama-runtime.cjs`, `evidence/t099-verification.md`, `lib/ollama-runtime.ts`.
+
+
+
+### D-026 Validate review on a clone and preserve the live media DOM (2026-10-15)
+- Context: The review action reparsed editor text and replaced `formattedItems`. Managed labels entered the parser as question text, while choice/shared/explanation images were not represented in that text and disappeared from the rendered editor before export.
+- Decision: Normalize managed labels in the live DOM, create a validation-only clone with managed media removed, run parser/validator against the clone, and leave the live editor DOM untouched. Persist the original structured model together with the edited `editorHtml` snapshot.
+- Tradeoff: Review findings describe the text structure at click time; the DOM snapshot remains authoritative for media and manual formatting. A later text edit still requires another review before export.
+- Evidence: `scripts/test-e2e.cjs` preserves all four media roles and single labels after review; `scripts/test-google.cjs` embeds all four image roles in OOXML.
 

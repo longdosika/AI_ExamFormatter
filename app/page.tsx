@@ -31,7 +31,7 @@ import { generateFallbackExamItems } from "@/lib/exam-fallback";
 import { snapshotDocument } from "@/lib/export-document";
 import { appendExperiment, experimentReport, readExperiments, ImportExperiment } from "@/lib/experiment-stats";
 import { readOcrDocument } from "@/lib/ocr-client";
-import { readSourceAnswers } from "@/lib/source-answer-client";
+import { readSourceAnswers, solveUnresolvedAnswers } from "@/lib/source-answer-client";
 import { harvestExamDiagrams } from "@/lib/diagram-client";
 import { readImportHistory, recordImport, ImportHistoryEntry } from "@/lib/import-history";
 import { 
@@ -477,7 +477,9 @@ export default function Home() {
     if (!current()) return;
     setFormattedItems(items);
     setDiagramsHarvested(false);
-    setErrorMessage(issues.length ? `เปิดฉบับร่างแล้ว: มี ${issues.length} รายการให้ตรวจแก้ต่อ` : null);
+    // Review findings are represented by the compact review icon in the editor rail;
+    // keep the document workspace free of a duplicate full-width alert.
+    setErrorMessage(null);
     setInfoNotice(`จัดโครงสร้างข้อสอบได้ ${items.length} ข้อเรียบร้อย (กด 'สกัดรูปประกอบ' เพื่อดึงภาพ/ตาราง หรือตรวจทานฝั่งขวา)`);
     try {
       saveDocumentDraft(window.localStorage, {
@@ -540,24 +542,31 @@ export default function Home() {
     const upload = uploadEpoch.current;
     const current = () => epoch === answerEpoch.current && upload === uploadEpoch.current;
     const items = [...formattedItems];
-    let answerCount = 0;
+    let sourceAnswerCount = 0;
+    let aiAnswerCount = 0;
     let answerError = "";
     setAnswerBusy(true);
-    setInfoNotice("กำลังใช้ AI Vision สแกนหารอยวงกลม/กากบาทเฉลยจากภาพต้นฉบับ...");
+    setInfoNotice("กำลังตรวจเฉลยจากต้นฉบับ และเตรียม AI เติมข้อที่ยังไม่มีเฉลย...");
     try {
       const images = parsedFile.pageImages?.length ? parsedFile.pageImages : parsedFile.fileType.startsWith("image/") ? parsedFile.extractedImages.map(image => image.dataUrl) : [];
-      const result = await readSourceAnswers(items, images, current, page => setInfoNotice(`กำลังอ่านเฉลยจากต้นฉบับหน้า ${page}/${images.length}`));
-      answerCount = result.count;
-      if (result.failures.length) answerError = `ยังอ่านเฉลยไม่สำเร็จหน้า ${result.failures.join(", ")}`;
+      const sourceResult = await readSourceAnswers(items, images, current, page => setInfoNotice(`กำลังอ่านเฉลยจากต้นฉบับหน้า ${page}/${images.length || "-"}`));
+      sourceAnswerCount = sourceResult.count;
+      setInfoNotice("กำลังให้ AI วิเคราะห์ข้อที่ยังไม่มีเฉลยจากต้นฉบับ...");
+      const aiResult = await solveUnresolvedAnswers(items, images, current, (page, total) => setInfoNotice(`กำลังวิเคราะห์เฉลยจาก AI ชุด ${page}/${total}`));
+      aiAnswerCount = aiResult.count;
+      const failedPages = [...new Set([...sourceResult.failures, ...aiResult.failures])];
+      if (failedPages.length) answerError = `ยังวิเคราะห์ไม่สำเร็จชุด ${failedPages.join(", ")}`;
     } catch (error) { 
-      answerCount = items.filter(item => item.reconciliationProvenance === "source_vision").length; 
+      sourceAnswerCount = items.filter(item => item.reconciliationProvenance === "source_vision").length;
+      aiAnswerCount = items.filter(item => item.reconciliationProvenance === "ai_generated").length;
       answerError = error instanceof Error ? error.message : "อ่านเฉลยไม่สำเร็จ"; 
     } finally { 
       if (current()) setAnswerBusy(false); 
     }
     if (!current()) return;
     setFormattedItems(items);
-    setInfoNotice(`ตรวจเฉลยจากภาพเสร็จสิ้น พบ ${answerCount} ข้อ${answerError ? ` · ${answerError}` : " · ข้อที่หลักฐานไม่ชัดเจนเว้นเฉลยไว้"} กรุณาเทียบต้นฉบับก่อนส่งออก`);
+    const unresolvedCount = items.filter(item => !item.reconciledAnswerKey && item.choices.length).length;
+    setInfoNotice(`ตรวจเฉลยเสร็จ · ต้นฉบับ ${sourceAnswerCount} · AI ${aiAnswerCount} · เหลือ ${unresolvedCount} ข้อ${answerError ? ` · ${answerError}` : " · กรุณาตรวจทานเฉลย AI กับต้นฉบับ"}`);
     try {
       saveDocumentDraft(window.localStorage, {
         fileName: parsedFile.fileName,
@@ -572,12 +581,63 @@ export default function Home() {
   };
 
   const reviewLiveEditor = (editor: HTMLElement) => {
-    const snapshot = snapshotDocument(editor, parsedFile?.fileName || "ข้อสอบ");
+    if (!parsedFile || !formattedItems) return;
+    // Review must inspect the live DOM without rebuilding it from plain text.
+    // The rendered editor owns images and managed labels that the exam parser
+    // intentionally does not model; replacing formattedItems here used to
+    // erase choice images and turn labels into question text before export.
+    const normalizeManagedLabels = () => {
+      const ensureManagedLabel = (container: HTMLElement, text: string) => {
+        const labels = Array.from(container.querySelectorAll<HTMLElement>("span,p")).filter(label => label.textContent?.trim() === text);
+        if (!labels.length) {
+          const label = document.createElement("span");
+          label.textContent = text;
+          label.style.color = "#F2604D";
+          label.style.fontWeight = "bold";
+          label.style.display = "block";
+          container.insertBefore(label, container.firstChild);
+        } else {
+          labels.slice(1).forEach(label => label.remove());
+        }
+      };
+      editor.querySelectorAll<HTMLElement>("[data-item-id]").forEach(itemNode => {
+        const questionImage = itemNode.querySelector<HTMLElement>("[data-question-image]");
+        if (questionImage) {
+          const questionText = itemNode.querySelector<HTMLElement>(".text-slate-900");
+          if (questionText) questionText.textContent = questionText.textContent?.replace(/(?:รูปโจทย์:|รูปโจทย์ร่วม:)\s*/gu, "").trim() || "";
+          ensureManagedLabel(questionImage, "รูปโจทย์:");
+        }
+        const sharedImage = itemNode.querySelector<HTMLElement>("[data-shared-image='true']");
+        if (sharedImage) {
+          ensureManagedLabel(sharedImage, "รูปโจทย์ร่วม:");
+        }
+        const explanationImage = itemNode.querySelector<HTMLElement>("[data-explanation-image='true']");
+        if (explanationImage) {
+          ensureManagedLabel(explanationImage, "รูปคำอธิบาย:");
+        }
+      });
+    };
+    normalizeManagedLabels();
+    const reviewClone = editor.cloneNode(true) as HTMLElement;
+    reviewClone.querySelectorAll("[data-question-image], [data-shared-image='true'], [data-choice-image='true'], [data-explanation-image='true'], [data-export-ignore]").forEach(node => node.remove());
+    const snapshot = snapshotDocument(reviewClone, parsedFile?.fileName || "ข้อสอบ");
     const text = snapshot.paragraphs.map(paragraph => paragraph.runs.map(run => run.text || "").join("")).join("\n");
-    const items = parseExamText(text);
+    const items = parseExamText(text, parserImages(parsedFile), parsedFile?.fileName);
+    const liveItemNodes = Array.from(editor.querySelectorAll<HTMLElement>("[data-item-id]"));
     items.forEach((item, index) => {
-      const image = editor.querySelectorAll('[data-item-id]')[index]?.querySelector('img');
+      const liveNode = liveItemNodes[index];
+      const previous = formattedItems[index];
+      const image = liveNode?.querySelector<HTMLImageElement>("[data-question-image] img");
       if (image) item.imageUrl = image.src;
+      else if (previous?.imageUrl) item.imageUrl = previous.imageUrl;
+      const sharedImage = liveNode?.querySelector<HTMLImageElement>("[data-shared-image='true'] img");
+      if (sharedImage) item.sharedContextImageUrl = sharedImage.src;
+      else if (previous?.sharedContextImageUrl) item.sharedContextImageUrl = previous.sharedContextImageUrl;
+      item.choices = item.choices.map(choice => {
+        const previousChoice = previous?.choices.find(candidate => candidate.key === choice.key);
+        const choiceImage = liveNode?.querySelector<HTMLImageElement>(`[data-choice-key="${CSS.escape(choice.key)}"] [data-choice-image='true'] img`);
+        return { ...choice, imageUrl: choiceImage?.src || previousChoice?.imageUrl };
+      });
     });
     const issues = validateExamItems(items);
     if (!sourcePagesComplete.current) issues.push("OCR ยังอ่านไม่ครบทุกหน้า");
@@ -585,8 +645,8 @@ export default function Home() {
       if (!items.some(item => item.questionNumber === number)) issues.push(`ข้อ ${number}: ไม่พบในฉบับแก้ไข`);
     }
     setReviewIssues(issues);
-    setFormattedItems(items);
-    setErrorMessage(issues.length ? `ฉบับร่างยังมี ${issues.length} รายการให้ตรวจแก้ต่อ` : null);
+    // The review icon/badge remains the single source of truth once the editor is open.
+    setErrorMessage(null);
     setInfoNotice(issues.length ? "แก้ฉบับร่างต่อได้ แล้วตรวจสอบอีกครั้ง" : "ตรวจโครงสร้างฉบับแก้ไขผ่านแล้ว กรุณาเทียบต้นฉบับก่อนส่งออก");
     if (parsedFile) {
       try {
@@ -595,10 +655,14 @@ export default function Home() {
           fileBytes: parsedFile.fileSize,
           sourceHash: parsedFile.sourceHash,
           ocrText: ocrText || parsedFile.rawContent || "",
-          formattedItems: items.length ? items : (formattedItems || []),
+          // Keep the structured model that owns media/answer provenance. The
+          // editorHtml snapshot is the authoritative edited text; storing the
+          // parser-only review result here would drop choice-image metadata
+          // when a draft is reopened without its live DOM.
+          formattedItems,
           editorHtml: editor.innerHTML,
           diagramsHarvested,
-          itemCount: items.length || formattedItems?.length || 0,
+          itemCount: items.length || formattedItems.length,
         });
       } catch {}
     }
@@ -629,7 +693,7 @@ export default function Home() {
   return (
     <main className={isDocumentActive ? "w-full h-screen max-h-screen flex flex-col p-2 bg-[#f7f6f2] overflow-hidden" : "max-w-[1600px] mx-auto px-4 py-6"}>
       {/* Top Header Navigation - Single-Line Compact (Earth Tone - Rose Benedict) */}
-      <header className={`flex flex-wrap items-center justify-between gap-2 border-b border-[#dedad0] bg-white rounded-lg shadow-2xs shrink-0 ${isDocumentActive ? "min-h-10 px-3 py-1 mb-1.5" : "px-5 py-3 mb-4 rounded-xl"}`}>
+      <header className={`relative flex flex-wrap items-center justify-between gap-2 border-b border-[#dedad0] bg-white rounded-lg shadow-2xs shrink-0 ${isDocumentActive ? "min-h-10 px-3 py-1 mb-1.5" : "px-5 py-3 mb-4 rounded-xl"}`}>
         <div className="flex items-center gap-2 shrink-0">
           <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-md bg-[#496053] flex items-center justify-center text-[#eae8e1] font-bold shadow-xs shrink-0">
             <Sparkles className="w-3.5 h-3.5" />
@@ -653,9 +717,10 @@ export default function Home() {
 
         {/* Inlined Notice Pill when document is active - Zero Vertical Space consumed */}
         {isDocumentActive && infoNotice && (
-          <div role="status" className="hidden md:flex items-center gap-1.5 px-2.5 py-0.5 text-[11px] text-[#496053] bg-[#eae8e1] border border-[#dedad0] rounded-full max-w-sm lg:max-w-md truncate shrink min-w-0">
+          <div role="status" data-layout="compact-status" aria-label={infoNotice} title={infoNotice} className="absolute left-1/2 top-1/2 z-10 hidden max-w-[34vw] -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 rounded-full border border-[#dedad0] bg-[#eae8e1]/95 px-2.5 py-0.5 text-[11px] text-[#496053] shadow-2xs backdrop-blur-sm md:flex">
             <span className="truncate">{infoNotice}</span>
             <button 
+              aria-label="ปิดข้อความสถานะ"
               onClick={() => setInfoNotice(null)} 
               className="text-[#496053] hover:text-[#28332d] font-bold px-1 rounded hover:bg-[#dedad0] text-xs shrink-0" 
               title="ปิดข้อความแจ้งเตือน"
@@ -985,4 +1050,4 @@ export default function Home() {
   );
 }
 
-/* BUILD_STAMP: 261015-0904 */
+/* BUILD_STAMP: 261015-1509 */

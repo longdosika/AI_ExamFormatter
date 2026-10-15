@@ -16,6 +16,7 @@ AI Exam Formatter
 - [[decisions]] - decision log, tradeoffs, assumptions, and confirmation items
 - [[audit-log]] - audit trail of activity history, timestamps, and changes
 - [[memory]] - durable context for future AI sessions when included
+- [[feature-catalog]] - แผนผังความสามารถระบบภาษาไทย แยกตาม workflow พร้อมกรณี capture และทะเบียนข้อจำกัดที่ต้องพิสูจน์
 ## AI Knowledge Governance
 - Every implementation pass must update [[tasks]].
 - Behavior or scope changes must update [[prd]].

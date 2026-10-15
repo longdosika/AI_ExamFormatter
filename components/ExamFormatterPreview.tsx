@@ -86,7 +86,7 @@ export const ExamFormatterPreview: React.FC<ExamFormatterPreviewProps> = ({ item
                       </div>
                       {choice.isCorrect && (
                         <span className="text-[10px] px-2 py-0.5 rounded font-mono font-medium bg-white/70 shadow-2xs">
-                          {isGreenShaded ? "เฉลยต้นฉบับ (#E6F4EA)" : "เฉลย AI (#FFF4CC)"}
+                          {isGreenShaded ? "เฉลยต้นฉบับ (#E6F4EA)" : "เฉลยจาก AI · ตรวจทาน (#FFF4CC)"}
                         </span>
                       )}
                     </div>

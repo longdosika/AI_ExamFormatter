@@ -122,3 +122,15 @@ The parser evaluates numeric-choice blocks before question boundaries. A four-li
 - Assets: PDF.js worker, cmaps, and fonts are pre-synced to `public/` and verified by `scripts/test-pdf-assets.cjs` to ensure zero CDN/external asset dependencies in cloud execution.
 - Environment: Required production secrets configured via Vercel Project Settings (`GEMINI_API_KEY`, `TYPHOON_OCR_API_KEY`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_SESSION_SECRET`, and `APP_URL`).
 
+### T-099 Local OCR runtime readiness (2026-10-15)
+- `app/api/ocr/route.ts` owns the request boundary and calls `ensureOllamaReady` only when the selected OCR path is local or when no cloud OCR key exists and the local fallback is required.
+- `lib/ollama-runtime.ts` probes Ollama's `/api/tags`, starts `ollama serve` detached with hidden stdio when necessary, and polls with a bounded timeout. A module-level promise serializes concurrent cold-start requests so they share one daemon startup.
+- Remote OCR configurations never spawn a local process. Startup failures return a 503 with an actionable message; OCR errors remain distinguishable from readiness errors.
+- This is a server-runtime convenience for machines with Ollama installed and on PATH. It does not install Ollama, download models, or change cloud/Vercel topology.
+
+
+### T-100 Review is validation-only; live editor DOM is export source of truth
+- `SplitDocumentEditor` owns the media-bearing DOM for question, shared-context, choice, and explanation images. These media nodes and their managed labels are not lossless in plain-text parser output.
+- `reviewLiveEditor` normalizes labels in place, clones the editor for structural validation, removes managed media only from that clone, and does not call `setFormattedItems` to rerender the live editor.
+- `editorHtml` is persisted with the existing structured model. This keeps manual edits and image metadata stable across review and draft reopen; `snapshotDocument`/Google export consumes the live editor snapshot after review.
+

@@ -4,6 +4,85 @@ import { parseSharedContextHeader, stripCapturedTableText } from "./exam-parser"
 
 type EdgeTrimMode = boolean | "all" | "top" | "bottom" | "none";
 
+type EdgeTrimOptions = { top?: boolean; bottom?: boolean };
+
+/**
+ * Find edge cuts from a row-density projection. Keeping this independent from
+ * Canvas makes the crop rule regression-testable without a browser runtime.
+ */
+export function detectIntruderCuts(
+  rowDarkness: ArrayLike<number>,
+  contentThreshold = 3,
+  targetMargin = 3,
+  options: EdgeTrimOptions = { top: true, bottom: true }
+): { topCut: number; bottomCut: number } {
+  const h = rowDarkness.length;
+  let topCut = 0;
+  let bottomCut = h;
+  const maxBandHeight = 54;
+  const minGap = 1;
+  // PDF rasterisation can make a one-pixel antialiasing seam look like content.
+  // Bridge one blank row while finding a text band, but retain real gutters.
+  const collectRuns = (start: number, end: number, step: number) => {
+    const runs: Array<{ start: number; end: number }> = [];
+    let runStart = -1;
+    let lastDark = -1;
+    let blankAfter = 0;
+    for (let y = start; step > 0 ? y < end : y >= end; y += step) {
+      const dark = rowDarkness[y] >= contentThreshold;
+      if (dark) {
+        if (runStart === -1) runStart = y;
+        lastDark = y;
+        blankAfter = 0;
+      } else if (runStart !== -1) {
+        blankAfter += 1;
+        if (blankAfter > 1) {
+          runs.push({ start: Math.min(runStart, lastDark), end: Math.max(runStart, lastDark) });
+          runStart = -1;
+          lastDark = -1;
+          blankAfter = 0;
+        }
+      }
+    }
+    if (runStart !== -1) runs.push({ start: Math.min(runStart, lastDark), end: Math.max(runStart, lastDark) });
+    return runs;
+  };
+
+  if (options.top !== false) {
+    const maxSearchTop = Math.min(Math.round(h * 0.5), 220);
+    const runs = collectRuns(0, maxSearchTop, 1);
+    const first = runs[0];
+    const second = runs.find(run => first && run.start > first.end);
+    if (first && second && first.end - first.start + 1 <= maxBandHeight && second.start - first.end - 1 >= minGap) {
+      topCut = Math.max(0, second.start - targetMargin);
+    } else if (!first) {
+      let firstY = 0;
+      while (firstY < maxSearchTop && rowDarkness[firstY] < contentThreshold) firstY++;
+      if (firstY > targetMargin) topCut = firstY - targetMargin;
+    } else if (first.start > targetMargin) {
+      topCut = first.start - targetMargin;
+    }
+  }
+
+  if (options.bottom !== false) {
+    const minSearchBottom = Math.max(Math.round(h * 0.5), h - 220);
+    const runs = collectRuns(h - 1, minSearchBottom - 1, -1);
+    const first = runs[0];
+    const second = runs.find(run => first && run.end < first.start);
+    if (first && second && first.end - first.start + 1 <= maxBandHeight && first.start - second.end - 1 >= minGap) {
+      bottomCut = Math.min(h, second.end + 1 + targetMargin);
+    } else if (!first) {
+      let lastY = h - 1;
+      while (lastY >= minSearchBottom && rowDarkness[lastY] < contentThreshold) lastY--;
+      if (h - 1 - lastY > targetMargin) bottomCut = Math.min(h, lastY + 1 + targetMargin);
+    } else if (h - 1 - first.end > targetMargin) {
+      bottomCut = Math.min(h, first.end + 1 + targetMargin);
+    }
+  }
+
+  return { topCut, bottomCut };
+}
+
 /**
  * Smart edge trimmer that detects whitespace gutters separating the diagram/table
  * from adjacent text lines (such as table titles above or question stems below),
@@ -13,7 +92,7 @@ type EdgeTrimMode = boolean | "all" | "top" | "bottom" | "none";
 export function trimIntruderTextAndMargin(
   sourceCanvas: HTMLCanvasElement,
   targetMargin = 3,
-  options: { top?: boolean; bottom?: boolean } = { top: true, bottom: true }
+  options: EdgeTrimOptions = { top: true, bottom: true }
 ): HTMLCanvasElement {
   const w = sourceCanvas.width;
   const h = sourceCanvas.height;
@@ -51,103 +130,7 @@ export function trimIntruderTextAndMargin(
   // Threshold for considering a row as containing content
   const contentThreshold = Math.max(3, Math.round(w * 0.005));
 
-  let topCut = 0;
-  let bottomCut = h;
-
-  if (options.top !== false) {
-    // 1. Scan from top edge down: detect intruder text band followed by a whitespace gutter
-    // Search up to 35% of canvas height (min 40px, up to 140px)
-    const maxSearchTop = Math.min(Math.round(h * 0.35), 140);
-    let textStart = -1;
-    let textEnd = -1;
-    let gutterStart = -1;
-    let gutterEnd = -1;
-
-    for (let y = 0; y < maxSearchTop; y++) {
-      const isDark = rowDarkness[y] >= contentThreshold;
-      if (isDark) {
-        if (textStart === -1) {
-          textStart = y;
-        }
-        if (gutterStart !== -1) {
-          // Gutter ended, main content begins
-          gutterEnd = y;
-          break;
-        }
-      } else {
-        // Blank row
-        if (textStart !== -1 && gutterStart === -1) {
-          textEnd = y;
-          gutterStart = y;
-        }
-      }
-    }
-
-    const textHeight = (textStart !== -1 && textEnd !== -1) ? (textEnd - textStart) : 0;
-    const gutterHeight = (gutterStart !== -1 && gutterEnd !== -1) ? (gutterEnd - gutterStart) : 0;
-
-    // Intruder text is a distinct horizontal text band (height <= 36px) separated by a blank gap (>= 2px)
-    if (textStart !== -1 && gutterEnd !== -1 && gutterHeight >= 2 && textHeight <= 36) {
-      topCut = Math.max(0, gutterEnd - targetMargin);
-    } else if (textStart === -1) {
-      // Entire zone was whitespace; trim excessive leading blank space
-      let firstY = 0;
-      while (firstY < maxSearchTop && rowDarkness[firstY] < contentThreshold) firstY++;
-      if (firstY > targetMargin) topCut = firstY - targetMargin;
-    } else {
-      // Content starts near top without an intruder band; trim leading whitespace
-      if (textStart > targetMargin) {
-        topCut = textStart - targetMargin;
-      }
-    }
-  }
-
-  if (options.bottom !== false) {
-    // 2. Scan from bottom edge up: detect intruder text below followed by a whitespace gutter
-    const minSearchBottom = Math.max(h - 140, Math.round(h * 0.65));
-    let bTextStart = -1;
-    let bTextEnd = -1;
-    let bGutterStart = -1;
-    let bGutterEnd = -1;
-
-    for (let y = h - 1; y >= minSearchBottom; y--) {
-      const isDark = rowDarkness[y] >= contentThreshold;
-      if (isDark) {
-        if (bTextStart === -1) {
-          bTextStart = y;
-        }
-        if (bGutterStart !== -1) {
-          // Gutter ended, main content above begins
-          bGutterEnd = y;
-          break;
-        }
-      } else {
-        // Blank row
-        if (bTextStart !== -1 && bGutterStart === -1) {
-          bTextEnd = y;
-          bGutterStart = y;
-        }
-      }
-    }
-
-    const bTextHeight = (bTextStart !== -1 && bTextEnd !== -1) ? (bTextStart - bTextEnd) : 0;
-    const bGutterHeight = (bGutterStart !== -1 && bGutterEnd !== -1) ? (bGutterStart - bGutterEnd) : 0;
-
-    // Bottom intruder text is a distinct band (e.g. choice line, height <= 36px) separated by a blank gap (>= 2px)
-    if (bTextStart !== -1 && bGutterEnd !== -1 && bGutterHeight >= 2 && bTextHeight <= 36) {
-      bottomCut = Math.min(h, bGutterEnd + 1 + targetMargin);
-    } else if (bTextStart === -1) {
-      // Entire zone was whitespace; trim excessive trailing blank space
-      let lastY = h - 1;
-      while (lastY >= minSearchBottom && rowDarkness[lastY] < contentThreshold) lastY--;
-      if (h - 1 - lastY > targetMargin) bottomCut = Math.min(h, lastY + 1 + targetMargin);
-    } else {
-      // Content ends near bottom without an intruder band; trim trailing whitespace
-      if (h - 1 - bTextStart > targetMargin) {
-        bottomCut = Math.min(h, bTextStart + 1 + targetMargin);
-      }
-    }
-  }
+  const { topCut, bottomCut } = detectIntruderCuts(rowDarkness, contentThreshold, targetMargin, options);
 
   const newH = bottomCut - topCut;
   if (newH <= 15 || (topCut === 0 && bottomCut === h)) {

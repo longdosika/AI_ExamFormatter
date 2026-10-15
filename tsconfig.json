@@ -46,7 +46,14 @@
     ".next-e2e-3284/types/**/*.ts",
     ".next-e2e-12656/types/**/*.ts",
     ".next-e2e-22388/types/**/*.ts",
-    ".next-e2e-3740/types/**/*.ts"
+    ".next-e2e-3740/types/**/*.ts",
+    ".next-debug/types/**/*.ts",
+    ".next-e2e-29244/types/**/*.ts",
+    ".next-e2e-30492/types/**/*.ts",
+    ".next-e2e-9276/types/**/*.ts",
+    ".next-e2e-3640/types/**/*.ts",
+    ".next-e2e-8664/types/**/*.ts",
+    ".next-e2e-6824/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

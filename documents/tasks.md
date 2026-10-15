@@ -16,6 +16,167 @@
   - Record weak-evidence items requiring owner confirmation.
   - Set up Next.js + TypeScript scaffolding complying with Master Design Constitution.
 
+
+### T-091 Thai System Feature Catalog and Open Verification Register
+- Type: Documentation / Product Traceability
+- Status: Done
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Owner: Codex / Project owner for acceptance and remaining real-file UAT
+- Problem: The system capabilities are distributed across feature notes, task history, architecture notes, and source code. The team needs one Thai-language catalog grouped by user workflow, including detailed image-capture cases and an explicit register of capabilities that must still be collected, tested, or certified.
+- Acceptance Criteria:
+  1. Create a Thai `documents/feature-catalog.md` covering import, original-source review, OCR, normalization, parsing, formatting, capture/cropping, diagram harvesting, answer extraction, editing, drafts/history/statistics, review, export, deployment, security, performance, and verification.
+  2. Describe capture cases separately: framed tables, frameless figures, faint/incomplete table lines, skew/gutter contamination, apparatus annotations, shared-context tables, choice-only images, and explanation images.
+  3. Mark implemented behavior, provider/configuration-dependent behavior, and unresolved limitations without claiming universal OCR or answer accuracy.
+  4. Add a numbered open-verification register derived from the catalog, with owner/action/evidence fields so item 20 and similar risks can be tracked to closure.
+  5. Link the catalog from `README.md` and `documents/00-index.md`, and add traceability/code-map/memory references.
+- Affected Files: `documents/feature-catalog.md`, `documents/tasks.md`, `README.md`, `documents/00-index.md`, `documents/traceability.md`, `documents/code-map.md`, `documents/memory.md`.
+- Expected verification: inspect links and headings; run `node scripts/check-knowledge-vault.mjs`, `node scripts/check-knowledge-drift.mjs`, and `node scripts/finish-task.mjs T-091`.
+- Verification update (2026-10-15): Created the Thai feature catalog with grouped workflows, detailed capture cases, provider/configuration boundaries, and a 20-item open-verification register. Linked it from `README.md` and `documents/00-index.md`; synchronized `documents/traceability.md`, `documents/code-map.md`, and `documents/memory.md`. `check-knowledge-vault.mjs` passed, `check-knowledge-drift.mjs --require-git` passed, and the feature-catalog structure check passed. The first completion-gate attempt hit sandbox loopback `EACCES 127.0.0.1`; an authorized rerun passed all 17 unit/contract suites, typecheck, lint (8 pre-existing `<img>` warnings only), and CSS health. One E2E artifact copy was transiently blocked by Windows temp-file handling; standalone E2E rerun passed all 16 browser checks, and the final completion gate passed with production build `261015-0933`. Moved to Verified.
+- Final status (2026-10-15): Documentation scope is complete and the task is Done. The 20-item register remains intentionally open as follow-up verification work; each item must receive its own evidence-backed PASS/FAIL/BLOCKED result before it can be considered closed.
+### T-092 Q80 Figure Crop Exclusion and Spacious Editor Header
+- Type: `Bug / UX Refinement`
+- Status: `Verified`
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Owner: Codex / Core Formatter & Vision Pipeline Engineer
+- Problem: The editor header and question navigation are visually cramped. The Q80 figure crop still includes unrelated question text above and an answer-choice line below, even though the apparatus and its callout labels are the intended image content.
+- Acceptance Criteria:
+  1. Increase breathing room and grouping in the editor header, toolbar, and question navigation without changing the source-left/editor-right workflow or export contract.
+  2. For Q80-like figures, exclude unrelated stem/choice text above and below while preserving the apparatus and full labels `สารละลายส่วนบน` and `สารละลายส่วนล่าง`.
+  3. Add a regression contract/fixture that catches both top and bottom intruder text and preserves the main figure.
+  4. Record reproducible test output and a before/after crop evidence artifact.
+  5. Synchronize the affected feature note, traceability, code map, design/decision notes, and memory.
+- Affected Files: `components/SplitDocumentEditor.tsx`, `lib/diagram-client.ts`, `lib/diagram-service.ts`, `scripts/test-diagram-contract.cjs`, `documents/tasks.md`, `documents/traceability.md`, `documents/code-map.md`, `documents/design.md`, `documents/decisions.md`, `documents/memory.md`, `features/r-002-feature.md`, `features/r-004-feature.md`, and `evidence/t092-*`.
+- Expected verification: targeted diagram contract, full `npm test`, typecheck, lint, E2E, production build, browser/source-vs-crop evidence, and `node scripts/finish-task.mjs T-092`.
+- Verification update (2026-10-15): `node scripts/test-diagram-contract.cjs`, `npm run typecheck`, `npm run lint -- --quiet`, `npm test` (authorized loopback rerun), `npm run build` (stamp `261015-0954`), and `scripts/test-e2e.cjs` against `http://localhost:3220/` (16/16) passed. Manual upload + explicit conversion also passed and showed the new spacious editor layout. The deterministic E2E fixture did not exercise the real 80-question provider crop; that limitation was carried into the final risk record. Evidence: `evidence/t092-verification.md`.
+- Final verification (2026-10-15): Completion gate passed with semantic validator, platform readiness, knowledge drift, typecheck, lint (8 existing `<img>` warnings, 0 errors), full `npm test`, E2E 16/16, production build stamp `261015-1006`, and CSS delivery health. T-092 is `Verified` for the deterministic crop rule and spacious editor behavior. Exact source-PDF/provider crop confirmation remains an explicit follow-up risk and is not being reported as universal accuracy. Evidence: `evidence/t092-verification.md`.
+### T-093 Exact Q80 Source-PDF Vision Crop UAT
+- Type: `Confirmation / Manual UAT`
+- Status: `Proposed`
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Owner: Project owner + Codex / Vision QA
+- Problem: The deterministic Q80-shaped fixture proves edge-cut behavior, but the exact 80-question PDF/provider response must be exercised to confirm that the real crop contains only the separating-funnel apparatus and both `สารละลายส่วนบน/ล่าง` labels.
+- Acceptance Criteria: Import the supplied 80-question PDF, run OCR and diagram extraction with the configured provider, inspect Q80 against the left source pane, save before/after crop evidence, and record PASS/FAIL/BLOCKED with provider/quota details.
+- Affected Files: `evidence/t093-q80-source-uat.md` and, only if the real run fails, the crop/prompt files already mapped by T-092.
+- Expected verification: browser run on the current build, source-vs-crop screenshot, and `node scripts/finish-task.mjs T-093` after any code change.
+
+### T-094 Compact OCR workspace layout
+- Type: `Feature / UX Layout`
+- Status: `Done`
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Owner: Codex / Core Formatter & UX Engineer
+- Problem: The OCR workspace header and question navigation consume too much vertical space. The step controls, 80-question navigation, and editor toolbar are stacked with large wrapping gaps, reducing the visible area for OCR review and editing.
+- Acceptance Criteria:
+  1. Keep the original source pane and conversion pane as the primary two-column workspace without changing the source-only boundary or export DOM.
+  2. Reduce the conversion header height by grouping the title and pipeline controls into a compact control strip that wraps only when the viewport requires it.
+  3. Render question navigation as a compact bounded strip with consistent small buttons and no unnecessary row gaps; it must remain keyboard accessible and support all parsed questions.
+  4. Keep review issues discoverable without reserving a large permanent block; the issue summary may remain collapsible.
+  5. Preserve accessible labels, tooltips, active states, and all existing actions (convert, crop/diagram, answer scan, review, copy, export).
+  6. Add or update a deterministic UI contract check for compact layout markers and run the full verification gate.
+- Affected Files: `components/SplitDocumentEditor.tsx`, `documents/tasks.md`, `documents/design.md`, `documents/traceability.md`, `documents/code-map.md`, `documents/memory.md`, `features/r-001-browser.md`, `features/r-004-feature.md`, and the relevant UI contract test if needed.
+- Expected verification: `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`, browser/E2E smoke check where feasible, `node scripts/check-knowledge-drift.mjs --require-git`, `node scripts/check-knowledge-vault.mjs`, and `node scripts/finish-task.mjs T-094`.
+- Verification update (2026-10-15 Asia/Bangkok): `npm run typecheck`, `npm run lint -- --quiet`, full `npm test`, `npm run build`, `node scripts/test-e2e.cjs` on isolated port 3227 (16/16), knowledge vault/drift checks, and `node scripts/finish-task.mjs T-094` with E2E pointed at verified server port 3228 all passed. The browser contract includes compact header/navigation markers, all 80 question buttons, source-left/editor-right stability, keyboard navigation, and mobile no-overflow. ESLint reports 0 errors and 8 pre-existing `<img>` warnings. Evidence: `evidence/t094-verification.md`. Lifecycle reached `Verified` and then `Done`.
+
+### T-095 Active question-window navigation
+- Type: `Feature / UX Navigation`
+- Status: `Done`
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Owner: Codex / Core Formatter & UX Engineer
+- Problem: Showing every question button at once still consumes unnecessary horizontal and vertical space on long exams. The user needs the active 10-question window plus decade anchors, while preserving quick jumps to 10, 20, 30, and later anchors.
+- Acceptance Criteria:
+  1. Initial state for 1-80 shows `1..10, 20, 30, 40, 50, 60, 70, 80`.
+  2. Active question 10 shows `10..20, 30, 40, 50, 60, 70, 80`.
+  3. Active question 20 shows `10, 20..30, 40, 50, 60, 70, 80`.
+  4. The active window updates after clicking a question or scrolling the editor; all visible controls remain keyboard accessible.
+  5. Window transitions have a restrained animation that does not shift the editor unexpectedly or change question count.
+  6. Add deterministic regression assertions for the 80-question sequence and run the full verification gate.
+- Affected Files: `components/SplitDocumentEditor.tsx`, `app/globals.css`, `scripts/test-e2e.cjs`, `documents/tasks.md`, `documents/design.md`, `documents/traceability.md`, `documents/code-map.md`, `documents/memory.md`, `features/r-001-browser.md`, and `features/r-004-feature.md`.
+- Expected verification: typecheck, lint, unit/contract tests, browser assertions for active windows 1/10/20/80, build, knowledge checks, and `node scripts/finish-task.mjs T-095`.
+- Verification update (2026-10-15 Asia/Bangkok): Implemented the active-window rule and restrained transition animation. Full `npm test`, typecheck, lint (0 errors and 8 pre-existing image warnings), production build `261015-1141`, knowledge vault/drift checks, `git diff --check`, and browser E2E 16/16 passed. The browser contract verified the exact initial, active-10, and active-20 sequences while preserving all 80 question items and keyboard/source-pane behavior. `node scripts/finish-task.mjs T-095` completed with exit code 0; CSS delivery health also passed. Environment-only sandbox loopback/EPERM attempts were resolved by the authorized external runtime. Evidence: `evidence/t095-verification.md`. Lifecycle reached `Verified` and then `Done`.
+
+### T-096 Preserve first-question navigation anchor
+- Type: `Bug / UX Navigation`
+- Status: `Done`
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Owner: Codex / Core Formatter & UX Engineer
+- Problem: In a long exam, the active-window navigation keeps decade anchors but drops question 1 after leaving the first window. The user cannot jump directly back to questions 1-9 from a later window such as 60-70.
+- Acceptance Criteria:
+  1. Preserve the first parsed question as a permanent navigation anchor in every long-document window.
+  2. Keep the existing active-window and decade-anchor behavior for the 1-80 examples, with no duplicate button when the first question is already in the active window.
+  3. Cover short documents, documents whose first question is not numbered 1, and final windows that do not end on a multiple of 10.
+  4. Keep keyboard access, `aria-current`, animation, and source-pane behavior unchanged.
+  5. Record regression evidence and complete the full verification gate.
+- Affected Files: `components/SplitDocumentEditor.tsx`, `scripts/test-e2e.cjs`, `documents/tasks.md`, `documents/design.md`, `documents/traceability.md`, `documents/code-map.md`, `documents/memory.md`, `features/r-001-browser.md`, `features/r-004-feature.md`, and `evidence/t096-verification.md`.
+- Expected verification: typecheck, lint, unit/contract tests, browser assertions for initial/10/20/60/80 and non-1 first-question fixtures, build, knowledge checks, and `node scripts/finish-task.mjs T-096`.
+- Verification update (2026-10-15 Asia/Bangkok): Added a permanent first parsed-question anchor, index-based window calculation for documents that start at a number other than 1, duplicate prevention, and a final-window clamp. Full `npm test`, typecheck, lint (0 errors and 8 pre-existing image warnings), production build `261015-1257`, knowledge vault/drift checks, and E2E 17/17 passed. The browser contract verified initial/10/20/60/80 windows, short documents, keyboard behavior, and a fixture beginning at question 21. `node scripts/finish-task.mjs T-096` completed with exit code 0 and CSS delivery health passed. Evidence: `evidence/t096-verification.md`. Lifecycle reached `Verified` and then `Done`.
+
+### T-097 Compact status rail and automatic answer action
+- Type: `Feature / UX Refinement`
+- Status: `Done`
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Owner: Codex / Core Formatter & UX Engineer
+- Problem: The editor status message occupies a full-width row, the stepper icons change layout as labels/state badges appear, and the review alert repeats information already available in the issue rail. The answer action should be explicit and useful when no source answer exists: clicking it should run the configured source-answer analysis with a clear busy/result state.
+- Acceptance Criteria:
+  1. Status messaging is short, compact, and does not push the editor content or overlap adjacent controls.
+  2. Stepper controls use fixed-size icon buttons with stable geometry; labels are available through tooltip/focus disclosure and accessible names.
+  3. The redundant permanent review alert row is removed; review issues remain discoverable through the compact review control.
+  4. The answer button remains disabled until formatted questions exist, then automatically invokes the existing answer-analysis callback when clicked, including when no source answers are present.
+  5. Busy, success, unavailable, and no-answer outcomes remain visible without claiming an answer was found when the provider abstains.
+  6. Add deterministic UI regression assertions, synchronize knowledge files, and complete the full verification gate.
+- Affected Files: `app/page.tsx`, `components/SplitDocumentEditor.tsx`, `app/globals.css`, `scripts/test-e2e.cjs`, `documents/tasks.md`, `documents/design.md`, `documents/traceability.md`, `documents/code-map.md`, `documents/memory.md`, `features/r-001-browser.md`, `features/r-004-feature.md`, and `evidence/t097-verification.md`.
+- Expected verification: typecheck, lint, unit/contract tests, browser checks for stable compact controls and answer action, build, knowledge checks, and `node scripts/finish-task.mjs T-097`.
+- Verification update (2026-10-15 Asia/Bangkok): Repositioned document status into a compact overlay pill, moved editor notices to a floating toast, converted the stepper to fixed 32px icon slots with hover/focus labels, removed duplicate main review alerts, and kept the answer icon connected to automatic source-answer Vision analysis. Full `npm test`, typecheck, lint (0 errors and 8 existing image warnings), production build `261015-1319`, knowledge vault/drift checks, and E2E 18/18 passed. `node scripts/finish-task.mjs T-097` completed with exit code 0 and CSS delivery health passed. Evidence: `evidence/t097-verification.md`. Lifecycle reached `Verified` and then `Done`.
+
+### T-098 AI answer fallback when source key is absent
+- Type: `Feature / Answer Reconciliation`
+- Status: `Done`
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Owner: Codex / Answer Reconciliation Engineer
+- Problem: The answer icon currently scans only existing source annotations. When a source document has no answer key or visible mark, clicking it reports zero answers instead of asking the configured AI provider to solve the parsed multiple-choice questions.
+- Acceptance Criteria:
+  1. Preserve existing source-answer extraction and never replace a source-provided answer with an AI-generated answer.
+  2. After source extraction, send only unresolved questions to a separate AI-solve path when the user clicks the answer action.
+  3. Accept only a valid choice key belonging to the question; store provenance as `ai_generated` with confidence/evidence metadata and a visible “เฉลยจาก AI” state.
+  4. If provider quota, parsing, or confidence checks fail, leave the question unresolved and report the count/failure without inventing answers.
+  5. Add deterministic API/client/E2E regression tests proving that a no-answer fixture receives AI answers after clicking the icon and that source answers remain unchanged.
+  6. Synchronize knowledge files and complete the full verification gate.
+- Affected Files: `app/api/source-answers/route.ts`, `app/api/ai-answers/route.ts`, `lib/source-answer-service.ts`, `lib/source-answer-client.ts`, `lib/ai-answer-service.ts`, `lib/formatter-rules.ts`, `app/page.tsx`, `components/SplitDocumentEditor.tsx`, `scripts/test-source-answers.cjs`, `scripts/test-e2e.cjs`, `documents/tasks.md`, `documents/design.md`, `documents/traceability.md`, `documents/code-map.md`, `documents/memory.md`, `features/r-001-browser.md`, `features/r-004-feature.md`, and `evidence/t098-verification.md`.
+- Expected verification: source-answer contracts, AI-solve contract with mocked provider, typecheck, lint, full tests, browser click flow, build, knowledge checks, and `node scripts/finish-task.mjs T-098`.
+- Verification update (2026-10-15 Asia/Bangkok): Added a separate `/api/ai-answers` Gemini solver with strict choice-key/confidence/evidence validation and optional page-image context. The answer action now runs source extraction first, then solves only unresolved questions; source answers remain authoritative. AI results are stored as `ai_generated`, shaded yellow, and labeled `เฉลยจาก AI · ตรวจทาน`; source/AI/unresolved counts are reported in the compact status. `node scripts/test-source-answers.cjs`, `npm test`, `npm run typecheck`, `npm run lint` (0 errors, 8 pre-existing `<img>` warnings), `npm run test:e2e` (18/18), `npm run build`, `node scripts/check-css.mjs`, and `node scripts/finish-task.mjs T-098` passed. A real smoke request to `/api/ai-answers` returned a valid Thai answer from `gemini-flash-lite-latest`. Evidence: `evidence/t098-verification.md`. Lifecycle reached `Verified` then `Done`.
+
+### T-099 Automatic Ollama readiness before local OCR
+- Type: `Feature / Local OCR Runtime`
+- Status: `Done`
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Owner: Codex / Local OCR Runtime Engineer
+- Problem: Local OCR currently fails when Ollama is not already running. Users must manually start `ollama serve` before every OCR session, even though the application already knows the local endpoint.
+- Acceptance Criteria:
+  1. Every OCR API request targeting the local Ollama provider checks `/api/tags` before sending OCR images.
+  2. If Ollama is unavailable, the server starts `ollama serve` as a detached hidden process on Windows and waits for the endpoint to become ready.
+  3. Concurrent OCR requests share one startup promise and do not spawn multiple Ollama processes.
+  4. Existing running Ollama is reused; remote OCR and Google Vision configurations do not spawn a local process.
+  5. Startup failure returns a clear actionable error and never hides the original OCR failure.
+  6. Add deterministic runtime contract tests, synchronize knowledge files, run the full verification gate, and record evidence.
+- Affected Files: `lib/ollama-runtime.ts`, `app/api/ocr/route.ts`, `scripts/test-ollama-runtime.cjs`, `package.json`, `documents/tasks.md`, `documents/architecture.md`, `documents/decisions.md`, `documents/traceability.md`, `documents/code-map.md`, `documents/memory.md`, `features/r-001-browser.md`, `evidence/t099-verification.md`.
+- Expected verification: `node scripts/test-ollama-runtime.cjs`, `npm test`, `npm run typecheck`, `npm run lint`, `npm run build`, local endpoint smoke, and `node scripts/finish-task.mjs T-099`.
+- Verification update (2026-10-15 Asia/Bangkok): Added `lib/ollama-runtime.ts` and gated local/fallback OCR in `app/api/ocr/route.ts`. Runtime contract passed local reuse, detached auto-start, concurrent startup locking, remote bypass, endpoint mapping, and bounded failure. `npm test` passed including local vision loopback, `npm run typecheck` passed, and `npm run lint` passed with 0 errors and 8 pre-existing `<img>` warnings. Live Node probe reached `http://127.0.0.1:11434/api/tags` and found the installed local models. Evidence: `evidence/t099-verification.md` and `evidence/t099-live-ollama.json`. Moved to Verified.
+- Final gate verification (2026-10-15): `node scripts/finish-task.mjs T-099` passed semantic validator, platform readiness, git drift, typecheck, lint, all tests, production build, and CSS delivery health check. Marked Done.
+
+### T-100 Preserve media and structural labels after review before export
+- Type: `Bug / Export Readiness`
+- Status: `Done`
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Owner: Codex / Editor & Export Reliability Engineer
+- Problem: Clicking the review/check step reparses the rendered editor text and replaces `formattedItems`. The reparsed text includes managed labels such as `รูปโจทย์:` and `รูปโจทย์ร่วม:` while live choice/shared/question images are not represented in the plain-text parser, so review can duplicate labels and remove choice images before export.
+- Acceptance Criteria:
+  1. Review validates the live editor without replacing or rerendering its media-bearing DOM.
+  2. Question, shared-context, choice, and explanation images remain present after review.
+  3. Managed labels are emitted exactly once and do not become question text.
+  4. Source-provided and AI answer shading/provenance remain stable after review.
+  5. `snapshotDocument`/Google export receives the same text and images before and after review.
+  6. Browser regression covers review click and export snapshot media/label assertions; full completion gate passes.
+- Affected Files: `app/page.tsx`, `components/SplitDocumentEditor.tsx`, `lib/export-document.ts`, `scripts/test-e2e.cjs`, `scripts/test-google.cjs`, knowledge files and `evidence/t100-verification.md`.
+- Expected verification: focused export/review regression, `npm test`, typecheck, lint, browser E2E, build, and `node scripts/finish-task.mjs T-100`.
+- Verification update (2026-10-15 Asia/Bangkok): Review validates a media-stripped DOM clone and leaves the live editor DOM intact. Browser E2E passed 19 checks with no runtime errors, including retention of question/shared/choice/explanation images, exactly one managed label per role, and removal of duplicate managed labels from question text. Google export regression passed with four embedded media files. `npm test`, typecheck and lint passed; lint has 0 errors and 8 pre-existing `<img>` warnings. Final `node scripts/finish-task.mjs T-100` passed semantic validation, platform readiness, git drift, all discovered tests, isolated production build, and CSS delivery health. Moved to Verified, then Done. Evidence: `evidence/t100-verification.md` and `evidence/qa-iteration-2/results.json`.
 ### T-004 Implement R-001 Drag & Drop File Upload Engine
 - Type: `Feature`
 - Status: `Ready`

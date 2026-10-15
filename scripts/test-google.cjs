@@ -60,6 +60,19 @@ const { validateExportDocument, createExportDocx } = require('../lib/google-expo
   assert.equal((documentXml.match(/<w:keepNext\/>/g)||[]).length,1);
   assert.equal((documentXml.match(/<w:keepLines\/>/g)||[]).length,2);
 
+  const mediaFixture = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j5N8AAAAASUVORK5CYII=';
+  const mediaDoc = await createExportDocx({
+    title: 'Media roles after review',
+    paragraphs: [{ runs: [
+      { text: 'รูปโจทย์:' }, { image: mediaFixture, width: 20, height: 20 },
+      { text: 'รูปโจทย์ร่วม:' }, { image: mediaFixture, width: 20, height: 20 },
+      { text: 'รูปตัวเลือก ก' }, { image: mediaFixture, width: 20, height: 20 },
+      { text: 'รูปคำอธิบาย:' }, { image: mediaFixture, width: 20, height: 20 },
+    ] }],
+  });
+  const mediaZip = await JSZip.loadAsync(mediaDoc);
+  assert.equal(Object.entries(mediaZip.files).filter(([name, entry]) => name.startsWith('word/media/') && !entry.dir).length, 4, 'Export must keep question/shared/choice/explanation images');
+
   // Invalid doc should throw
   assert.throws(() => validateExportDocument({ title: '', paragraphs: [] }));
 

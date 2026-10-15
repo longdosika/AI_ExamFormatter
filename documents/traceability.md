@@ -170,3 +170,35 @@ Requirement R-002/R-004 -> Task T-089 -> Feature Note: [[features/r-002-feature]
 Deployment / Cloud Platform Requirement -> Task T-090 -> Feature Note: [[features/r-001-browser]], [[features/r-003-google-doc-dirve]] -> Code: `vercel.json`, `app/api/diagrams/route.ts`, `app/api/ocr/route.ts`, `app/api/source-answers/route.ts`, `app/api/google/export/route.ts`, `.env.example` -> Verification: `npm test`, `npm run typecheck`, `npm run lint`, `npm run build`, `node scripts/finish-task.mjs T-090`. Configures `vercel.json` and 60-second serverless execution timeouts on long-running AI/OCR routes; synchronizes pre-bundled PDF.js assets; documents cloud environment variables and Google Cloud OAuth production redirect URI.
 
 
+### T-091 Thai system feature catalog and open verification register
+
+Requirement R-001/R-002/R-003/R-004 -> Task T-091 -> `documents/feature-catalog.md` -> implementation references in `app/page.tsx`, `components/SplitDocumentEditor.tsx`, `components/RichTextToolbar.tsx`, `lib/file-parser.ts`, `lib/ocr-service.ts`, `lib/exam-parser.ts`, `lib/diagram-service.ts`, `lib/diagram-client.ts`, `lib/source-answer-service.ts`, `lib/document-draft-store.ts`, `lib/experiment-stats.ts`, and `lib/google-export.ts` -> verification commands and real-file evidence listed in the catalog. The catalog explicitly separates implemented behavior from provider/configuration-dependent behavior and keeps a 20-item open-verification register; no universal OCR, answer, crop, or export accuracy is claimed.
+
+### T-092 Q80 figure crop and spacious editor controls
+Requirement R-002/R-004 -> Task T-092 -> Feature Notes: `features/r-002-feature.md`, `features/r-004-feature.md` -> Code: `lib/diagram-client.ts`, `lib/diagram-service.ts`, `components/SplitDocumentEditor.tsx`, `scripts/test-diagram-contract.cjs` -> Verification: production crop detector contract, full unit/contract suite, typecheck, lint, build, E2E/browser evidence when the source fixture is available, and `node scripts/finish-task.mjs T-092`. The current fixture verifies removal of top/bottom intruders and the UI spacing contract; provider-backed Q80 browser confirmation remains required before declaring universal crop accuracy.
+
+### T-093 exact Q80 source-PDF Vision UAT
+Requirement R-002 -> Confirmation Task T-093 -> Evidence: `evidence/t093-q80-source-uat.md` (to be created by the real-file run). This is deliberately separated from the deterministic T-092 implementation so a provider/quota failure cannot be mistaken for a crop-code regression.
+
+### T-094 compact OCR workspace layout
+Requirement R-001/R-004 -> Task T-094 -> Feature Notes: `features/r-001-browser.md`, `features/r-004-feature.md` -> Code: `components/SplitDocumentEditor.tsx`, `scripts/test-e2e.cjs` -> Verification: compact layout data markers, 80-question navigation count, source-left/editor-right E2E, typecheck, lint, unit tests, build, knowledge drift/vault checks, and `node scripts/finish-task.mjs T-094`.
+
+### T-095 active question-window navigation
+Requirement R-001/R-004 -> Task T-095 -> Feature Notes: `features/r-001-browser.md`, `features/r-004-feature.md` -> Code: `components/SplitDocumentEditor.tsx`, `app/globals.css`, `scripts/test-e2e.cjs` -> Verification: deterministic 80-question visible sequences for active 1/10/20, keyboard/source stability, reduced-motion CSS contract, full tests, build, knowledge checks, and `node scripts/finish-task.mjs T-095`.
+
+### T-096 first-question navigation anchor
+Requirement R-001/R-004 -> Task T-096 -> Feature Notes: `features/r-001-browser.md`, `features/r-004-feature.md` -> Code: `components/SplitDocumentEditor.tsx`, `scripts/test-e2e.cjs` -> Verification: first-question anchor in active 10/20/60/80 windows, no duplicate in the first window, non-1 first-question and short-document guards, full tests, build, knowledge checks, and `node scripts/finish-task.mjs T-096`.
+
+### T-097 compact status rail and automatic answer action
+Requirement R-001/R-004 -> Task T-097 -> Feature Notes: `features/r-001-browser.md`, `features/r-004-feature.md` -> Code: `app/page.tsx`, `components/SplitDocumentEditor.tsx`, `scripts/test-e2e.cjs` -> Verification: stable compact status/icon-stepper geometry, no duplicate workspace alert, answer-analysis callback on image-backed fixture, full tests, build, knowledge checks, and `node scripts/finish-task.mjs T-097`.
+
+
+### T-098 AI answer fallback when source key is absent
+Requirement R-001/R-004 -> Task T-098 -> Feature Notes: [[features/r-001-browser]], [[features/r-004-feature]] -> Code: `lib/source-answer-client.ts`, `lib/ai-answer-service.ts`, `app/api/ai-answers/route.ts`, `app/page.tsx`, `components/SplitDocumentEditor.tsx`, `scripts/test-source-answers.cjs`, `scripts/test-e2e.cjs` -> Verification: source/AI answer contracts, browser click flow with mocked empty source-answer response and AI fallback, full tests, typecheck, lint, build, knowledge checks, and `node scripts/finish-task.mjs T-098`. The source Vision path remains abstention-only and AI solving runs only on unresolved questions, recording `ai_generated` provenance and review evidence without overwriting source answers.
+
+### T-099 Automatic Ollama readiness before local OCR
+Local OCR usability requirement -> Task T-099 -> Feature Note: `features/r-001-browser.md` -> Code: `lib/ollama-runtime.ts`, `app/api/ocr/route.ts`, `scripts/test-ollama-runtime.cjs` -> Verification: runtime contract, full unit/contract suite, typecheck, lint, build, local executable/endpoint smoke when available, and `node scripts/finish-task.mjs T-099`. Scope explicitly excludes Ollama installation/model download and remote provider startup.
+
+### T-100 Review/export media preservation
+Requirement R-002/R-004 (media ownership and export fidelity) -> Task T-100 -> Feature Note: [[features/r-001-browser]] -> Code: `app/page.tsx`, `components/SplitDocumentEditor.tsx`, `lib/export-document.ts`, `scripts/test-e2e.cjs`, `scripts/test-google.cjs` -> Verification: live-DOM review regression, four-role Google export media regression, `npm test`, typecheck, lint, E2E, build and `node scripts/finish-task.mjs T-100` -> Evidence: `evidence/t100-verification.md`, `evidence/qa-iteration-2/results.json`.
+

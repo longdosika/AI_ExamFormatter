@@ -8,6 +8,7 @@ require.extensions['.ts'] = (module, filename) => {
 };
 
 const { analyzePageDiagrams } = require('../lib/diagram-service.ts');
+const { detectIntruderCuts } = require('../lib/diagram-client.ts');
 
 // 1. Contract: Diagram Types & Bounding Box Validations
 const mockDiagrams = [
@@ -95,88 +96,11 @@ assert.deepEqual(cropPolicy("question"), { cropPadding: 32, shouldTrimEdges: "al
 assert.deepEqual(cropPolicy("explanation"), { cropPadding: 16, shouldTrimEdges: "none" });
 assert.deepEqual(cropPolicy("choice"), { cropPadding: 20, shouldTrimEdges: "none" });
 
-// 3. T-089 Robust Gutter Trimming & Margin Tolerance Contract
+// 3. T-092/T-089 Robust Gutter Trimming & Margin Tolerance Contract.
+// The contract imports the production projection helper so the test cannot drift
+// away from the Canvas implementation.
 function simulateGutterDetection(rowDarkness, contentThreshold = 3, targetMargin = 3, options = { top: true, bottom: true }) {
-  const h = rowDarkness.length;
-  let topCut = 0;
-
-  if (options.top !== false) {
-    const maxSearchTop = Math.min(Math.round(h * 0.35), 140);
-    let textStart = -1;
-    let textEnd = -1;
-    let gutterStart = -1;
-    let gutterEnd = -1;
-
-    for (let y = 0; y < maxSearchTop; y++) {
-      const isDark = rowDarkness[y] >= contentThreshold;
-      if (isDark) {
-        if (textStart === -1) textStart = y;
-        if (gutterStart !== -1) {
-          gutterEnd = y;
-          break;
-        }
-      } else {
-        if (textStart !== -1 && gutterStart === -1) {
-          textEnd = y;
-          gutterStart = y;
-        }
-      }
-    }
-
-    const textHeight = (textStart !== -1 && textEnd !== -1) ? (textEnd - textStart) : 0;
-    const gutterHeight = (gutterStart !== -1 && gutterEnd !== -1) ? (gutterEnd - gutterStart) : 0;
-
-    if (textStart !== -1 && gutterEnd !== -1 && gutterHeight >= 2 && textHeight <= 36) {
-      topCut = Math.max(0, gutterEnd - targetMargin);
-    } else if (textStart === -1) {
-      let firstY = 0;
-      while (firstY < maxSearchTop && rowDarkness[firstY] < contentThreshold) firstY++;
-      if (firstY > targetMargin) topCut = firstY - targetMargin;
-    } else {
-      if (textStart > targetMargin) topCut = textStart - targetMargin;
-    }
-  }
-
-  let bottomCut = h;
-
-  if (options.bottom !== false) {
-    const minSearchBottom = Math.max(h - 140, Math.round(h * 0.65));
-    let bTextStart = -1;
-    let bTextEnd = -1;
-    let bGutterStart = -1;
-    let bGutterEnd = -1;
-
-    for (let y = h - 1; y >= minSearchBottom; y--) {
-      const isDark = rowDarkness[y] >= contentThreshold;
-      if (isDark) {
-        if (bTextStart === -1) bTextStart = y;
-        if (bGutterStart !== -1) {
-          bGutterEnd = y;
-          break;
-        }
-      } else {
-        if (bTextStart !== -1 && bGutterStart === -1) {
-          bTextEnd = y;
-          bGutterStart = y;
-        }
-      }
-    }
-
-    const bTextHeight = (bTextStart !== -1 && bTextEnd !== -1) ? (bTextStart - bTextEnd) : 0;
-    const bGutterHeight = (bGutterStart !== -1 && bGutterEnd !== -1) ? (bGutterStart - bGutterEnd) : 0;
-
-    if (bTextStart !== -1 && bGutterEnd !== -1 && bGutterHeight >= 2 && bTextHeight <= 36) {
-      bottomCut = Math.min(h, bGutterEnd + 1 + targetMargin);
-    } else if (bTextStart === -1) {
-      let lastY = h - 1;
-      while (lastY >= minSearchBottom && rowDarkness[lastY] < contentThreshold) lastY--;
-      if (h - 1 - lastY > targetMargin) bottomCut = Math.min(h, lastY + 1 + targetMargin);
-    } else {
-      if (h - 1 - bTextStart > targetMargin) bottomCut = Math.min(h, bTextStart + 1 + targetMargin);
-    }
-  }
-
-  return { topCut, bottomCut };
+  return detectIntruderCuts(rowDarkness, contentThreshold, targetMargin, options);
 }
 
 // Case A: Table contaminated with text title above (rows 0-5) and question text below (rows 50-55)
@@ -215,6 +139,18 @@ assert.equal(qDeepTrimResult.topCut, 43, `Expected topCut 43, got ${qDeepTrimRes
 // Bottom cut must remove bottom choices (169..186) and cut cleanly at 150 + 1 + 3 = 154
 assert.equal(qDeepTrimResult.bottomCut, 154, `Expected bottomCut 154, got ${qDeepTrimResult.bottomCut}`);
 
+// Q80 regression: rasterised text can be taller than the old 36px limit and
+// the gutter can collapse to one row. Both intruders must still be removed.
+const q80Rows = new Array(320).fill(0);
+for (let y = 34; y <= 82; y++) q80Rows[y] = 18; // stem/title above the apparatus
+for (let y = 84; y <= 90; y++) q80Rows[y] = 0; // narrow raster gutter
+for (let y = 91; y <= 260; y++) q80Rows[y] = 120; // apparatus + callouts
+for (let y = 261; y <= 266; y++) q80Rows[y] = 0; // narrow raster gutter
+for (let y = 267; y <= 309; y++) q80Rows[y] = 16; // answer choice below the figure
+const q80TrimResult = simulateGutterDetection(q80Rows, 3, 3, { top: true, bottom: true });
+assert.equal(q80TrimResult.topCut, 88, `Q80 top stem must be removed, got ${q80TrimResult.topCut}`);
+assert.equal(q80TrimResult.bottomCut, 264, `Q80 answer choice must be removed, got ${q80TrimResult.bottomCut}`);
+
 // Case C: Choice crystal diagram (Q16) - pure figure starting at y = 15, no intruder text
 const mockCrystalRows = new Array(100).fill(0);
 for (let y = 15; y <= 85; y++) mockCrystalRows[y] = 90;
@@ -236,5 +172,5 @@ assert.ok(editorSource.includes('data-explanation-image="true"'), 'Explanation i
 const packageSource = fs.readFileSync(require.resolve('../package.json'), 'utf8');
 assert.ok(packageSource.includes('"predev": "node scripts/stamp-version.cjs"'), 'Development server startup must stamp the visible build number');
 
-console.log("Diagram harvesting contract, bbox validation, T-082 smart gutter trimming, T-084 crop/order, and T-086 bottom-trim/build-stamp tests passed.");
+console.log("Diagram harvesting contract, bbox validation, T-089/T-092 gutter trimming, T-084 crop/order, and T-086 bottom-trim/build-stamp tests passed.");
 

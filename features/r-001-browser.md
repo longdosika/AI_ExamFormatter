@@ -78,3 +78,28 @@ T-087: Draft/cache history now resumes work as an editable session instead of re
 
 T-090: Vercel serverless cloud deployment and zero-timeout configuration. Added `vercel.json` with 60s maxDuration for API routes, ensuring OCR and diagram services do not terminate prematurely in cloud execution. Pre-synced PDF.js assets in `public/` allow native client rendering in deployed Vercel environments.
 
+### T-091 Thai system feature catalog
+
+The complete Thai capability map is maintained in [[documents/feature-catalog]]. It documents the end-to-end import/source/OCR/edit/export workflow, separates manual capture from AI diagram harvesting, enumerates framed and frameless table/figure cases, and maintains a 20-item evidence register for behavior that must still be verified on real files. This note is a documentation traceability link; it does not claim universal OCR, crop, answer, or export accuracy.
+
+### T-094 compact OCR workspace layout
+The conversion header uses a compact responsive control strip and question navigation is a single flex-wrapped strip with small, keyboard-accessible numbered buttons. The source pane remains the stable original reference and the editor/export behavior is unchanged. Browser verification asserts the compact layout markers and all parsed question buttons.
+
+### T-095 active question-window navigation
+Long exams show the active question window plus decade anchors instead of all buttons at once. For an 80-question document the verified sequences are `1..10,20..80`, `10..20,30..80`, and `10,20..30,40..80`; the window updates from clicks or editor scrolling and remains keyboard accessible.
+
+### T-096 first-question navigation anchor
+Long-exam navigation keeps the first parsed question as a permanent anchor outside the active window. This lets users return to questions 1–9 from later windows while retaining decade anchors and avoiding duplicate buttons.
+
+### T-097 compact status rail and automatic answer action
+The document workspace uses a centered compact status pill and a floating editor toast so progress messages do not reserve layout rows. The four-step rail uses fixed icon slots with hover/focus labels. The answer icon invokes source-answer analysis on image-backed documents even when OCR contains no answer key, while abstentions remain visible.
+
+
+### T-098 AI answer fallback when source key is absent
+เมื่อกดปุ่มเฉลย ระบบอ่านรอยเฉลยจากต้นฉบับก่อน และส่งข้อที่ยังไม่มีเฉลยไปยัง AI solver แยกต่างหาก รองรับทั้งเอกสารมีภาพและข้อความล้วน เฉลยที่ AI เติมจะมีป้าย `เฉลยจาก AI · ตรวจทาน`, เหตุผล และสถานะสีเหลือง ส่วนเฉลยจากต้นฉบับจะไม่ถูกเขียนทับ หลักฐาน regression อยู่ใน `evidence/t098-verification.md`.
+
+### T-099 Automatic Ollama readiness before local OCR
+ทุกคำขอ OCR ที่ใช้ Ollama ในเครื่องจะตรวจ `/api/tags` ก่อนส่งรูป หาก daemon ยังไม่พร้อม ระบบจะเปิด `ollama serve` แบบ detached/ซ่อนหน้าต่างบน Windows แล้วรอจน endpoint พร้อม การเรียกพร้อมกันใช้ startup promise เดียวจึงไม่เปิด process ซ้ำ ส่วน provider ระยะไกลจะข้ามขั้นตอนนี้ และเมื่อเปิดไม่ได้จะแจ้งข้อผิดพลาด 503 พร้อมคำสั่งแก้ไขที่ทำได้จริง หลักฐานอยู่ใน `evidence/t099-verification.md` และ regression contract ใน `scripts/test-ollama-runtime.cjs`.
+
+### T-100 Review/export media preservation
+ขั้นตอนตรวจสอบฉบับแก้ไขตรวจ DOM ที่ผู้ใช้กำลังแก้จริง โดยไม่สร้าง editor ใหม่จากผล parser แบบข้อความล้วนอีกครั้ง เพราะ parser ไม่ได้ถือครองรูปตัวเลือก/รูปโจทย์ร่วม/รูปคำอธิบายเป็นข้อความ การตรวจจะ clone DOM แล้วตัด media block และป้ายจัดการออกเฉพาะ clone เพื่อวิเคราะห์โครงสร้าง จากนั้น normalize ป้าย `รูปโจทย์:`, `รูปโจทย์ร่วม:` และ `รูปคำอธิบาย:` ให้เหลืออย่างละหนึ่งป้ายใน DOM จริง รูปทุกบทบาทจึงคงอยู่สำหรับ snapshot/export และ draft จะเก็บ `editorHtml` คู่กับ structured model เดิมเพื่อไม่ทำให้ metadata รูปหายเมื่อเปิดใหม่ หลักฐาน regression อยู่ใน `scripts/test-e2e.cjs`, `scripts/test-google.cjs` และ `evidence/t100-verification.md`.

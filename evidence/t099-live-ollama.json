@@ -1,0 +1,6 @@
+{
+  "checkedAt": "2026-10-15T07:34:23.193Z",
+  "ready": true,
+  "started": false,
+  "endpoint": "http://127.0.0.1:11434/api/tags"
+}

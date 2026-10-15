@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const ts = require('typescript');
 require.extensions['.ts'] = (module, filename) => module._compile(ts.transpileModule(fs.readFileSync(filename, 'utf8'), {compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText,filename);
 const {validateSourceAnswers}=require('../lib/source-answer-service.ts');
+const {validateAiAnswers}=require('../lib/ai-answer-service.ts');
 const questions=[{id:1,questionNumber:1,questionText:'source',keys:['ก','ข','ค','ง']}];
 const answer={id:1,key:'ข',confidence:0.98,evidence:'มีวงกลมล้อมตัวเลือก ข ชัดเจน',bbox:[100,100,150,150]};
 assert.equal(validateSourceAnswers([answer],questions,2)[0].page,2);
@@ -10,7 +11,12 @@ for(const row of [{...answer,id:2},{...answer,key:'จ'},{...answer,confidence:0
 assert.deepEqual(validateSourceAnswers([answer,answer],questions,2),[]);
 assert.deepEqual(validateSourceAnswers(null,questions,2),[]);
 console.log('Source answer ownership, ambiguity, evidence, confidence and bbox guards passed');
-const {readSourceAnswers}=require('../lib/source-answer-client.ts');
+const aiAnswer={id:1,key:'ค',confidence:0.91,evidence:'จากหลักการแยกสาร ตัวเลือกนี้สอดคล้องกับโจทย์'};
+assert.equal(validateAiAnswers([aiAnswer],questions)[0].key,'ค');
+for(const row of [{...aiAnswer,key:'จ'},{...aiAnswer,confidence:0.79},{...aiAnswer,evidence:'สั้น'},{...aiAnswer,id:2},null]) assert.deepEqual(validateAiAnswers([row],questions),[]);
+assert.deepEqual(validateAiAnswers([aiAnswer,aiAnswer],questions),[]);
+console.log('AI answer validation keeps only unique, valid, reviewable suggestions');
+const {readSourceAnswers,solveUnresolvedAnswers}=require('../lib/source-answer-client.ts');
 (async()=>{
   const original=global.fetch;
   try {
@@ -25,6 +31,13 @@ const {readSourceAnswers}=require('../lib/source-answer-client.ts');
     await readSourceAnswers([stale],['image'],()=>current,()=>{});assert.equal(stale.reconciledAnswerKey,undefined);
     calls=0;global.fetch=async()=>{calls++;return {ok:false,status:502,json:async()=>({code:'GEMINI_HTTP_429'})};};
     await assert.rejects(()=>readSourceAnswers([stale],['image','image'],()=>true,()=>{}),/โควตา/);assert.equal(calls,1,'Quota failure must stop without further page requests');
+    const unresolved={id:2,questionNumber:2,sourcePage:1,questionText:'ข้อคำนวณ',choices:questions[0].keys.map(key=>({key,text:key,isCorrect:false})),explanationText:''};
+    global.fetch=async(_url,opts)=>{const body=JSON.parse(opts.body);assert.equal(body.questions[0].id,2);assert.equal(body.image,undefined);return {ok:true,json:async()=>({answers:[{id:2,key:'ค',confidence:0.91,evidence:'คำนวณตามข้อมูลในโจทย์'}],model:'mock-solver'})};};
+    const aiResult=await solveUnresolvedAnswers([unresolved],[],()=>true,()=>{});
+    assert.equal(aiResult.count,1);assert.equal(unresolved.reconciliationProvenance,'ai_generated');assert.equal(unresolved.reconciledAnswerKey,'ค');assert.equal(unresolved.choices[2].shadingType,'auto_solved');
+    const sourceWon={...unresolved,id:3,reconciledAnswerKey:'ก',reconciliationProvenance:'source_vision',choices:unresolved.choices.map(c=>({...c,isCorrect:c.key==='ก',shadingType:c.key==='ก'?'source_provided':'none'}))};
+    let solveCalls=0;global.fetch=async()=>{solveCalls++;return {ok:true,json:async()=>({answers:[{id:3,key:'ง',confidence:1,evidence:'ไม่ควรแทนที่'}]})};};
+    await solveUnresolvedAnswers([sourceWon],[],()=>true,()=>{});assert.equal(solveCalls,0,'AI fallback must never overwrite source answers');
     console.log('Source answer client preserves existing answers and rejects stale responses');
   } finally {global.fetch=original;}
 })().catch(e=>{console.error(e);process.exitCode=1;});

@@ -51,7 +51,14 @@ async function ready() {
   const context=await browser.newContext({viewport:{width:1440,height:1000}});
   const page=await context.newPage();
   // UI fixtures isolate the external answer provider; real Gemini evidence is t057-live.cjs.
-  await page.route('**/api/source-answers', route => route.fulfill({status:200,json:{answers:[],model:'mock-ui-only'}}));
+  let sourceAnswerCalls=0;
+  await page.route('**/api/source-answers', route => { sourceAnswerCalls++; return route.fulfill({status:200,json:{answers:[],model:'mock-ui-only'}}); });
+  let aiAnswerCalls=0;
+  await page.route('**/api/ai-answers', route => {
+    aiAnswerCalls++;
+    const body=route.request().postDataJSON();
+    return route.fulfill({status:200,json:{answers:(body.questions || []).map(question=>({id:question.id,key:question.keys[0],confidence:0.92,evidence:'mocked AI reasoning for deterministic browser verification'})),model:'mock-ai-solver'}});
+  });
   console.log('Browser launched; opening app');
   page.on('pageerror',error=>errors.push(error.message));
   await page.goto(base);
@@ -72,9 +79,16 @@ async function ready() {
     await page.getByRole('button',{name:'แปลงเป็นรูปแบบข้อสอบ',exact:true}).click();
     await editor.waitFor();
     const tools=page.locator('[data-editor-tools]');assert.equal(await tools.count(),1);
+    assert.equal(await page.locator('[data-layout="compact-conversion-header"]').count(),1,'Conversion header must use the compact layout contract');
+    assert.equal(await page.locator('[data-layout="compact-question-nav"]').count(),1,'Question navigation must use the compact layout contract');
     const header=await tools.evaluate(element=>element.parentElement.getBoundingClientRect().toJSON());const nav=await page.getByRole('navigation',{name:'เลือกข้อสอบ'}).boundingBox();assert.ok(header.bottom<=nav.y+1,'Tools belong to header above question navigation');
   };
   await formatRaw();
+  const iconStepper=page.locator('[data-layout="icon-stepper"]');
+  assert.equal(await iconStepper.count(),1);
+  assert.equal(await iconStepper.locator('[data-step="format"], [data-step="diagrams"], [data-step="answers"], [data-step="review"]').count(),4,'Stepper keeps four stable icon slots');
+  assert.equal(await page.locator('[data-layout="editor-toast"]').count(),0,'Editor notices do not reserve a layout row');
+  assert.equal(await page.locator('main > div[role="alert"]').count(),0,'Review findings are not duplicated as a full-width alert');
   const leftBox=await page.locator('[data-workspace="conversion"]').boundingBox();
   const rightBox=await page.locator('[data-workspace="source"]').boundingBox();
   assert.ok(rightBox.x < leftBox.x,'Source left and editor right');
@@ -182,12 +196,63 @@ async function ready() {
   const rawOcr = page.getByRole('textbox',{name:'ข้อความ OCR สำหรับตรวจแก้'});
   await rawOcr.waitFor();
   assert.equal(await editor.count(),0,'Incomplete structure stays out of the exam editor');
-  await rawOcr.fill(completeText);
+  await rawOcr.fill(responseText);
   assert.equal(await page.getByRole('button',{name:'ตรวจสอบและจัดรูปแบบ',exact:true}).count(),0);
   await page.getByRole('button',{name:'แปลงเป็นรูปแบบข้อสอบ',exact:true}).click();
   await editor.waitFor();
   assert.equal(await editor.locator('[data-item-id]').count(),1);
   mark('Unknown image retains raw text and allows explicit reviewed reconversion');
+  // Review must validate the live DOM without rebuilding it from parser text.
+  // Inject all managed media roles into an intentionally incomplete draft and
+  // confirm the review click preserves them and their single labels.
+  const reviewFixtureImage = 'data:image/png;base64,' + png.toString('base64');
+  await editor.evaluate((root, imageUrl) => {
+    const item = root.querySelector('[data-item-id]');
+    if (!item) throw new Error('review fixture item missing');
+    const questionText = item.querySelector('.text-slate-900');
+    if (questionText) questionText.textContent += ' รูปโจทย์: รูปโจทย์:';
+    const question = document.createElement('div');
+    question.dataset.questionImage = 'true';
+    question.innerHTML = `<span>รูปโจทย์:</span><img src="${imageUrl}" alt="รูปโจทย์">`;
+    item.appendChild(question);
+    const shared = document.createElement('div');
+    shared.dataset.sharedContextBlock = 'true';
+    shared.innerHTML = `<div data-shared-image="true"><span>รูปโจทย์ร่วม:</span><img src="${imageUrl}" alt="รูปโจทย์ร่วม"></div>`;
+    item.appendChild(shared);
+    const choice = item.querySelector('[data-choice-key="ก"]');
+    if (!choice) throw new Error('review fixture choice missing');
+    const choiceImage = document.createElement('div');
+    choiceImage.dataset.choiceImage = 'true';
+    choiceImage.innerHTML = `<img src="${imageUrl}" alt="รูปตัวเลือก ก">`;
+    choice.appendChild(choiceImage);
+    const explanation = document.createElement('div');
+    explanation.dataset.explanationImage = 'true';
+    explanation.innerHTML = `<span>รูปคำอธิบาย:</span><img src="${imageUrl}" alt="รูปคำอธิบาย">`;
+    item.appendChild(explanation);
+    root.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText' }));
+  }, reviewFixtureImage);
+  const reviewButton = page.getByRole('button',{name:'ตรวจสอบฉบับแก้ไข',exact:true});
+  await reviewButton.waitFor();
+  assert.equal(await reviewButton.isDisabled(),false);
+  const mediaBeforeReview = {
+    question: await editor.locator('[data-item-id]').first().locator('[data-question-image] img').count(),
+    shared: await editor.locator('[data-item-id]').first().locator('[data-shared-image="true"] img').count(),
+    choice: await editor.locator('[data-item-id]').first().locator('[data-choice-image="true"] img').count(),
+    explanation: await editor.locator('[data-item-id]').first().locator('[data-explanation-image="true"] img').count(),
+  };
+  await reviewButton.click();
+  await page.waitForTimeout(100);
+  const reviewedItem = editor.locator('[data-item-id]').first();
+  assert.equal(await reviewedItem.locator('[data-question-image] img').count(),mediaBeforeReview.question);
+  assert.equal(await reviewedItem.locator('[data-shared-image="true"] img').count(),mediaBeforeReview.shared);
+  assert.equal(await reviewedItem.locator('[data-choice-image="true"] img').count(),mediaBeforeReview.choice);
+  assert.equal(await reviewedItem.locator('[data-explanation-image="true"] img').count(),mediaBeforeReview.explanation);
+  assert.ok(mediaBeforeReview.question > 0 && mediaBeforeReview.shared > 0 && mediaBeforeReview.choice > 0 && mediaBeforeReview.explanation > 0);
+  assert.equal(await reviewedItem.locator('[data-question-image]').evaluateAll(nodes => nodes.every(node => Array.from(node.querySelectorAll('span,p')).filter(label => label.textContent?.trim() === 'รูปโจทย์:').length === 1)),true);
+  assert.equal(await reviewedItem.locator('[data-shared-image="true"]').evaluateAll(nodes => nodes.every(node => Array.from(node.querySelectorAll('span,p')).filter(label => label.textContent?.trim() === 'รูปโจทย์ร่วม:').length === 1)),true);
+  assert.equal(await reviewedItem.locator('[data-explanation-image="true"]').evaluateAll(nodes => nodes.every(node => Array.from(node.querySelectorAll('span,p')).filter(label => label.textContent?.trim() === 'รูปคำอธิบาย:').length === 1)),true);
+  assert.equal(await reviewedItem.locator('.text-slate-900').evaluateAll(nodes => nodes.every(node => !/(?:รูปโจทย์:|รูปโจทย์ร่วม:)/u.test(node.textContent || ''))),true,'Managed image labels must not remain in question text');
+  mark('Review preserves question/shared/choice/explanation images and managed labels');
   assert.ok(await page.getByRole('button',{name:'จัดรูปแบบแล้ว',exact:true}).isDisabled());
   fs.writeFileSync(path.join(root,'evidence','t049-result.json'),JSON.stringify({status:'passed',pendingScan:true,noPrematureWarning:true,pendingActionDisabled:true,reducedMotion:true,sourceActionUsesEditedText:true,formattedActionDisabled:true},null,2));
   const downloaded = page.waitForEvent('download');
@@ -224,6 +289,15 @@ async function ready() {
   });
   await page.locator('input[type=file]').setInputFiles({name:'twelve-pages.pdf',mimeType:'application/pdf',buffer:Buffer.from(pdf)});
   await formatRaw();
+  const answerStep=page.locator('[data-layout="icon-stepper"] [data-step="answers"]');
+  const answerBox=await answerStep.boundingBox();
+  assert.ok(answerBox && answerBox.width === 32 && answerBox.height === 32,'Answer action keeps fixed icon geometry');
+  await answerStep.click();
+  await page.waitForFunction(()=>document.querySelector('[data-layout="compact-status"]')?.getAttribute('aria-label')?.includes('ตรวจเฉลยเสร็จ'));
+  assert.ok(sourceAnswerCalls > 0,'Answer icon invokes automatic source-answer analysis');
+  assert.ok(aiAnswerCalls > 0,'Answer icon invokes AI fallback when source answers are absent');
+  assert.ok((await editor.innerText()).includes('เฉลยจาก AI'),'AI answer provenance is visible after fallback');
+  mark('Compact icon rail reads source marks then solves unresolved questions with visible AI provenance');
   assert.equal(await editor.locator('[data-item-id]').count(),12);
   assert.deepEqual(batchSizes,[10,2]);
   const mappedPages=await editor.locator('[data-source-page]').evaluateAll(buttons=>buttons.map(button=>Number(button.dataset.sourcePage)));
@@ -241,9 +315,9 @@ async function ready() {
   const sourceScrollAfter=await page.locator('[data-source-page-target="1"]').evaluate(element=>{let pane=element.parentElement;while(pane&&getComputedStyle(pane).overflowY!=='auto')pane=pane.parentElement;return pane.scrollTop;});
   assert.equal(sourceScrollAfter,sourceScrollBefore,'Question jump must not move original');
   await navigation.getByRole('button',{name:'ไปข้อ 11',exact:true}).click();
-  await navigation.getByRole('button',{name:'ไปข้อ 1',exact:true}).focus();
+  await navigation.getByRole('button',{name:'ไปข้อ 10',exact:true}).focus();
   await page.keyboard.press('Enter');
-  await page.waitForFunction(()=>document.querySelector('nav[aria-label="เลือกข้อสอบ"] [aria-current="true"]')?.textContent==='1');
+  await page.waitForFunction(()=>document.querySelector('nav[aria-label="เลือกข้อสอบ"] [aria-current="true"]')?.textContent==='10');
   await editor.evaluate(element=>{element.scrollTop=element.scrollHeight;});
   await page.waitForFunction(()=>document.querySelector('nav[aria-label="เลือกข้อสอบ"] [aria-current="true"]')?.textContent==='12');
   await page.setViewportSize({width:390,height:844});
@@ -270,8 +344,34 @@ async function ready() {
   const longNumbers = await editor.locator('[data-item-id]').evaluateAll(elements=>elements.map(element=>Number(element.getAttribute('data-item-id'))));
   assert.equal(longNumbers.length,80,`Long source must expose all 80 questions; got ${longNumbers.join(',')}`);
   assert.deepEqual(longNumbers,Array.from({length:80},(_,index)=>index+1));
-  assert.equal(await page.getByRole('navigation',{name:'เลือกข้อสอบ'}).getByRole('button',{name:/^ไปข้อ \d+$/}).count(),80);
-  mark('80-question browser conversion keeps all question navigation items');
+  const longNavigation=page.getByRole('navigation',{name:'เลือกข้อสอบ'});
+  const visibleNavigationNumbers=()=>longNavigation.getByRole('button',{name:/^ไปข้อ \d+$/}).evaluateAll(buttons=>buttons.map(button=>Number(button.textContent)));
+  assert.deepEqual(await visibleNavigationNumbers(),[1,2,3,4,5,6,7,8,9,10,20,30,40,50,60,70,80]);
+  await longNavigation.getByRole('button',{name:'ไปข้อ 10',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelector('nav[data-layout="compact-question-nav"]')?.getAttribute('data-window-start')==='10');
+  assert.deepEqual(await visibleNavigationNumbers(),[1,10,11,12,13,14,15,16,17,18,19,20,30,40,50,60,70,80]);
+  await longNavigation.getByRole('button',{name:'ไปข้อ 20',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelector('nav[data-layout="compact-question-nav"]')?.getAttribute('data-window-start')==='20');
+  assert.deepEqual(await visibleNavigationNumbers(),[1,10,20,21,22,23,24,25,26,27,28,29,30,40,50,60,70,80]);
+  await longNavigation.getByRole('button',{name:'ไปข้อ 60',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelector('nav[data-layout="compact-question-nav"]')?.getAttribute('data-window-start')==='60');
+  assert.deepEqual(await visibleNavigationNumbers(),[1,10,20,30,40,50,60,61,62,63,64,65,66,67,68,69,70,80]);
+  assert.equal(await longNavigation.getByRole('button',{name:/^ไปข้อ \d+$/}).count(),18);
+  mark('80-question browser conversion keeps all question items and active decade window navigation');
+  await page.getByRole('button',{name:'เลือกไฟล์ใหม่',exact:true}).click();
+  const offsetFixture = Buffer.from(Array.from({length:25},(_,index)=>{
+    const q=index+21;
+    return `${q}. แบบทดสอบข้อ ${q}\nก. ตัวเลือก ก\nข. ตัวเลือก ข\nค. ตัวเลือก ค\nง. ตัวเลือก ง`;
+  }).join('\n\n'));
+  await page.locator('input[type=file]').setInputFiles({name:'offset-questions.md',mimeType:'text/markdown',buffer:offsetFixture});
+  await formatRaw();
+  const offsetNavigation=page.getByRole('navigation',{name:'เลือกข้อสอบ'});
+  const offsetNumbers=()=>offsetNavigation.getByRole('button',{name:/^ไปข้อ \d+$/}).evaluateAll(buttons=>buttons.map(button=>Number(button.textContent)));
+  assert.deepEqual(await offsetNumbers(),[21,22,23,24,25,26,27,28,29,30,40,45]);
+  await offsetNavigation.getByRole('button',{name:'ไปข้อ 30',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelector('nav[data-layout="compact-question-nav"]')?.getAttribute('data-window-start')==='30');
+  assert.deepEqual(await offsetNumbers(),[21,30,31,32,33,34,35,36,37,38,39,40,45]);
+  mark('non-1 first-question navigation keeps the parsed first anchor without hard-coded question 1');
   await page.getByRole('button',{name:'เลือกไฟล์ใหม่',exact:true}).click();
   await page.unroute('**/api/ocr');
   await page.route('**/api/ocr',route=>route.fulfill({status:503,json:{success:false,error:'fixture provider unavailable'}}));

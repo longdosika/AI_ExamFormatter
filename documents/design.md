@@ -309,6 +309,28 @@ T-058 runtime diagnosis: actual stream evidence shows schema JSON wholly in mess
 - Badge สถานะสำเร็จหรือพร้อมใช้งานใช้ olive-tinted surface (`#eef5f2`, `#496053`) แทน emerald generic เว้นแต่เป็น semantic state ที่ต้องคงความหมายด้าน accessibility
 - Draft/cache controls ต้องสื่อว่า “เปิดทำต่อ” เป็น continuation ของงาน ไม่ใช่ import ใหม่หรือ OCR ใหม่
 
+### 5.5 T-092/T-094 พื้นที่อ่านของ conversion editor
+- ส่วนหัว conversion ใช้แถบควบคุมขนาดกะทัดรัด ชื่อฉบับร่าง, stepper, review state และ toolbar จะเรียงในบรรทัดเดียวเมื่อพื้นที่พอ และห่อเฉพาะเมื่อ viewport บังคับ
+- แถบเลือกข้อเป็น flex strip เดียวที่ห่ออัตโนมัติ ปุ่มตัวเลขขนาดเล็กและช่องว่างสม่ำเสมอ ไม่แบ่งเป็นกลุ่ม 30 ข้อที่มีระยะห่างแนวตั้งเกินจำเป็น
+- พื้นที่แก้ไขใช้ padding และ vertical rhythm ระดับพอดีเพื่อคืนพื้นที่อ่าน โดย source pane ด้านซ้ายยังเป็นต้นฉบับแบบนิ่งเพื่อเทียบ/capture และไม่เปลี่ยนโครงสร้าง export
+- ทุก control ยังคง `aria-label`, tooltip, active state และการใช้งานด้วยคีย์บอร์ด แม้ลดขนาดพื้นที่ของ UI
+
+### 5.6 T-095 หน้าต่างเลขข้อแบบ active window
+- เมื่อมีข้อสอบยาว ให้แสดงข้อที่อยู่ในช่วง active ต่อเนื่อง 10 ข้อ และคงหมุดเลขสิบที่อยู่นอกช่วงไว้ เช่น `1..10, 20, 30...` หรือ `10..20, 30...`
+- ข้อ 10 เป็นจุดเปลี่ยนของช่วง: การคลิกข้อ 10 เปิดช่วง `10..20`; การคลิกข้อ 20 เปิดช่วง `20..30` พร้อมหมุด 10 และหมุดหลักถัดไป
+- การเปลี่ยนช่วงใช้ animation สั้น ๆ และต้องเคารพ `prefers-reduced-motion`; การคลิกและการ scroll ต้องปรับ active window โดยไม่เลื่อน source pane
+
+### 5.7 T-096 หมุดข้อแรกถาวร
+- ในเอกสารยาว ให้คงข้อแรกของเอกสารเป็นหมุดถาวรทุกหน้าต่าง เพื่อย้อนกลับไปต้นเอกสารได้ทันที แม้ active window อยู่ช่วง 60–70 หรือช่วงท้าย
+- ถ้าข้อแรกอยู่ใน active window อยู่แล้ว ห้ามแสดงปุ่มซ้ำ
+- ใช้ข้อแรกจากข้อมูลที่ parse ได้แทนการ hard-code เลข 1 เพื่อรองรับเอกสารที่เริ่มด้วยเลขข้ออื่น
+
+### 5.8 T-097 แถบสถานะและ stepper แบบ icon rail
+- ข้อความสถานะของ workspace ใช้ compact pill ที่วางซ้อนใน header หรือ toast ลอยใน editor เพื่อไม่จองพื้นที่แนวตั้งและตัดข้อความยาวด้วย tooltip/accessible label
+- Stepper ใช้ช่อง icon ขนาดคงที่ 32px ทุกขั้น ไม่เปลี่ยนขนาดเมื่อสถานะเปลี่ยน; คำอธิบายจะแสดงเมื่อ hover/focus และยังมี `aria-label` เสมอ
+- รายการตรวจแก้ใช้ icon พร้อม badge เป็นจุดหลัก ส่วนแถบเตือนเต็มความกว้างไม่แสดงซ้ำหลังเปิด editor
+- ปุ่มวิเคราะห์เฉลยจะเรียก source-answer Vision pipeline เมื่อมีฉบับร่างและภาพต้นฉบับ แม้ข้อความ OCR จะไม่มีเฉลย; ผลลัพธ์ต้องรายงานจำนวนที่พบและเว้นข้อที่หลักฐานไม่ชัดเจน
+
 
 ### T-066 Blueprint parity notes
 OCR text is normalized before question parsing so diacritic/front-vowel spacing repairs cannot change question boundaries. Repairs are conservative and preserve unknown `�` corruption for review. `คำตอบ:` and `Answer:` are visible answer evidence but do not override conflicting explicit keys. Matrix-table rendering, shared-context ownership, crop edge clearance, and QuizFlow output manifests remain partial/unknown until real source fixtures are available. See `evidence/t066-blueprint-parity.md`.
@@ -318,3 +340,8 @@ The source pane remains the stable reference image/PDF. Import can render scanne
 
 ### T-069 long scanned exam layout
 Long scanned documents keep the original page pane independent while the editor navigation reflects every parsed source question. A figure marker is converted to a page-owned `[รูปโจทย์]` image when a page image is available. Answer state remains explicit: source text/asterisk is shown as source evidence; ambiguous handwriting or unavailable Vision responses remain unresolved.
+
+### 5.9 T-098 การแยกแหล่งเฉลยและ AI fallback
+- ปุ่มเฉลยทำงานสองช่วงต่อเนื่อง: อ่านเฉลยที่มีอยู่ในต้นฉบับก่อน แล้วส่งเฉพาะข้อที่ยังไม่มี `reconciledAnswerKey` ไปยัง AI solver
+- เฉลยจากต้นฉบับใช้สถานะเขียวและหลักฐานตำแหน่ง; เฉลยจาก AI ใช้สถานะเหลือง ป้าย `เฉลยจาก AI · ตรวจทาน` และเหตุผลที่ผู้ใช้เปิดดูได้
+- AI solver รับทั้งคำถาม/ตัวเลือกและภาพหน้าต้นฉบับเมื่อมีภาพ แต่ไม่บังคับภาพ เพื่อรองรับไฟล์ข้อความและ OCR ที่ไม่มีภาพ

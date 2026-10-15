@@ -51,3 +51,21 @@ AI-harvested question images keep their explicit `รูปโจทย์:` hea
 
 ### T-087 resumable draft editing
 Saved draft entries are working documents. When a draft contains formatted items, the editor opens immediately for continued editing even if the original file is not active. The saved editor DOM is restored for exact continuation, future edits autosave back to local draft storage, and the drafts modal follows the earth-tone action/theme rules.
+
+### T-092 spacious editor controls
+The conversion header, stage stepper, review disclosure, question navigation, and editable document area use explicit spacing so the right editor remains readable with long question lists. The source pane stays read-only and the toolbar remains above navigation; the export DOM contract is unchanged.
+
+### T-094 compact OCR workspace layout
+The OCR/editor pane prioritizes readable content by keeping the stepper and actions in a compact responsive header, flattening question navigation into a dense flex strip, and reducing editor padding. Tooltips, accessible labels, active states, and source-left/editor-right boundaries remain intact.
+
+### T-095 active question-window navigation
+The editor navigation keeps the active ten-question range expanded and shows decade anchors outside it, reducing visual density without hiding the full question set from the document. A short transition and reduced-motion fallback communicate the active range change without altering source or export content.
+
+### T-096 first-question navigation anchor
+The editor keeps the first parsed question visible as a permanent navigation anchor in long documents. The active ten-question range, decade anchors, keyboard semantics, source pane, and export content remain unchanged.
+
+### T-097 compact status rail and automatic answer action
+The editor header and status messages do not push the source/editor panes. Stepper actions remain fixed-size icon controls and reveal labels only on hover/focus. Review findings are represented by the review icon/badge, while the answer icon runs the existing source-answer Vision pipeline and reports unresolved evidence without hallucinating an answer.
+
+### T-098 AI answer fallback when source key is absent
+Answer reconciliation preserves source ownership and adds an explicit AI fallback for unresolved questions. The editor reports source/AI/unresolved counts and labels AI-generated answers for manual review before export.

@@ -107,11 +107,13 @@ CRITICAL INSTRUCTIONS:
 
 3. QUESTION FIGURES (รูปโจทย์):
    - Single question prompt illustrations or apparatus diagrams: type: "question", "questionNumber": integer.
+   - BOUNDARY RULE: the bbox must contain the figure only. Exclude the question stem/title above it and answer-choice text below it, even when those lines are close to the figure. Use the nearest clear whitespace boundary around the apparatus/table. Do not include a line merely because it is on the same page.
    - MANDATORY INCLUSIVITY FOR LABELS & CALLOUTS:
      For science apparatus, diagrams, experiments, charts, and chemical/physical setups (e.g. distillation flasks, test tubes, pulleys, circuits, biological specimens) that have text labels, annotations, callout pointers, or leader lines around them (e.g. 'เทอร์มอมิเตอร์', 'คอลัมน์ที่ใช้แยก', 'ของเหลวที่นำมาแยก', 'ทางน้ำออก', 'ควบแน่น', 'ทางน้ำเข้า', 'ของเหลวที่แยกได้', 'สารละลายส่วนบน', 'สารละลายส่วนล่าง', 'ผิวมะกรูด', 'ผ้าขาวบางชุบน้ำ', 'บีกเกอร์ใส่น้ำแข็ง'):
      You MUST enclose the ENTIRE figure INCLUDING ALL associated text labels, pointer lines, and annotations on ALL 4 SIDES (top, bottom, left, right).
      Pay special attention to RIGHT and BOTTOM labels/captions:
      - For separating funnel apparatus (e.g. Question 80), the bbox xmax MUST extend far enough to the right to enclose the FULL text 'สารละลายส่วนบน' and 'สารละลายส่วนล่าง' (do NOT truncate 'บน' or 'ล่าง'!).
+     - For Question 80 specifically, the top boundary must begin below the question sentence and the bottom boundary must end above the answer-choice line; retain the separating funnel, hand, stand, and both solution labels.
      - For distillation/separation apparatus (e.g. Question 43 and Question 33), include all apparatus parts from top of condenser to the receiver beaker at bottom, and include all peripheral Thai labels.
      DO NOT tightly crop only the central glassware/drawing and cut off the surrounding descriptive Thai text labels! Ensure the bbox bounds safely encompass all peripheral callouts belonging to the apparatus.
 

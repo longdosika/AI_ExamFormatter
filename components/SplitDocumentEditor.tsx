@@ -140,14 +140,29 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
   const itemsList = formattedItems;
   const shouldUseRestoredEditorHtml = Boolean(restoredEditorHtml && itemsList.length > 0);
   const navigationItems = useMemo(() => itemsList.length ? itemsList : parseExamText(reviewText), [itemsList, reviewText]);
-  const questionRows = useMemo(() => {
-    const rows: typeof navigationItems[] = [];
-    for (let i = 0; i < navigationItems.length; i += 30) {
-      rows.push(navigationItems.slice(i, i + 30));
-    }
-    return rows;
-  }, [navigationItems]);
   const [activeQuestionId, setActiveQuestionId] = useState(1);
+  const visibleNavigation = useMemo(() => {
+    if (!navigationItems.length) return { items: [], start: 0, end: 0 };
+    const numericItems = navigationItems.filter(item => Number.isFinite(item.questionNumber));
+    if (numericItems.length !== navigationItems.length) return { items: navigationItems, start: 0, end: 0 };
+    const maxQuestion = Math.max(...numericItems.map(item => item.questionNumber));
+    if (maxQuestion <= 20) return { items: numericItems, start: numericItems[0].questionNumber, end: maxQuestion };
+    const firstQuestion = numericItems[0].questionNumber;
+    const activeIndex = Math.max(0, numericItems.findIndex(item => item.id === activeQuestionId));
+    // The last item of a window starts the next window (10 -> 10..20),
+    // while the final window is clamped so the last question remains visible.
+    const requestedStartIndex = activeIndex < 9 ? 0 : Math.floor((activeIndex + 1) / 10) * 10 - 1;
+    const maxStartIndex = Math.max(0, numericItems.length - 11);
+    const startIndex = Math.min(requestedStartIndex, maxStartIndex);
+    const start = numericItems[startIndex]?.questionNumber ?? firstQuestion;
+    const endIndex = startIndex === 0 ? 9 : startIndex + 10;
+    const end = numericItems[Math.min(numericItems.length - 1, endIndex)]?.questionNumber ?? maxQuestion;
+    const items = numericItems.filter(item => (
+      (item.questionNumber >= start && item.questionNumber <= end) ||
+      ((item.questionNumber === firstQuestion || item.questionNumber % 10 === 0 || item.questionNumber === maxQuestion) && (item.questionNumber < start || item.questionNumber > end))
+    ));
+    return { items, start, end };
+  }, [activeQuestionId, navigationItems]);
   const jumpToQuestion = (item: ExamItem) => {
     setActiveQuestionId(item.id);
     setTargetQuestionId(item.id);
@@ -567,10 +582,10 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
   };
 
   return (
-    <div className="h-full flex flex-col min-h-0 w-full space-y-2">
+    <div className="relative h-full flex flex-col min-h-0 w-full space-y-2">
       {/* Toast Notification */}
       {notification && (
-        <div role="status" className="bg-slate-900 text-white text-xs px-4 py-2.5 rounded-xl shadow-lg border border-slate-700 flex items-center justify-between animate-fade-in">
+        <div role="status" data-layout="editor-toast" className="absolute left-1/2 top-1 z-40 flex max-w-[min(92vw,34rem)] -translate-x-1/2 items-center justify-between rounded-full border border-slate-700 bg-slate-900/95 px-3 py-1.5 text-xs text-white shadow-lg backdrop-blur-sm animate-fade-in">
           <span className="flex flex-wrap items-center gap-2">
             <Sparkles className="w-4 h-4 text-orange-400" />
             {notification}
@@ -980,21 +995,22 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
 
         {/* RIGHT PANEL: OCR, Conversion & Rich Text Editor (50%) */}
         <div data-workspace="conversion" className="lg:col-span-6 min-w-0 h-full flex flex-col bg-white border border-[#dedad0] rounded-xl shadow-xs overflow-hidden">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#dedad0] bg-[#f7f6f2] px-3 py-1.5 text-[11px] shrink-0">
-            <div className="flex items-center gap-2">
+          <div data-layout="compact-conversion-header" className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 border-b border-[#dedad0] bg-[#f7f6f2] px-3 py-1.5 text-[11px] shrink-0">
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
               <span className="font-bold text-[#28332d]">
                 {itemsList.length ? `ฉบับร่าง (${itemsList.length} ข้อ)` : "OCR ดิบ"}
               </span>
 
               {/* Stepper Timeline with Horizontal Connectors and Status Animations */}
-              <div className="flex items-center gap-1.5 sm:gap-2" role="group" aria-label="ขั้นตอนการทำงาน">
+              <div data-layout="icon-stepper" className="flex items-center gap-1.5" role="group" aria-label="ขั้นตอนการทำงาน">
                 {/* Step 1: Format Exam */}
                 <button 
                   type="button" 
+                  data-step="format"
                   aria-label={answerBusy ? "กำลังอ่านเฉลย…" : itemsList.length ? "จัดรูปแบบแล้ว" : "แปลงเป็นรูปแบบข้อสอบ"}
                   disabled={Boolean(ocrProgress) || !sourcePagesComplete || !reviewText.trim() || itemsList.length > 0} 
                   onClick={() => onConvertReviewedText?.(reviewText)} 
-                  className={`relative w-6 h-6 sm:w-6.5 sm:h-6.5 rounded-full transition-all duration-300 flex items-center justify-center shrink-0 disabled:opacity-40 ${
+                  className={`group relative w-8 h-8 rounded-full transition-colors duration-200 flex items-center justify-center shrink-0 disabled:opacity-40 ${
                     itemsList.length > 0
                       ? "bg-[#496053] text-white shadow-xs"
                       : !itemsList.length && reviewText.trim() && !ocrProgress
@@ -1003,7 +1019,8 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
                   }`} 
                   title={itemsList.length ? "ขั้นตอนที่ 1: จัดรูปแบบแล้ว (ผ่านแล้ว)" : "ขั้นตอนที่ 1: แปลง OCR เป็นรูปแบบข้อสอบ (ขั้นตอนปัจจุบัน)"}
                 >
-                  <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                  <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span aria-hidden="true" className="pointer-events-none absolute left-[calc(100%+0.35rem)] top-1/2 z-20 -translate-y-1/2 whitespace-nowrap rounded-md border border-[#dedad0] bg-white px-2 py-1 text-[10px] font-medium text-[#28332d] opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">จัดรูปแบบข้อสอบ</span>
                   <span className="sr-only">{answerBusy ? "กำลังอ่านเฉลย…" : itemsList.length ? "จัดรูปแบบแล้ว" : "แปลงเป็นรูปแบบข้อสอบ"}</span>
                   {itemsList.length > 0 && (
                     <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border border-white flex items-center justify-center shadow-xs">
@@ -1013,7 +1030,7 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
                 </button>
 
                 {/* Connector 1: Step 1 -> Step 2 */}
-                <div className={`h-0.5 w-2 sm:w-3.5 rounded-full transition-colors duration-500 shrink-0 ${
+                <div className={`h-0.5 w-3 sm:w-5 rounded-full transition-colors duration-500 shrink-0 ${
                   itemsList.length > 0 ? "bg-emerald-500" : "bg-[#dedad0]"
                 }`} />
 
@@ -1021,10 +1038,11 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
                 {onHarvestDiagrams && (
                   <button
                     type="button"
+                    data-step="diagrams"
                     aria-label={diagramBusy ? "กำลังสกัดรูป…" : diagramsHarvested ? "สกัดรูปแล้ว (สกัดซ้ำได้)" : "สกัดรูปประกอบ (AI)"}
                     disabled={!itemsList.length || diagramBusy || answerBusy}
                     onClick={() => onHarvestDiagrams?.()}
-                    className={`relative w-6 h-6 sm:w-6.5 sm:h-6.5 rounded-full transition-all duration-300 flex items-center justify-center shrink-0 disabled:opacity-40 ${
+                    className={`group relative w-8 h-8 rounded-full transition-colors duration-200 flex items-center justify-center shrink-0 disabled:opacity-40 ${
                       diagramBusy
                         ? "bg-[#006D77] text-white ring-2 ring-[#006D77]/40 ring-offset-1 animate-pulse"
                         : diagramsHarvested
@@ -1035,7 +1053,8 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
                     }`}
                     title={diagramBusy ? "กำลังสกัดรูปภาพและตาราง (กำลังประมวลผล)..." : diagramsHarvested ? "ขั้นตอนที่ 2: สกัดรูปประกอบแล้ว (ผ่านแล้ว · คลิกเพื่อสกัดซ้ำ)" : "ขั้นตอนที่ 2: สกัดรูปประกอบ ตาราง และภาพตัวเลือกด้วย AI Vision (ขั้นตอนปัจจุบัน)"}
                   >
-                    <Crop className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${diagramBusy ? "animate-spin" : ""}`} />
+                    <Crop className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${diagramBusy ? "animate-spin" : ""}`} />
+                    <span aria-hidden="true" className="pointer-events-none absolute left-[calc(100%+0.35rem)] top-1/2 z-20 -translate-y-1/2 whitespace-nowrap rounded-md border border-[#dedad0] bg-white px-2 py-1 text-[10px] font-medium text-[#28332d] opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">สกัดรูปประกอบ</span>
                     <span className="sr-only">{diagramBusy ? "กำลังสกัดรูป…" : diagramsHarvested ? "สกัดรูปแล้ว (สกัดซ้ำได้)" : "สกัดรูปประกอบ (AI)"}</span>
                     {diagramsHarvested && (
                       <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border border-white flex items-center justify-center shadow-xs">
@@ -1047,7 +1066,7 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
 
                 {/* Connector 2: Step 2 -> Step 3 */}
                 {onExtractAnswers && (
-                  <div className={`h-0.5 w-2 sm:w-3.5 rounded-full transition-colors duration-500 shrink-0 ${
+                  <div className={`h-0.5 w-3 sm:w-5 rounded-full transition-colors duration-500 shrink-0 ${
                     diagramsHarvested ? "bg-emerald-500" : "bg-[#dedad0]"
                   }`} />
                 )}
@@ -1056,23 +1075,25 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
                 {onExtractAnswers && (
                   <button
                     type="button"
-                    aria-label={answerBusy ? "กำลังอ่านเฉลย…" : "ตรวจเฉลยจากภาพ (AI)"}
+                    data-step="answers"
+                    aria-label={answerBusy ? "กำลังวิเคราะห์เฉลย…" : "วิเคราะห์เฉลยจากต้นฉบับและ AI"}
                     disabled={!itemsList.length || answerBusy || diagramBusy}
                     onClick={() => onExtractAnswers?.()}
-                    className={`relative w-6 h-6 sm:w-6.5 sm:h-6.5 rounded-full transition-all duration-300 flex items-center justify-center shrink-0 disabled:opacity-40 ${
+                    className={`group relative w-8 h-8 rounded-full transition-colors duration-200 flex items-center justify-center shrink-0 disabled:opacity-40 ${
                       answerBusy
                         ? "bg-[#496053] text-white ring-2 ring-[#496053]/40 ring-offset-1 animate-pulse"
-                        : formattedItems.some(i => i.reconciliationProvenance === "source_vision")
+                        : formattedItems.some(i => i.reconciliationProvenance === "source_vision" || i.reconciliationProvenance === "ai_generated")
                         ? "bg-[#496053] text-white shadow-xs"
                         : diagramsHarvested
                         ? "bg-[#496053] hover:bg-[#394c42] text-white font-medium ring-2 ring-[#496053]/50 ring-offset-1 animate-pulse hover:animate-none scale-102 shadow-sm"
                         : "bg-[#f7f6f2] border border-[#dedad0] text-[#718096]"
                     }`}
-                    title={answerBusy ? "กำลังตรวจเฉลยจากภาพ (กำลังประมวลผล)..." : formattedItems.some(i => i.reconciliationProvenance === "source_vision") ? "ขั้นตอนที่ 3: ตรวจเฉลยจากภาพแล้ว (ผ่านแล้ว · คลิกเพื่อตรวจซ้ำ)" : "ขั้นตอนที่ 3: ตรวจเฉลยจากภาพ สแกนรอยเฉลยบนต้นฉบับ (ขั้นตอนถัดไป)"}
+                    title={answerBusy ? "กำลังวิเคราะห์เฉลย..." : formattedItems.some(i => i.reconciliationProvenance === "source_vision" || i.reconciliationProvenance === "ai_generated") ? "วิเคราะห์แล้ว · คลิกเพื่อตรวจซ้ำ" : "อ่านเฉลยต้นฉบับ แล้วให้ AI เติมข้อที่ยังว่าง"}
                   >
-                    <Search className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${answerBusy ? "animate-spin" : ""}`} />
+                    <Search className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${answerBusy ? "animate-spin" : ""}`} />
+                    <span aria-hidden="true" className="pointer-events-none absolute left-[calc(100%+0.35rem)] top-1/2 z-20 -translate-y-1/2 whitespace-nowrap rounded-md border border-[#dedad0] bg-white px-2 py-1 text-[10px] font-medium text-[#28332d] opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">วิเคราะห์เฉลยอัตโนมัติ</span>
                     <span className="sr-only">{answerBusy ? "กำลังอ่านเฉลย…" : "ตรวจเฉลยจากภาพ (AI)"}</span>
-                    {formattedItems.some(i => i.reconciliationProvenance === "source_vision") && (
+                    {formattedItems.some(i => i.reconciliationProvenance === "source_vision" || i.reconciliationProvenance === "ai_generated") && (
                       <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border border-white flex items-center justify-center shadow-xs">
                         <Check className="w-1.5 h-1.5 text-white stroke-[3]" />
                       </span>
@@ -1081,17 +1102,20 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
                 )}
 
                 {/* Step 4: Issue Review (If any issues detected) */}
-                {itemsList.length > 0 && reviewIssues.length > 0 && (
+                {itemsList.length > 0 && (
                   <>
-                    <div className="h-0.5 w-2 sm:w-3.5 rounded-full bg-amber-400 shrink-0" />
+                    <div className="h-0.5 w-3 sm:w-5 rounded-full bg-amber-400 shrink-0" />
                     <button 
                       type="button" 
-                      aria-label="ตรวจสอบฉบับแก้ไข"
+                      data-step="review"
+                      aria-label={reviewIssues.length ? "ตรวจสอบฉบับแก้ไข" : "ตรวจสอบฉบับแก้ไข (ไม่มีรายการ)"}
+                      disabled={!reviewIssues.length}
                       onClick={() => editorPaneRef.current && onReviewEditor?.(editorPaneRef.current)} 
-                      className="relative w-6 h-6 sm:w-6.5 sm:h-6.5 rounded-full border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 transition-all flex items-center justify-center shrink-0 shadow-xs ring-2 ring-amber-400/40 animate-pulse hover:animate-none"
-                      title={`ขั้นตอนที่ 4: ตรวจสอบฉบับแก้ไข (พบ ${reviewIssues.length} รายการตรวจทาน)`}
+                      className={`group relative w-8 h-8 rounded-full border text-amber-900 transition-colors duration-200 flex items-center justify-center shrink-0 shadow-xs disabled:cursor-default disabled:opacity-40 ${reviewIssues.length ? "border-amber-300 bg-amber-50 hover:bg-amber-100 ring-2 ring-amber-400/40 animate-pulse hover:animate-none" : "border-[#dedad0] bg-[#f7f6f2]"}`}
+                      title={reviewIssues.length ? `ตรวจสอบฉบับแก้ไข (${reviewIssues.length} รายการ)` : "ยังไม่มีรายการตรวจแก้"}
                     >
-                      <AlertTriangle className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-600" />
+                      <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600" />
+                      <span aria-hidden="true" className="pointer-events-none absolute left-[calc(100%+0.35rem)] top-1/2 z-20 -translate-y-1/2 whitespace-nowrap rounded-md border border-[#dedad0] bg-white px-2 py-1 text-[10px] font-medium text-[#28332d] opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">ตรวจแก้</span>
                       <span className="sr-only">ตรวจสอบฉบับแก้ไข</span>
                       <span className="absolute -top-0.5 -right-0.5 min-w-3 h-3 px-0.5 rounded-full bg-amber-500 border border-white text-white text-[7px] font-bold flex items-center justify-center">
                         {reviewIssues.length}
@@ -1104,7 +1128,7 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
             </div>
 
             {itemsList.length > 0 && (
-              <div className="min-w-0" data-editor-tools="true">
+              <div className="min-w-0 shrink-0" data-editor-tools="true">
                 <RichTextToolbar
                   onFormat={handleFormat}
                   onInsertImage={handleInsertImage}
@@ -1119,38 +1143,37 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
           </div>
 
           {itemsList.length > 0 && reviewIssues.length > 0 && (
-            <details className="shrink-0 border-b border-amber-200 bg-amber-50 px-3 py-1 text-xs text-amber-900">
+            <details className="shrink-0 border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-900">
               <summary className="cursor-pointer font-medium">รายการตรวจแก้ {reviewIssues.length} รายการ · แก้ข้อความและแทรกรูปต่อได้</summary>
               <ul className="max-h-28 overflow-y-auto list-disc pl-4 mt-1 text-[11px]">{reviewIssues.map((issue, index) => <li key={index}>{issue}</li>)}</ul>
             </details>
           )}
 
           {navigationItems.length > 0 && (
-            <nav aria-label="เลือกข้อสอบ" className="flex flex-col gap-1 border-b border-[#dedad0] bg-white px-2 py-1 shrink-0 min-w-0">
-              {questionRows.map((row, rowIdx) => (
-                <div key={rowIdx} className="flex items-center gap-1 min-w-0">
-                  <span className="shrink-0 text-[9px] text-[#28332d] font-bold w-4 text-right">
-                    {rowIdx === 0 ? "ข้อ" : ""}
-                  </span>
-                  <div className="flex flex-wrap gap-0.5 min-w-0">
-                    {row.map(item => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        aria-label={`ไปข้อ ${item.questionNumber}`}
-                        aria-current={activeQuestionId === item.id ? "true" : undefined}
-                        onClick={() => jumpToQuestion(item)}
-                        className={`shrink-0 min-w-5 rounded px-1 py-0.5 text-[10px] transition ${
-                          activeQuestionId === item.id
-                            ? "bg-[#496053] text-white font-bold"
-                            : "bg-[#eae8e1] text-[#28332d] hover:bg-[#dedad0]"
-                        }`}
-                      >
-                        {item.questionNumber}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+            <nav
+              key={`${visibleNavigation.start}-${visibleNavigation.end}`}
+              data-layout="compact-question-nav"
+              data-window-start={visibleNavigation.start || undefined}
+              data-window-end={visibleNavigation.end || undefined}
+              aria-label="เลือกข้อสอบ"
+              className="nav-window-transition flex flex-wrap items-center gap-x-0.5 gap-y-1 border-b border-[#dedad0] bg-white px-3 py-1.5 shrink-0 min-w-0"
+            >
+              <span className="mr-1 shrink-0 text-[9px] font-bold text-[#28332d]">ข้อ</span>
+              {visibleNavigation.items.map(item => (
+                <button
+                  key={item.id}
+                  type="button"
+                  aria-label={`ไปข้อ ${item.questionNumber}`}
+                  aria-current={activeQuestionId === item.id ? "true" : undefined}
+                  onClick={() => jumpToQuestion(item)}
+                  className={`h-5 min-w-5 shrink-0 rounded px-1 py-0.5 text-[9px] leading-none transition ${
+                    activeQuestionId === item.id
+                      ? "bg-[#496053] text-white font-bold"
+                      : "bg-[#eae8e1] text-[#28332d] hover:bg-[#dedad0]"
+                  }`}
+                >
+                  {item.questionNumber}
+                </button>
               ))}
             </nav>
           )}
@@ -1164,7 +1187,7 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
             contentEditable={itemsList.length > 0}
             suppressContentEditableWarning
             onInput={() => editorPaneRef.current && onEditorDraftChange?.(editorPaneRef.current)}
-            className="flex-1 min-h-0 p-5 overflow-y-auto space-y-5 font-sans text-[12pt] bg-white text-slate-900 focus:outline-none leading-normal"
+            className="flex-1 min-h-0 p-4 sm:p-5 overflow-y-auto space-y-4 font-sans text-[12pt] bg-white text-slate-900 focus:outline-none leading-normal"
             style={{ fontSize: "12pt", fontFamily: "'Sarabun', sans-serif" }}
           >
             {ocrProgress ? (
@@ -1378,7 +1401,7 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
                             </div>
                             {choice.isCorrect && (
                               <span data-export-ignore="true" contentEditable={false} className="text-[10px] px-2 py-0.5 rounded font-mono font-medium bg-white/70 shadow-2xs shrink-0 ml-2">
-                                {isGreenShaded ? "เฉลยจากต้นฉบับ" : "เฉลยที่เสนอโดยระบบ"}
+                                {isGreenShaded ? "เฉลยจากต้นฉบับ" : "เฉลยจาก AI · ตรวจทาน"}
                               </span>
                             )}
                           </div>
@@ -1402,7 +1425,7 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
 
                 {/* 4. Explanation Section */}
                 {item.sourceAnswerEvidence && <details data-export-ignore="true" contentEditable={false} className="text-xs text-slate-500 pl-4">
-                  <summary>หลักฐานเฉลย · หน้า {item.sourceAnswerEvidence.page} · กรุณาตรวจเทียบต้นฉบับ</summary>
+                  <summary>{item.reconciliationProvenance === "ai_generated" ? "เหตุผลเฉลยจาก AI · ตรวจทานกับต้นฉบับ" : `หลักฐานเฉลย · หน้า ${item.sourceAnswerEvidence.page} · กรุณาตรวจเทียบต้นฉบับ`}</summary>
                   <p>{item.sourceAnswerEvidence.evidence}</p>
                 </details>}
                 <div data-explanation-block="true" className="pl-4 pt-1 space-y-2">

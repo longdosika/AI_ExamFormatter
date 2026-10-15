@@ -244,3 +244,60 @@ T-058 runtime diagnosis: actual stream evidence shows schema JSON wholly in mess
 
 
 
+### Thai feature catalog (T-091)
+
+- `documents/feature-catalog.md`: user-facing capability map, capture case matrix, workflow explanation, limitations, and open verification register.
+- Source import/original pane: `app/page.tsx`, `components/FileUploader.tsx`, `components/SplitDocumentEditor.tsx`, `lib/file-parser.ts`, `lib/pdf-renderer.ts`.
+- OCR/normalization/parser: `lib/ocr-service.ts`, `lib/ocr-client.ts`, `lib/text-normalization.ts`, `lib/exam-parser.ts`, `lib/exam-validation.ts`.
+- Diagram/capture: `lib/diagram-service.ts`, `lib/diagram-client.ts`, `app/api/diagrams/route.ts`, `components/SplitDocumentEditor.tsx`.
+- Answers/editor/export: `lib/source-answer-service.ts`, `lib/source-answer-client.ts`, `components/RichTextToolbar.tsx`, `lib/export-document.ts`, `lib/google-export.ts`.
+- Draft/history/statistics: `lib/document-draft-store.ts`, `lib/import-history.ts`, `lib/experiment-stats.ts`, `components/StatisticsModal.tsx`.
+- The catalog is documentation only; it does not replace source-level tests or real-file evidence.
+
+### T-092 Q80 crop boundary and editor spacing
+
+- `lib/diagram-client.ts`: `detectIntruderCuts` is the production/test-shared row-density edge detector; `trimIntruderTextAndMargin` applies its cuts after Canvas extraction.
+- `lib/diagram-service.ts`: Vision prompt separates figure boundaries from neighboring stem/choice text and explicitly guards Q80.
+- `components/SplitDocumentEditor.tsx`: conversion header, stepper, review disclosure, navigation strip, and editor canvas receive consistent breathing room while preserving source-left/editor-right and export DOM contracts.
+- `scripts/test-diagram-contract.cjs`: imports the production detector and covers the deep/one-row-gap Q80 regression plus existing table/choice cases.
+
+### T-094 compact OCR workspace layout
+
+- `components/SplitDocumentEditor.tsx`: conversion header and question navigation use compact layout markers, one flex-wrapped navigation strip, and reduced editor spacing while preserving source/capture/export boundaries.
+- `scripts/test-e2e.cjs`: asserts the compact header/navigation contract and retains the 80-question navigation and keyboard/source stability checks.
+
+### T-095 active question-window navigation
+
+- `components/SplitDocumentEditor.tsx`: derives the active 10-question window and decade anchors from the current question, preserving all question records while rendering only the compact navigation subset.
+- `app/globals.css`: animates window transitions and disables the animation for reduced-motion users.
+- `scripts/test-e2e.cjs`: verifies the exact visible sequences for initial, active 10, and active 20 states.
+
+### T-096 first-question navigation anchor
+
+- `components/SplitDocumentEditor.tsx`: keeps the first parsed question as an outside-window anchor and avoids duplicates when it is inside the active range.
+- `scripts/test-e2e.cjs`: verifies the first anchor while navigating to questions 10, 20, and 60 in the 80-question fixture.
+
+### T-097 compact status rail and automatic answer action
+
+- `app/page.tsx`: renders document status as a centered compact pill and keeps review findings in the editor icon rail instead of a duplicate full-width alert; source-answer failures remain explicit.
+- `components/SplitDocumentEditor.tsx`: uses fixed 32px icon slots with hover/focus labels, a floating editor toast, and an answer-analysis icon that remains available after conversion.
+- `scripts/test-e2e.cjs`: verifies stable icon geometry, compact status placement, no duplicate workspace alert, and automatic answer analysis on a page-backed fixture.
+
+### T-098 AI answer fallback
+- `lib/source-answer-service.ts` and `app/api/source-answers/route.ts`: retain the conservative source-mark extractor; it never solves missing answers.
+- `lib/ai-answer-service.ts` and `app/api/ai-answers/route.ts`: validate and solve unresolved multiple-choice questions with Gemini, optional page image context, confidence/evidence guards, and explicit abstention.
+- `lib/source-answer-client.ts`: runs source extraction first, then groups unresolved questions for AI solving and prevents replacement of any existing answer.
+- `app/page.tsx` and `components/SplitDocumentEditor.tsx`: expose one answer action, report source/AI/unresolved counts, and show `เฉลยจาก AI · ตรวจทาน` on generated choices.
+- `scripts/test-source-answers.cjs` and `scripts/test-e2e.cjs`: cover validation, no-image fallback, source ownership, and the end-to-end click flow.
+
+### T-099 Local Ollama readiness
+- `lib/ollama-runtime.ts`: probes local `/api/tags`, starts a detached `ollama serve` process when needed, polls readiness, and deduplicates concurrent startup.
+- `app/api/ocr/route.ts`: gates local/fallback OCR behind runtime readiness and returns an actionable 503 when the daemon cannot be started.
+- `scripts/test-ollama-runtime.cjs`: covers local reuse, automatic startup, remote bypass, concurrent startup locking, URL mapping, and bounded failure.
+
+### T-100 Review/export media preservation
+- `app/page.tsx`: review normalizes managed labels, validates a media-stripped clone, preserves the live editor DOM, and saves the existing structured model plus `editorHtml`.
+- `components/SplitDocumentEditor.tsx`: remains the source of the four media-role DOM contracts consumed by review and export.
+- `scripts/test-e2e.cjs`: verifies question/shared/choice/explanation image retention and exactly one managed label after review.
+- `scripts/test-google.cjs`: verifies all four image roles are embedded in the generated DOCX media package.
+

@@ -51,7 +51,7 @@ export interface ExamItem {
   explanationText: string;
   explanationImageUrl?: string;
   reconciledAnswerKey?: string;
-  reconciliationProvenance?: "source_asterisk" | "reconciled_from_explanation" | "source_vision" | "auto_solved" | "unresolved";
+  reconciliationProvenance?: "source_asterisk" | "reconciled_from_explanation" | "source_vision" | "ai_generated" | "auto_solved" | "unresolved";
   sourceAnswerEvidence?: { page: number; confidence: number; evidence: string; bbox: number[]; model: string };
   // Shared context properties (โจทย์ร่วม)
   sharedContextText?: string;

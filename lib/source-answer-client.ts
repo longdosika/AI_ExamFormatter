@@ -1,5 +1,6 @@
 import { ExamItem } from "./formatter-rules";
 import type { SourceAnswer } from "./source-answer-service";
+import type { SourceQuestion } from "./source-answer-service";
 
 /** Mutates only a fresh, unpublished parse; never resets a user's live editor. */
 export async function readSourceAnswers(items: ExamItem[], images: string[], current: () => boolean, progress: (page: number) => void) {
@@ -37,6 +38,55 @@ export async function readSourceAnswers(items: ExamItem[], images: string[], cur
       item.reconciliationProvenance = "source_vision";
       item.sourceAnswerEvidence = { page: answer.page, confidence: answer.confidence, evidence: answer.evidence, bbox: answer.bbox, model: result.model };
       item.choices.forEach(choice => { choice.isCorrect = choice.key === answer.key; choice.shadingType = choice.isCorrect ? "source_provided" : "none"; });
+      count++;
+    }
+  }
+  return { count, failures };
+}
+
+/** Solve only questions that remain unresolved after source-mark extraction. */
+export async function solveUnresolvedAnswers(items: ExamItem[], images: string[], current: () => boolean, progress: (page: number, total: number) => void) {
+  let count = 0;
+  const failures: number[] = [];
+  const groups = new Map<number, ExamItem[]>();
+  for (const item of items) {
+    if (item.reconciledAnswerKey || !item.choices.length) continue;
+    const page = item.sourcePage || 1;
+    const group = groups.get(page) || [];
+    group.push(item);
+    groups.set(page, group);
+  }
+  const pages = [...groups.keys()].sort((a, b) => a - b);
+  for (const page of pages) {
+    if (!current()) return { count, failures };
+    const group = groups.get(page) || [];
+    const questions: SourceQuestion[] = group.map(item => ({ id: item.id, questionNumber: item.questionNumber, questionText: item.questionText, keys: item.choices.map(choice => choice.key) }));
+    progress(page, pages.length);
+    let result: { answers?: Array<{ id: number; key: string; confidence: number; evidence: string }>; model?: string } | null = null;
+    try {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        if (!current()) return { count, failures };
+        const image = images[page - 1];
+        const response = await fetch("/api/ai-answers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ image, questions, page }), signal: AbortSignal.timeout(100_000) });
+        const body = await response.json();
+        if (response.ok) { result = body; break; }
+        if (body.code === "GEMINI_HTTP_429") throw new Error("Google Gemini ถึงขีดจำกัดโควตา กรุณาตรวจ Usage / Rate limits ใน AI Studio ก่อนลองใหม่");
+        if (!attempt && (body.code === "GEMINI_HTTP_503" || response.status === 429)) { await new Promise(resolve => setTimeout(resolve, 1500)); continue; }
+        if (response.status === 503) throw new Error(body.error);
+        break;
+      }
+    } catch (error) {
+      if (error instanceof Error && /GEMINI_API_KEY|โควตา/.test(error.message)) throw error;
+    }
+    if (!current()) return { count, failures };
+    if (!result) { failures.push(page); continue; }
+    for (const answer of result.answers || []) {
+      const item = items.find(candidate => candidate.id === answer.id);
+      if (!item || item.reconciledAnswerKey || !item.choices.some(choice => choice.key === answer.key)) continue;
+      item.reconciledAnswerKey = answer.key;
+      item.reconciliationProvenance = "ai_generated";
+      item.sourceAnswerEvidence = { page: item.sourcePage || page, confidence: answer.confidence, evidence: answer.evidence, bbox: [], model: result.model || "AI" };
+      item.choices.forEach(choice => { choice.isCorrect = choice.key === answer.key; choice.shadingType = choice.isCorrect ? "auto_solved" : "none"; });
       count++;
     }
   }
