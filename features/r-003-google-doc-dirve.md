@@ -38,3 +38,5 @@ T-046 regression: wrong-origin auth redirects to configured canonical origin bef
 
 T-064: Normalized APP_URL origin (stripping trailing slashes gracefully) and added granular, non-sensitive `missingFields` diagnostic array to `lib/google-auth.ts` and `app/api/google/session/route.ts`. Updated `components/GoogleDriveStatus.tsx` to display exact missing configuration requirements directly in the UI.
 
+T-090: Vercel serverless cloud deployment readiness for Google Drive and AI features. Configured `vercel.json` with 60-second function timeout for `app/api/**/*.ts`, exported `maxDuration = 60` in `app/api/google/export/route.ts`, documented required cloud environment variables and OAuth redirect URI (`https://ai-exam-formatter.vercel.app/api/google/callback`).
+

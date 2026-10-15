@@ -229,6 +229,15 @@ T-058 runtime diagnosis: actual stream evidence shows schema JSON wholly in mess
 - `lib/diagram-service.ts`: Updated Gemini prompt for choice figures (mandating comfortable margin around all vertices/corners) and question apparatus diagrams (mandating full right-hand annotation coverage without truncating trailing words like "บน", "ล่าง").
 - `scripts/test-diagram-contract.cjs`: Added regression assertions for T-089 crop policies (question: 32 all, choice: 20 none, shared_context: 16 all), deep intruder text top/bottom trimming, and choice crystal preservation.
 
+### T-090 Vercel Deployment Configuration & Cloud Environment Readiness
+- `vercel.json`: Deployment manifest for Vercel configuring Next.js framework, build command (`npm run build`), install command (`npm install`), and 60-second function timeout for `app/api/**/*.ts`.
+- `app/api/diagrams/route.ts`: Added `export const maxDuration = 60;` for Vercel serverless execution.
+- `app/api/ocr/route.ts`: Added `export const maxDuration = 60;` for Vercel serverless execution.
+- `app/api/source-answers/route.ts`: Added `export const maxDuration = 60;` for Vercel serverless execution.
+- `app/api/google/export/route.ts`: Added `export const maxDuration = 60;` for Vercel serverless execution.
+- `.env.example`: Updated production guidance for Vercel Environment Variables and OAuth `APP_URL`.
+
+
 
 
 

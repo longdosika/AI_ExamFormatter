@@ -1514,6 +1514,30 @@ T-058 runtime diagnosis: actual stream evidence shows schema JSON wholly in mess
   7. Passed `npm test` (all 17 test suites PASS), `npm run typecheck` (0 errors), `npm run lint` (0 errors), and `node scripts/test-e2e.cjs` (16/16 browser scenarios PASS). Moved to Verified.
 - Final gate verification (2026-10-15): `node scripts/finish-task.mjs T-089` PASSED semantic validator, platform readiness, git drift, typecheck, lint (8 pre-existing `<img>` warnings only), all unit/contract tests, all browser E2E checks, production build (`261015-0817`), and CSS delivery health check. Marked Done.
 
+### T-090 Vercel Deployment Configuration & Cloud Environment Readiness
+- Type: Feature / Deployment Configuration
+- Status: Done
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Owner: Codex / Deployment & Cloud Infrastructure Engineer
+- Problem: The repository is pushed to Git (`origin/main`), and the user wants to deploy and run the system on Vercel (`ขึ้น git แล้ว อยากให้ใช้ระบบ vercel ได้ด้วย`). Cloud deployment requires configuration to avoid serverless timeouts on heavy AI/OCR API routes, proper static asset bundling (pdfjs worker and cmaps), vercel configuration file, clear environment variables documentation, and verification that builds and executes flawlessly.
+- Acceptance Criteria:
+  1. Create `vercel.json` specifying Next.js framework, build command, and 60-second `maxDuration` for serverless API routes (`app/api/**/*.ts`).
+  2. Add `export const maxDuration = 60;` to compute-heavy serverless route handlers: `app/api/diagrams/route.ts`, `app/api/ocr/route.ts`, `app/api/source-answers/route.ts`, and `app/api/google/export/route.ts`.
+  3. Ensure `package.json` scripts and `scripts/sync-pdf-assets.cjs` run cleanly in Vercel CI/CD container environments.
+  4. Ensure `.env.example` documents all required production environment variables for Vercel: `GEMINI_API_KEY`, `TYPHOON_OCR_API_KEY`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_SESSION_SECRET`, and `APP_URL`.
+  5. Provide step-by-step guidance for connecting the repository in Vercel Dashboard, configuring environment variables, and configuring Google Cloud OAuth redirect URI.
+  6. Pass semantic validator, platform readiness, git drift check, typecheck, lint, all 17 unit/contract test suites, and production build gate via `node scripts/finish-task.mjs T-090`.
+- Affected Files: `vercel.json`, `app/api/diagrams/route.ts`, `app/api/ocr/route.ts`, `app/api/source-answers/route.ts`, `app/api/google/export/route.ts`, `documents/tasks.md`, `documents/decisions.md`, `documents/architecture.md`, `documents/traceability.md`, `documents/code-map.md`, `documents/memory.md`.
+- Expected verification: `npm test`, `npm run typecheck`, `npm run lint`, `npm run build`, and `node scripts/finish-task.mjs T-090`.
+- Verification update (2026-10-15):
+  1. Created `vercel.json` with Next.js framework, build command, install command, and `maxDuration: 60` for `app/api/**/*.ts`.
+  2. Added `export const maxDuration = 60;` to route handlers in `diagrams`, `ocr`, `source-answers`, and `google/export`.
+  3. Passed `npm test` (all 17 test suites pass), `npm run typecheck` (0 errors), `npm run lint` (0 errors), and `scripts/check-knowledge-drift.mjs --require-git`. Moved to Verified.
+- Final gate verification (2026-10-15): `node scripts/finish-task.mjs T-090` PASSED semantic validator, platform readiness, git drift, typecheck, lint (8 pre-existing `<img>` warnings only), all 17 unit/contract test suites, all 16 browser E2E checks, production build (`261015-0901`), and CSS delivery health check. Marked Done.
+
+
+
+
 
 
 

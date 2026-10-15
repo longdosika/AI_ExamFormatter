@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { analyzePageDiagrams, QuestionContext } from "@/lib/diagram-service";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   const origin = request.headers.get("origin");

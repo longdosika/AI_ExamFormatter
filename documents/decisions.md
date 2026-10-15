@@ -10,6 +10,17 @@
 - Each decision should include context, decision, reason, affected files, and follow-up tasks.
 - If evidence is weak, mark it as an assumption and add a confirmation task in [[tasks]].
 
+## D-090 Vercel Serverless Deployment & 60-Second Function Timeout Policy
+- Context: Deploying Next.js 14 App Router to Vercel requires configuration for serverless functions, build pipeline, and environment parity. Multi-page Typhoon OCR and Gemini diagram analysis routes can take up to 30-45 seconds, which would exceed Vercel's default 15-second serverless timeout on Hobby tier if unconfigured.
+- Decision:
+  1. Add `vercel.json` defining Next.js framework, install/build commands, and a wildcard function timeout configuration `app/api/**/*.ts` set to 60 seconds (the maximum for Vercel Hobby accounts).
+  2. Explicitly export `export const maxDuration = 60;` in compute-heavy route handlers (`app/api/diagrams/route.ts`, `app/api/ocr/route.ts`, `app/api/source-answers/route.ts`, `app/api/google/export/route.ts`) so Next.js build manifests directly instruct Vercel's Edge/Serverless runtime.
+  3. Ensure all local file processing happens in browser Web APIs (Canvas, JSZip, PDF.js) and server routes remain strictly stateless HTTP proxies, avoiding ephemeral filesystem assumptions.
+  4. Document required Vercel Environment Variables (`GEMINI_API_KEY`, `TYPHOON_OCR_API_KEY`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_SESSION_SECRET`, `APP_URL`).
+- Reason: Guarantees zero 504 Gateway Timeouts during OCR and diagram extraction on Vercel while preserving identical behavior between local development and cloud production.
+- Affected notes: `vercel.json`, `app/api/diagrams/route.ts`, `app/api/ocr/route.ts`, `app/api/source-answers/route.ts`, `app/api/google/export/route.ts`, `.env.example`, [[tasks]], [[architecture]], [[code-map]], [[traceability]].
+- Status: `Approved`
+
 ## D-006 Build cache isolation and dev server CSS protection
 - Context: When `finish-task.mjs` ran `next build`, it wiped `.next/static/css/...`, breaking the running dev server on port 3000 and causing CSS 404s (raw unstyled HTML with Times New Roman and broken layouts).
 - Decision:

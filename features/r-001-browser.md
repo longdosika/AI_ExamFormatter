@@ -75,3 +75,6 @@ Traceability: R-001 -> T-070, T-072 -> features/r-001-browser.md -> `lib/ocr-ser
 T-086: Build stamp policy strengthened for development sessions. `predev` now runs `scripts/stamp-version.cjs` as well as `prebuild`, and implementation passes must preserve the freshly stamped `APP_VERSION`/`BUILD_STAMP` so the header badge shows the new active build after each fix.
 
 T-087: Draft/cache history now resumes work as an editable session instead of requiring a fresh import. Opening a saved formatted draft can create a minimal active document from the draft, restore saved editor DOM, and autosave subsequent rich-text edits back into the same draft. OCR-only history opens the raw review path without rerunning OCR.
+
+T-090: Vercel serverless cloud deployment and zero-timeout configuration. Added `vercel.json` with 60s maxDuration for API routes, ensuring OCR and diagram services do not terminate prematurely in cloud execution. Pre-synced PDF.js assets in `public/` allow native client rendering in deployed Vercel environments.
+

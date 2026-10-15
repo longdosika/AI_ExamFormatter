@@ -3,6 +3,7 @@ import { assertSameOrigin, getGoogleSession, SESSION_COOKIE } from "@/lib/google
 import { EXPORT_LIMIT, uploadGoogleDocument, validateExportDocument } from "@/lib/google-export";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 export async function POST(request: NextRequest) {
   const json = (value: object, status: number) => NextResponse.json(value, { status, headers: { "Cache-Control": "no-store" } });
   try { assertSameOrigin(request); } catch { return json({error: "คำขอส่งออกไม่ถูกต้อง"}, 403); }

@@ -114,3 +114,11 @@ The conversion pipeline keeps OCR cleanup before structural parsing. `lib/text-n
 
 ### T-069 long-document parser and media ownership
 The parser evaluates numeric-choice blocks before question boundaries. A four-line `1..4` block followed by the next question is consumed as choices; a longer `1..5..` enumeration remains part of the stem. Page markers do not reset the active question, and page-owned figure markers resolve against `page-N` images supplied by the PDF renderer. This preserves 80-question scanned documents without collapsing them into a smaller navigation set.
+
+### T-090 Vercel cloud deployment topology (2026-10-15)
+- Runtime Topology: Vercel Serverless Functions running Next.js 14 App Router on Node.js 18+/20 LTS.
+- Client/Server Division: All heavy PDF rendering (pdf.js), image cropping (HTML Canvas), DOCX parsing (JSZip), and document state persistence (localStorage) run on the user's browser client. Server routes (`app/api/ocr`, `app/api/diagrams`, `app/api/source-answers`, `app/api/google/*`) act strictly as stateless backend proxies to third-party APIs (Google Cloud Vision, Typhoon OCR, Google Gemini API, Google Drive/Docs API).
+- Execution Timeouts: Configured `vercel.json` and route-level `export const maxDuration = 60;` to raise serverless timeout from 15s to 60s for multi-page OCR and diagram analysis.
+- Assets: PDF.js worker, cmaps, and fonts are pre-synced to `public/` and verified by `scripts/test-pdf-assets.cjs` to ensure zero CDN/external asset dependencies in cloud execution.
+- Environment: Required production secrets configured via Vercel Project Settings (`GEMINI_API_KEY`, `TYPHOON_OCR_API_KEY`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_SESSION_SECRET`, and `APP_URL`).
+

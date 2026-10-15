@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { analyzeSourceAnswers, SourceQuestion } from "@/lib/source-answer-service";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 export async function POST(request: NextRequest) {
   const origin = request.headers.get("origin");
   if (origin && origin !== request.nextUrl.origin) return NextResponse.json({ error: "Origin rejected" }, { status: 403 });
