@@ -1,5 +1,13 @@
 # Code Map
 
+### T-112 GitHub Release Preparation
+- .github/workflows/build-test.yml: least-privilege Node 22 locked build/tests, Chromium production verification and blocking high/critical production audit, without production credentials or deployment.
+- scripts/check-release-readiness.mjs: Git-managed file/path/size/pattern inspection; location-only reports and explicit history/binary limitations.
+- scripts/test-release-readiness.cjs: safety checker regressions; included in npm test. npm run release:check is the pre-publication entry point.
+- scripts/test-provider-keys.cjs: obvious synthetic mask fixture replaces credential-shaped literal.
+- scripts/test-e2e.cjs: report actual configured browser channel instead of always claiming Edge.
+- documents/release-checklist.md, evidence/t112-verification.md: owner approval gates, release/deployment distinction and local/cloud verification record.
+
 ### T-111 Conveniences
 - app/page.tsx: `noticeFolded` timer and foldable notice, header draft chip, `recentDrafts` on the upload screen.
 - components/SplitDocumentEditor.tsx: `nextStepAction`, `jumpAndReveal`, `stepQuestion`, `jumpToNextUnanswered`, J/K keydown listener (skips editable targets), answered chip button with fill, current-question pill (ref + timer), crop box class.

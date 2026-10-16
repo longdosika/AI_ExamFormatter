@@ -720,7 +720,7 @@ async function ready() {
   mark('Original storage failure is explicit while the live source and editing remain available');
   assert.deepEqual(errors,[],'Browser runtime must have no uncaught errors');
   mark('No uncaught browser runtime errors');
-  fs.writeFileSync(path.join(evidence,'results.json'),JSON.stringify({status:'passed',browser:'headless Microsoft Edge',checks,errors},null,2));
+  fs.writeFileSync(path.join(evidence,'results.json'),JSON.stringify({status:'passed',browser:`headless ${process.env.E2E_BROWSER_CHANNEL || 'msedge'}`,checks,errors},null,2));
 })().catch(error=>{
   console.error(error);
   fs.writeFileSync(path.join(evidence,'results.json'),JSON.stringify({status:'failed',checks,errors,failure:error.stack},null,2));

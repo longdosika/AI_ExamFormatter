@@ -2,7 +2,15 @@
 
 > 🛎️ **Executive Dashboard & Project Gateway:** เอกสารนี้ทำหน้าที่เป็นศูนย์รวมข้อมูลและสวิตช์บอร์ดประจำโปรเจกต์ นำเสนอสรุปสถานะสั้นกระชับ อ่านง่าย และเชื่อมโยงไปยังเอกสารเฉพาะทางใน Project Knowledge Vault เพื่อไม่ให้ไฟล์นี้ใหญ่เกินไป
 
-### อัปเดตล่าสุด 2026-10-15
+### อัปเดตล่าสุด 2026-10-16
+
+งานล่าสุด **`T-112` เตรียม build สำหรับ GitHub โดยยังไม่ push**: เพิ่ม workflow Node 22 สำหรับติดตั้งจาก lockfile, ตรวจไฟล์ลับ/ขนาดไฟล์, typecheck/lint/test/build, Chromium E2E และ audit dependency พร้อม [release checklist](documents/release-checklist.md). สร้าง production candidate **`261016-1027`** แยกจากระบบหลัก ผ่าน completion gate exit 0 และ Edge E2E **31/31**; build ตรวจใน gate อัปเดต source stamp ล่าสุดเป็น **`261016-1034`** แต่ไม่ได้ deploy และปิด candidate หลังทดสอบแล้ว ผลและข้อจำกัด: [evidence/t112-verification.md](evidence/t112-verification.md). ไม่มีการ stage, commit หรือ push ในรอบนี้
+
+**ยังไม่พร้อมเผยแพร่:** production dependency audit พบ critical 2 / high 3 รายการ ติดตามใน **`T-113`**; CI จะไม่ผ่าน security gate จนแก้ไข ต้องตรวจคีย์ลักษณะ credential ที่เคยอยู่ในประวัติ Git และความเป็นส่วนตัวของ PDF/DOCX/ภาพหลักฐานด้วย ห้ามใช้ `npm audit fix --force` โดยไม่มีแผนอัปเกรด รายงาน: [evidence/t112-npm-audit.json](evidence/t112-npm-audit.json)
+
+ระบบหลักยังเป็น production **`261016-0945` / `T-111`**: ปรับประสิทธิภาพและความชัดเจนของ workspace, chip แบบร่าง, ข้อความสถานะพับได้, แบบร่างล่าสุด, J/K เลื่อนข้อ, ข้ามไปข้อที่ยังไม่ตอบ และ feedback การแก้เฉลย ผ่าน E2E **31/31** ตาม [หลักฐาน T-111](evidence/t111-verification.md). ก่อนหน้านี้ `T-109` ปรับ export ตามแม่แบบหลัก และ `T-110` รวมส่งออก/เปิดเอกสารในจุดเดียวพร้อมแถบเลขข้อใหม่ เลข stamp ใน source ที่ถูกอัปเดตโดย gate ไม่ใช่การ deploy ระบบหลักหรือการรัน CI บน GitHub
+
+### ประวัติก่อนหน้า 2026-10-15
 
 Build ล่าสุด **`261015-2017`** / งาน **`T-105`**: เก็บไฟล์ต้นฉบับแยกจากแบบร่างใน IndexedDB เพื่อเปิดอ้างอิง จับภาพ และใช้แว่นขยายต่อได้หลังรีเฟรช แบบร่างเก่าที่ไม่เคยเก็บต้นฉบับให้แนบไฟล์เดิมผ่านปุ่มคลิปหนีบเพียงครั้งเดียว ไม่เรียก OCR/AI และไม่ล้างงานแก้ไข สถานะสกัดรูป/วิเคราะห์เฉลยที่ทำแล้วจางลง ส่วนแถบเลขใช้วงกลมกาง/ยุบช่วงที่ซ่อน พร้อม animation และ reduced motion ผ่าน completion gate และ E2E บน production localhost **28/28** รายการ รายละเอียด: [evidence/t105-verification.md](evidence/t105-verification.md). ข้อมูลต้นฉบับอยู่เฉพาะเบราว์เซอร์/ที่อยู่นี้ ไม่ใช่ cloud backup; งาน T-103/T-104 ยังเปิดอยู่
 
@@ -17,7 +25,8 @@ Build ล่าสุด **`261015-2017`** / งาน **`T-105`**: เก็บ
 ## 1. 📊 สรุปสถานะโปรเจกต์ (Executive Summary)
 
 * **เป้าหมายโปรเจกต์:** พัฒนา Web Application สำหรับแปลงไฟล์ข้อสอบหลายรูปแบบให้ถูกจัดสัดส่วน สี รูปแบบ และส่งออกเป็น Google Doc เข้า Google Drive ตามแม่แบบมาตรฐาน
-* **งานปิดแล้ว:** `T-014` audit/ทะเบียนงาน, `T-015` parser regression, `T-016` workspace/persistence, `T-020` ตรวจ build; finish-task exit 0 ด้วยสิทธิ์ไฟล์/เครือข่ายปกติ ([หลักฐาน](evidence/completion-gate.txt))
+* **งานล่าสุด:** `T-111` ปรับ workspace (production `261016-0945`); `T-112` เตรียม GitHub build แบบไม่ push ดูผลและขอบเขตในหัวข้ออัปเดตล่าสุดด้านบน
+* **เงื่อนไขก่อนเผยแพร่:** `T-113` แก้ production dependency audit (critical 2 / high 3), ตรวจ credential ในประวัติและความเป็นส่วนตัวของหลักฐาน จากนั้นจึงขออนุญาต commit/push และตรวจ CI จริง
 * **งานเปิด:** `T-017` Google export/OAuth, `T-018` OCR/input/image mapping, `T-019` browser UAT/shared cases และ `T-003` end-to-end acceptance
 * **งานแก้ไขเร่งด่วน:** `T-031` กำหนดสัญญา OCR แบบมีหน้า/ข้อ/ข้อย่อย/ตัวเลือก เพื่อให้ PDF สแกนแปลงตรงต้นฉบับและฝั่งซ้าย-ขวาตรวจสอบย้อนกลับได้
 * **สัญญาการออกแบบ (Master Design Constitution):** [documents/design.md](file:///d:/0-Project/92-AiAccess/AI_ExamFormatter/documents/design.md) (ยึดถือแม่แบบ [Official QuizFlow Template](https://docs.google.com/document/d/1uA8A1Q1lXCDIGRPtgBA0H77xYoMWCoo7thp5Hi0nvBQ/edit?tab=t.0))
@@ -41,7 +50,7 @@ Build ล่าสุด **`261015-2017`** / งาน **`T-105`**: เก็บ
 
 รายละเอียดและผลตรวจ: [Project audit](evidence/project-audit.md) · [ทะเบียนงาน](documents/tasks.md)
 
-ข้อจำกัดปัจจุบัน: Git ไม่มี baseline commit; ESLint มี 8 image warnings; browser UAT ของ fixture ตรวจแก้ผ่านแล้ว แต่ยังไม่รับรองความแม่นยำ OCR ของเอกสารใหม่ทุกประเภทหรือการส่งออกด้วย OAuth ภายในแอป
+ข้อจำกัดปัจจุบัน: Git มี baseline แล้ว (`99a9413` อยู่ก่อนเริ่ม T-112 และ ahead cached origin/main 1 commit); ดู lint/quality ผลจริงในหลักฐานรอบล่าสุด ไม่อนุมานจากรายงานเก่า การทดสอบ provider จำลองไม่รับรองความแม่นยำ OCR ของเอกสารใหม่หรือ Google OAuth จริง งาน T-103/T-104 ยังเปิดอยู่ และมี security hold ตาม T-113
 
 ---
 

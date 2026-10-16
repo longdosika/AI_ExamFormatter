@@ -72,7 +72,8 @@
     ".next-t110/types/**/*.ts",
     ".next-production-t110/types/**/*.ts",
     ".next-t111/types/**/*.ts",
-    ".next-production-t111/types/**/*.ts"
+    ".next-production-t111/types/**/*.ts",
+    ".next-release-t112/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

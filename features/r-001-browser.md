@@ -17,6 +17,9 @@ Header separates identity, live status and actions; utilities are icon buttons w
 ### T-105 Original Reference Persistence
 Original files, immutable text and rendered pages are stored separately in browser IndexedDB and restored with the matching draft. Old drafts without stored sources can attach the same file without re-OCRing or losing edits. Name/size/hash checks prevent mismatches; source storage failures are visible. Original source remains browser/origin-local and follows draft deletion, not cloud backup. Evidence: evidence/t105-verification.md.
 
+### T-112 Build Verification, Not Hosting
+Source delivery adds a read-only GitHub build/test workflow with Node 22 and Chromium against a built app. Local build metadata changes are verification artifacts, not automatic deployment. Full input/provider/device acceptance remains separately evidenced. See documents/release-checklist.md and evidence/t112-verification.md; publication is not authorized in this task.
+
 ## Traceability
 
 - Requirement: R-001 in [[documents/prd]]

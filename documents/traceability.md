@@ -1,5 +1,9 @@
 # Traceability
 
+### T-112 GitHub Build Preparation
+Security follow-up T-113 -> existing delivery/provider/PDF feature boundaries -> evidence/t112-npm-audit.json -> planned dependency-path review, approved migration and production audit/regression. No new product requirement or completed remediation is implied.
+Existing delivery requirements and R-001/R-003 -> Task T-112 -> [[features/r-001-browser]], [[features/r-003-google-doc-dirve]] -> .github/workflows/build-test.yml, scripts/check-release-readiness.mjs, scripts/test-release-readiness.cjs, package scripts -> workflow YAML assertions, safety/unit checks, finish-task and isolated production evidence/t112-verification.md. Publication/deployment is expressly excluded. Checklist: [[release-checklist]].
+
 ### T-111 Workspace Conveniences
 Requirement R-001 -> Task T-111 -> [[features/r-001-browser]] -> app/page.tsx, components/SplitDocumentEditor.tsx, components/FileUploader.tsx, app/globals.css -> scripts/test-e2e.cjs, scripts/capture-t111.cjs, evidence/t111-verification.md.
 

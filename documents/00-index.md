@@ -1,5 +1,8 @@
 # Project Knowledge Vault
+## GitHub Preparation
+- [[release-checklist]]: T-112 local-only build/CI preparation and explicit pre-publication security/content review. No push authorized; verification in [[evidence/t112-verification]].
 ## Latest Verified Work
+- T-112 Done, 2026-10-16: GitHub preparation only, no stage/commit/push. Candidate 261016-1027 passed 31/31 Edge E2E and completion gate; source-only gate stamp 261016-1034, main 261016-0945 unchanged. Publication HOLD: production audit 2 critical/3 high (T-113), historical key and binary privacy review. [[release-checklist]], [[evidence/t112-verification]].
 - T-111 Done, 2026-10-16, build 261016-0945 (main http://localhost:3000): header draft chip, folding notice, recent drafts on upload, clickable next step, J/K keys, answered-chip jump, answer pop, question pill, dimmed crop. Gate exit 0, E2E 31/31; [[evidence/t111-verification]].
 - T-110 Done, 2026-10-16, build 261016-0902 (main http://localhost:3000): dark olive rails with working shimmer, one export control (export / export again / open), question strip with answer-origin dots, review rings, preview card and answered/issue summary. Gate exit 0, E2E 30/30; [[evidence/t110-verification]]. Drive D: nearly full.
 - T-109 Done, 2026-10-15, build 261015-2300 (main http://localhost:3000): DOCX/Drive export follows the master QuizFlow template (design.md §1.1): A4, file-name title, keyless indented choices, Pearl Aqua answers, italic shared passage + ◆, V-date/file/page footer. Supersedes the T-108 look. Gate exit 0, E2E 30/30; [[evidence/t109-verification]].

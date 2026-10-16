@@ -1,6 +1,6 @@
 {
   "status": "passed",
-  "browser": "headless Microsoft Edge",
+  "browser": "headless msedge",
   "checks": [
     "MD source upload preserves two questions and explanation",
     "Explicit conversion, source-left/editor-right layout, source answers and bold/italic/underline preserve original",

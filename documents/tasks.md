@@ -5,6 +5,33 @@
 - [[architecture]]
 - [[decisions]]
 ## Backlog
+### T-113 Production Dependency Security Remediation
+- Type: Security Fix
+- Status: Ready
+- Lifecycle: Proposed -> Ready
+- Problem: T-112 read-only npm audit on 2026-10-16 reports five affected production dependency entries (two critical, three high): next, tar, pdfjs-dist, postcss and @mapbox/node-pre-gyp. This is a dependency-level report, not evidence that an exploit occurred or that every advisory is reachable. Automated fixes suggest major Next.js and PDF.js upgrades; forcing them during release preparation would exceed the authorized scope.
+- Acceptance Criteria: Review dependency paths and advisory applicability; agree a supported Node/React/Next/PDF migration; update lockfile reproducibly; remove high/critical production audit findings or document explicitly approved, evidence-backed exceptions; run parser/PDF/image/capture/export/OAuth regression and finish-task with a new build. Never use npm audit fix --force without an approved migration plan.
+- Affected Files: package.json, package-lock.json, dependency consumers as established by impact review, existing feature notes and knowledge docs, evidence/t112-npm-audit.json and new remediation evidence.
+- Expected Verification: npm audit --omit=dev --audit-level=high, clean npm ci on an isolated runner, type/lint/unit/E2E/build, actual PDF/export runtime and finish-task T-113.
+- Owner/Action: Project owner approves major-version migration scope; implementer assesses and upgrades. Publication remains on hold. No dependency upgrade performed in T-112.
+
+### T-112 GitHub Build Readiness and Local Release Checklist
+- Type: Build / CI / Release Preparation
+- Status: Done
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Problem: Owner requests preparation for GitHub, explicitly without pushing. The existing workflow validates knowledge only; it does not install dependencies, typecheck, lint, test, build or exercise the production app. README latest-build information is stale, and one existing local commit is ahead of origin/main.
+- Acceptance Criteria:
+  1. Prepare a reproducible, least-privilege GitHub Actions build/test workflow using the supported Node policy, lockfile install, deterministic provider fixtures and isolated browser tests without production secrets. Keep existing knowledge governance.
+  2. Check tracked files and the unpublished commit for accidental secrets/build/dependency outputs and GitHub size limits; report limitations and sensitive evidence requiring owner review without printing secret values or rewriting history.
+  3. Document release preparation, build-versus-deployment distinction, required configuration, known risks and explicit review/stage/commit/push steps. Update README latest verified work/build accurately.
+  4. Validate workflow structure, run relevant local checks and finish-task T-112, exercise an isolated production candidate where applicable, record evidence. Do not push, create a remote release, change repo visibility, stage or commit unless separately authorized.
+- Affected Files: .github/workflows, README.md, documents/release-checklist.md, tasks/architecture/decisions/traceability/code-map/memory/index, relevant feature note if generated build metadata changes, scripts for verification only if needed, evidence/t112-verification.md.
+- Expected Verification: tracked-file/commit safety inspection, workflow YAML parsing, local typecheck/lint/unit/E2E/production build, finish-task T-112, Git status proving no push/commit/stage and clear cloud-run limits.
+- Security finding: evidence/t112-npm-audit.json reports two critical and three high production dependency entries. CI blocks on high/critical findings; T-113 tracks remediation separately. Build preparation is not publication approval.
+- Verification (2026-10-16, DESKTOP-FNVSAKS): finish-task T-112 exit 0; type/lint/unit/build and 31/31 production Edge E2E, zero browser runtime errors, CSS 200/54,319 bytes. Candidate 261016-1027, gate-only stamp 261016-1034; main 261016-0945 unchanged and synthetic import/edit/DOCX smoke exercised. Workflow YAML assertions and release scanner passed; separate production audit exit 1 (2 critical/3 high). Evidence: evidence/t112-verification.md, evidence/t112-npm-audit.json, evidence/t112-main-smoke.png.
+- Remaining owner/action: T-113 approved dependency migration; historical-key confirmation/rotation if real; document/privacy review; later separately authorize commit/push and observe actual Node 22 Ubuntu CI. No stage/commit/push or cloud run here.
+- Final status (2026-10-16): Verified -> Done for local preparation only, not publication clearance. Final semantic/drift validation passed, release scanner zero findings, staged diff empty, HEAD 99a9413 and cached origin/main 22a4c84 unchanged. Candidate stopped; main CSS still 200. See evidence/t112-verification.md for limits.
+
 ### T-111 Fast, clear workspace conveniences and feedback
 - Type: Feature / Workspace UX
 - Status: Done

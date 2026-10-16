@@ -1,5 +1,10 @@
 # Memory
 
+### T-112 No Push and Historical Credential Review (2026-10-16)
+finish-task T-112 exit 0: Edge E2E 31/31 on candidate 261016-1027, gate-only source stamp 261016-1034; main stays 261016-0945. Main was separately opened and synthetic import/convert/edit/DOCX checked. Temporary :3218 candidate stopped after verification. CI remains unexecuted and its security audit is expected red until T-113; exact local audit exit 1 verified. Eight existing image lint warnings remain.
+Read-only production npm audit found five affected dependency entries (two critical, three high); evidence/t112-npm-audit.json. Build and Test now blocks on production high/critical audit findings. T-113 is Ready for approved dependency migration; do not force major Next/PDF upgrades or claim publication readiness from functional tests alone.
+Owner authorized GitHub preparation only, explicitly no push. main initially clean, HEAD 99a9413 ahead of cached origin/main 22a4c84 by one; do not rewrite/stage/commit it. New Build and Test workflow is independent of knowledge governance and uses no production secrets. release:check scans current managed text/paths and sizes only. A key-shaped mask fixture was replaced, but its originating c9153dd is already in origin/main ancestry: current removal is not rotation/history cleanup. Owner must confirm fake or rotate if real, and review existing exam documents/screenshots before publication. Node 24 Windows tests cannot certify the configured Node 22 Ubuntu workflow. Never equate generated lib/version.ts stamp with a deployed UI badge or CI run.
+
 ### T-111 Owner Priority for UI Work (2026-10-16)
 Owner priority: 1 performance, 2 convenience and easy-to-understand (not complex or confusing), 3 looks. Apply it to future UI suggestions. Deferred T-111 ideas: minimap of all questions, workspace dark mode, export preview card, OCR-coordinate source highlight, per-step progress ring, export history menu.
 

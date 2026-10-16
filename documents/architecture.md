@@ -1,5 +1,9 @@
 # Architecture
 
+### T-112 GitHub Build/Test Boundary
+The final CI security gate runs npm audit --omit=dev --audit-level=high. The current lockfile has two critical and three high production dependency entries; T-113 owns remediation. No automatic dependency rewrite or major migration is performed by the workflow.
+The existing Knowledge Governance workflow stays unchanged. Build and Test runs on PRs, main pushes or manual dispatch: Ubuntu, Node 22, npm ci, release path/pattern checks, typecheck/lint/unit tests, Next production build, Chromium production E2E and CSS health. It uses contents: read, disabled persisted checkout credentials, concurrency cancellation and selected synthetic diagnostic artifacts only. Application OAuth/provider credentials are not required or injected. CI success does not publish or host the server/API routes; deployment remains separate. scripts/check-release-readiness.mjs audits current Git-managed files without printing matching values, not full history or binary content.
+
 ### T-105 Browser-Local Original Source Store
 lib/original-source-store.ts stores structured-cloned original File/Blob, original text, page renders and embedded source images in IndexedDB (exam-formatter-originals-v1 / sources), keyed by the existing draft docKey. LocalStorage drafts continue to contain OCR/editor/answer state separately. Import saves source before OCR mutates rawContent. Reopen checks identity and reconstructs object URLs; it never uses an unrelated active source or presents OCR as original. Legacy reattachment parses/renders only, verifies name/size and SHA-256 when available, then updates source props without remounting the live editor. Delete/clear draft actions also remove associated source records. Failure/blocked/timeout paths are explicit. Data stays per browser/origin until user deletion or browser eviction; no cross-device/cloud persistence is implied.
 

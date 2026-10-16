@@ -1,0 +1,72 @@
+name: Build and Test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-test-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CI: "true"
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Check release file safety
+        run: npm run release:check
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Unit and contract tests
+        run: npm test
+      - name: Production build
+        run: npm run build
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Exercise production app
+        env:
+          E2E_BASE_URL: http://127.0.0.1:3217
+          E2E_BROWSER_CHANNEL: chromium
+          CSS_PORT: "3217"
+        run: |
+          npm run start -- -p 3217 -H 127.0.0.1 > evidence/ci-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          npm run test:e2e
+          node scripts/check-css.mjs
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+      - name: Upload synthetic browser diagnostics
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v5
+        with:
+          name: browser-diagnostics
+          retention-days: 7
+          if-no-files-found: ignore
+          path: |
+            evidence/qa-iteration-2/results.json
+            evidence/qa-iteration-2/desktop.png
+            evidence/qa-iteration-2/mobile.png
+            evidence/ci-server.log

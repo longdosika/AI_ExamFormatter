@@ -18,6 +18,9 @@ Source answers use green (#E6F4EA), AI yellow (#FFF4CC), and user-entered/correc
 
 Status: `Planned`
 
+### T-112 Cloud CI Does Not Certify Live Google Export
+GitHub build/E2E uses mocked provider/auth responses and needs no Google production secrets. A green build does not verify live OAuth consent, folder access or document conversion under an account. Configure actual hosting environment/callbacks and perform separate acceptance; never publish env files, local builds or private evidence blindly. See documents/release-checklist.md and evidence/t112-verification.md.
+
 ## Traceability
 
 - Requirement: R-003 in [[documents/prd]]

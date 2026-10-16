@@ -1,5 +1,9 @@
 # Decisions
 
+### D-036 Prepare Source and CI, Do Not Publish (T-112, 2026-10-16)
+Production audit reports two critical and three high dependency entries. Block high/critical findings in CI and register T-113 rather than silently accepting or forcing major upgrades. Completing local preparation is separate from passing this security gate or authorizing publication.
+Owner explicitly chose preparation without push. Keep existing local/remote commits, do not stage/commit/amend, change repository visibility, rotate credentials or rewrite history. Add a no-production-secrets, read-only GitHub build/test workflow with pinned major official actions, Node 22 and Chromium while retaining governance. GitHub receives source/lockfiles, not local Windows dependencies or .next output. Replace a key-shaped masking fixture with an obvious synthetic value, but record its historical presence and require owner confirmation/rotation if real. Existing binary exam evidence needs owner privacy/copyright review; a current text-pattern scan is not publication clearance. Verification records local runtime/build separately from unexecuted cloud CI.
+
 ### D-035 Rank UI Polish by Performance, Then Clarity, Then Looks (T-111, 2026-10-16)
 Owner set the order performance > convenience/clarity > beauty. From 30 proposals, items needing heavy rendering or new concepts (minimap, whole-app dark mode, export preview, OCR-coordinate highlighting, per-step progress rings) were deferred; implemented items reuse existing state, animate only compositor-friendly properties once, and avoid per-frame React updates. Keyboard shortcuts are ignored inside inputs and the contentEditable editor so typing is never captured.
 

@@ -54,7 +54,7 @@ async function runTests() {
   assert.strictEqual(isQuotaOrRateLimitError(new Error('Not found'), 404), false, '404 is not quota');
 
   // 5. Key Masking
-  assert.strictEqual(maskApiKey('AIzaSyDndfldBylycwuPHXIEVIfqbk4u3_XKYUE'), 'AIza...KYUE');
+  assert.strictEqual(maskApiKey('test-mask-fixture-value'), 'test...alue');
   assert.strictEqual(maskApiKey('short'), '***');
 
   // 6. executeWithKeyRotation: Success on Primary Key
