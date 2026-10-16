@@ -82,7 +82,7 @@ export function GoogleDriveStatus({ onReady }: {onReady: (ready: boolean) => voi
     } catch (error) { setMessage(error instanceof Error ? error.message : "ออกจากการเชื่อมต่อไม่สำเร็จ"); }
     finally { setBusy(false); }
   };
-  return <section aria-label="การเชื่อมต่อ Google Drive" className="my-4 flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs">
+  return <section aria-label="การเชื่อมต่อ Google Drive" className="my-4 flex flex-wrap items-center gap-3 rounded-xl border border-[var(--ui-line)] bg-white px-4 py-3 text-[13px] text-[var(--ui-ink-2)]">
     <span role="status">
       {!status
         ? "กำลังตรวจการเชื่อมต่อ Google…"
@@ -98,9 +98,9 @@ export function GoogleDriveStatus({ onReady }: {onReady: (ready: boolean) => voi
         ? "พร้อมส่งออกไป AI_ExamFormatter"
         : "เลือกโฟลเดอร์ AI_ExamFormatter เพื่อให้สิทธิ์ส่งออก"}
     </span>
-    {status?.configured && !status.connected && <a href="/api/google/auth" className="rounded-lg bg-[#006D77] px-3 py-2 text-white">เชื่อมบัญชี Google</a>}
-    {status?.connected && !status.folderReady && <button type="button" disabled={busy} onClick={selectFolder} className="rounded-lg bg-[#006D77] px-3 py-2 text-white disabled:opacity-50">เลือกโฟลเดอร์</button>}
-    {status?.connected && <button type="button" disabled={busy} onClick={disconnect} className="rounded-lg border border-slate-300 px-3 py-2">ออกจากการเชื่อมต่อ</button>}
+    {status?.configured && !status.connected && <a href="/api/google/auth" className="ui-btn bg-[var(--ui-teal)] text-white hover:bg-[#005a63]">เชื่อมบัญชี Google</a>}
+    {status?.connected && !status.folderReady && <button type="button" disabled={busy} onClick={selectFolder} className="ui-btn bg-[var(--ui-teal)] text-white hover:bg-[#005a63] disabled:opacity-50">เลือกโฟลเดอร์</button>}
+    {status?.connected && <button type="button" disabled={busy} onClick={disconnect} className="ui-btn ui-btn-quiet">ออกจากการเชื่อมต่อ</button>}
     {message && <span role="alert" className="text-red-700">{message}</span>}
   </section>;
 }

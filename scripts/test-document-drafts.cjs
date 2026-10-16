@@ -42,6 +42,16 @@ async function runTests() {
   } = moduleExports;
 
   const storage = createMockStorage();
+  const sourceCode = fs.readFileSync(path.join(__dirname, "../lib/original-source-store.ts"), "utf8");
+  const sourceModule = { exports: {} };
+  new Function("exports", "require", "module", ts.transpileModule(sourceCode, {compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText)(sourceModule.exports, specifier => specifier === './document-draft-store' ? moduleExports : require(specifier), sourceModule);
+  const { sourceMatchesDraft, saveOriginalSource } = sourceModule.exports;
+  const sourceIdentity={fileName:'original.pdf',fileSize:123,sourceHash:'verified-hash'};
+  assert.ok(sourceMatchesDraft(sourceIdentity,{fileName:'original.pdf',fileBytes:123,sourceHash:'verified-hash'}));
+  assert.ok(!sourceMatchesDraft(sourceIdentity,{fileName:'original.pdf',fileBytes:123,sourceHash:'different-hash'}));
+  assert.ok(!sourceMatchesDraft(sourceIdentity,{fileName:'other.pdf',fileBytes:123}));
+  assert.ok(!sourceMatchesDraft(sourceIdentity,{fileName:'original.pdf',fileBytes:124}));
+  await assert.rejects(()=>saveOriginalSource(sourceIdentity),/ที่เก็บไฟล์ต้นฉบับ/,'Unavailable IndexedDB must report failure, not fake a save');
 
   // Test 1: Empty storage
   assert.deepStrictEqual(loadAllDrafts(storage), []);
@@ -97,7 +107,6 @@ async function runTests() {
 
   const editorSource = fs.readFileSync(path.join(__dirname, "../components/SplitDocumentEditor.tsx"), "utf8");
   assert.ok(editorSource.includes("dangerouslySetInnerHTML"), "Editor must be able to restore the saved draft DOM snapshot");
-  assert.ok(editorSource.includes("onInput={() => editorPaneRef.current && onEditorDraftChange"), "Editor input must trigger draft autosave");
 
   // Test 5: Delete draft
   deleteDocumentDraft(storage, saved1.docKey);

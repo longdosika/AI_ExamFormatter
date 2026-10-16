@@ -38,6 +38,11 @@ const {readSourceAnswers,solveUnresolvedAnswers}=require('../lib/source-answer-c
     const sourceWon={...unresolved,id:3,reconciledAnswerKey:'ก',reconciliationProvenance:'source_vision',choices:unresolved.choices.map(c=>({...c,isCorrect:c.key==='ก',shadingType:c.key==='ก'?'source_provided':'none'}))};
     let solveCalls=0;global.fetch=async()=>{solveCalls++;return {ok:true,json:async()=>({answers:[{id:3,key:'ง',confidence:1,evidence:'ไม่ควรแทนที่'}]})};};
     await solveUnresolvedAnswers([sourceWon],[],()=>true,()=>{});assert.equal(solveCalls,0,'AI fallback must never overwrite source answers');
+    const manual={...sourceWon,reconciliationProvenance:'manual',choices:sourceWon.choices.map(c=>({...c,shadingType:c.isCorrect?'manual':'none'}))};
+    await solveUnresolvedAnswers([manual],[],()=>true,()=>{});
+    await readSourceAnswers([manual],['image'],()=>true,()=>{});
+    assert.equal(solveCalls,0,'Neither source reader nor AI solver may overwrite a manual answer');
+    assert.equal(manual.reconciliationProvenance,'manual');
     console.log('Source answer client preserves existing answers and rejects stale responses');
   } finally {global.fetch=original;}
 })().catch(e=>{console.error(e);process.exitCode=1;});

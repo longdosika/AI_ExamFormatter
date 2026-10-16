@@ -5,6 +5,140 @@
 - [[architecture]]
 - [[decisions]]
 ## Backlog
+### T-109 Align export with the master QuizFlow template
+- Type: Feature / Export Formatting
+- Status: Done
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Problem: Owner restated (2026-10-15) that the master template https://docs.google.com/document/d/1uA8A1Q1lXCDIGRPtgBA0H77xYoMWCoo7thp5Hi0nvBQ/edit ("QuizFlow Import Template v1.1", design.md §1.1) is the supreme reference. T-108 instead matched a secondary example (1wyAaKDjHQM8lYqhwXqGX7fJgXZ8FZ1Xa). Public DOCX export of the template (evidence/t109-master-template.docx; renders evidence/t109-template-*.png) differs from the T-108 export: A4 11909x16834 with margins top 283/bottom 694/left 850/right 429 twips and a footer (doc code + "PAGE of NUMPAGES") vs Letter 0.6/0.7"; plain bold black 17 pt title line vs centred coral stamp + teal title; spacing before/after per block (question 160/80, choices label 40/60, choice 0/60, explanation 60/100) vs blank-paragraph rhythm; choices label/explanation indented 400 twips and choices 660 with 260 hanging vs no indent; choice text without "ก./ข." keys vs "ก. ..."; answer marked by run-level Pearl Aqua B8F2E6 + coral "*" vs paragraph-wide origin colours (T-101 green/yellow/blue); question text 102A2E vs 000000; shared passage italic indented 360, centred "◆" after "จบโจทย์ร่วม"; question/shared images 661 px and choice images 353 px inside the choice paragraph vs 528/307 px separate paragraphs.
+- Decisions needed from owner: (1) apply template rules everywhere or keep specific T-108/T-101 behaviours; (2) drop choice keys "ก./ข." in export as the template shows; (3) single B8F2E6 answer mark vs three provenance colours; (4) header/footer content (template title text and footer code are sample values).
+- Owner decisions (2026-10-15): (1) template wins everywhere, superseding the T-108 reference look; (2) export drops choice keys "ก./ข." (editor keeps them); (3) every correct answer uses run-level Pearl Aqua B8F2E6 + coral "*" regardless of origin (editor keeps T-101 origin colours); (4) title = file name in the template title style; footer = "V-<Thai-year yymmdd>" + file name (red italic) + "PAGE of NUMPAGES".
+- Acceptance Criteria: export DOCX (download and Drive) reproduces the template page, title, footer, per-block spacing/indents, colours, choice/answer marking, shared-context passage/separator and image widths (661 px question/shared, 353 px inline choice images, 510 px explanation); raw OCR export keeps title/footer/page; unit + E2E regression updated; Word render compared to the template; finish-task; restart localhost:3000.
+- Affected Files: documents/tasks.md, documents/design.md, evidence/t109-*; implementation files only after decisions.
+- Expected Verification: paragraph/run dump and Word render of new export vs template.
+- Verification (2026-10-15): template unit fixture pass; E2E 30/30 (A4/footer/spacing/keyless choices; T-101 export check moved to Pearl Aqua stars); Word renders evidence/t109-template-vs-export-p1/p2.png match title, rhythm, indents, answer marks, shared block, diamond and footer. finish-task exit 0 on production 261015-2300 (gate stamp 261015-2302, CSS OK). Evidence: evidence/t109-verification.md.
+- Deployment (2026-10-15): localhost:3000 (127.0.0.1) serves 261015-2300 from .next-production-t109; HTTP 200, CSS OK; evidence/t109-deployed-export.docx downloaded from :3000 has A4 page, footer "V-691015 | file name | PAGE of NUMPAGES", template spacing/indents and Pearl Aqua answers. Google Drive conversion not exercised (no signed-in session for the agent).
+- Final status (2026-10-15): Verified -> Done. T-108's look is superseded; its role tagging, translucent-fill fix and test retry remain.
+
+### T-108 Export layout matches the owner's target exam document
+- Type: Feature / Export Formatting
+- Status: Done
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Problem: Owner asked that exported DOCX/Google Docs follow the reference https://docs.google.com/document/d/1wyAaKDjHQM8lYqhwXqGX7fJgXZ8FZ1Xa/edit strictly. Read-only analysis (public DOCX export, byte-identical to evidence/t102-expected.docx) shows: US Letter, margins 0.6" top/bottom and 0.7" left/right, Sarabun 12 pt with 1.15 line spacing and no paragraph spacing; centred header "AI Exam Formatter_<Thai-year yymmdd-hhmm>" (coral 11 pt) and title (bold teal 16 pt); per question: "N. " bold coral + black text, blank line, "ตัวเลือก:" bold teal, one black paragraph per choice (key not bold), the correct choice shaded with a bold coral " *", blank line between questions; "รูปคำถาม:"/"รูปโจทย์ร่วม:" bold coral labels with 528 px images, choice images 307 px under their choice; shared stem "โจทย์ร่วม " bold teal + black text and closing "จบโจทย์ร่วม". Current export uses A4/0.5", 80-twip spacing after every paragraph, no header or blank separators, slate/amber text colours and bold teal choice keys. The owner's "before" document (1bd5cqArKs2EwASUnVUS5qbHh5lVxRgxqNYVxUe9KC7Y) requires Google sign-in and could not be read; current-system output was analysed from locally generated exports and evidence/t102-broken.docx.
+- Acceptance Criteria:
+  1. Snapshot tags each paragraph with its semantic role from existing editor data attributes (question, image labels/images, choices label, choice, choice image, shared header/text/end, explanation); no editor DOM change.
+  2. A pure layout step shared by DOCX download and Google Drive export applies the target page, defaults, header, blank-line rhythm, colours, keep-with-next and image widths; answer-origin backgrounds (T-101) and user bold/italic/underline are preserved.
+  3. Raw OCR export (no roles) still exports with the page/header/defaults and unchanged content.
+  4. Regression: unit test of the layout on a fixture covering normal, image, choice-image and shared-context questions; E2E DOCX checks page size, header, blank rhythm and black choice keys; finish-task; restart localhost:3000 and exercise download.
+- Affected Files: lib/export-document.ts, new lib/export-layout.ts, lib/google-export.ts, scripts/test-google.cjs, scripts/test-e2e.cjs, existing R-003 feature note, knowledge docs, evidence/t108-verification.md.
+- Expected Verification: npm test (layout unit), E2E DOCX assertions, rendered comparison against the target, finish-task, production restart.
+- Owner/Action: provide view access (or a DOCX) for the "before" document to cross-check; label wording follows the target ("รูปคำถาม:", "โจทย์ร่วม " without colon) in export only.
+- Verification (2026-10-15): layout unit fixture pass; E2E 30/30 with DOCX page/header/blank/choice-key checks; Word-rendered comparison before | target | after (evidence/t108-compare-*.png). Found and fixed solid teal shading on shared-context paragraphs (translucent editor fill exported as opaque). finish-task exit 0 on production 261015-2227 (gate stamp 261015-2229, CSS OK). Evidence: evidence/t108-verification.md.
+- Deployment (2026-10-15): localhost:3000 (127.0.0.1) serves 261015-2227 from .next-production-t108; HTTP 200, CSS OK; capture-t108 on :3000 produced evidence/t108-deployed-export.docx with Letter page, header, blank rhythm and black choices. Google Drive conversion of the new layout not exercised (no signed-in session available to the agent).
+- Final status (2026-10-15): Verified -> Done.
+
+### T-107 One-line accordion navigation, editor image management, hover-label menus and motion polish
+- Type: Feature / Workspace UX
+- Status: Done
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Problem: Owner screenshot (2026-10-15, build 261015-2110) shows (1) the 80-question strip wrapping to two lines because every opened range stays open; (2) shared/question images in the editor cannot be replaced, resized or deleted, and adding an image needs a typed URL prompt; (3) header utilities show only icons, names appear only after a delayed tooltip. Owner asked for more purposeful motion within the Earth-tone palette in design.md.
+- Acceptance Criteria:
+  1. Question strip stays on one line (horizontal scroll inside the strip only). Only one range is open at a time (opening another closes the previous; anchor click outside closes it). The open range is emphasized as a teal-tinted capsule; a collapsed range containing the current question shows that number as a coral marker. Existing gap aria/inert/keyboard/reduced-motion behavior kept.
+  2. Hovering or focusing an editor image shows a floating toolbar: replace from file, recapture from original, size 50/75/100% (honored by DOCX/Google export), delete with labels removed and an Undo action. Add image opens a file picker (no URL prompt) and reuses the insert dialog to choose question/role; dropping or pasting an image file onto a question does the same. Changes persist through the existing draft save.
+  3. Header utility group and source tool group expand on hover/focus to show text labels beside icons, collapsing when the pointer leaves.
+  4. Extra motion: question jump highlight, editor reading-progress bar, copy-confirm icon morph, page chip tick; all disabled under prefers-reduced-motion and no infinite animation inside the question nav.
+- Affected Files: components/SplitDocumentEditor.tsx, components/RichTextToolbar.tsx, app/page.tsx, app/globals.css, lib/export-document.ts, scripts/test-e2e.cjs, scripts/capture-t106.cjs (or t107), existing R-001/R-004 notes, knowledge docs, evidence/t107-verification.md.
+- Expected Verification: typecheck, lint, npm test, E2E with new assertions (single-open accordion, one-line strip, image delete/undo/replace/resize with DOCX width), screenshots, finish-task, restart localhost:3000 on the verified build and exercise it.
+- Verification (2026-10-15): E2E 30/30 on dev after scoping rail label transitions to wide fine-pointer screens (390 px overflow during resize). First production gate run hit transient Windows UNKNOWN evidence writes; second exposed a real defect: while one range closed and another opened, the closing range's chips wrapped and the strip briefly grew to 60 px. Fixed with nowrap range content and 28 px open height; measured 37 px through the switch. finish-task exit 0 against production 261015-2153 (E2E 30/30, gate build stamp 261015-2155, CSS OK). Evidence: evidence/t107-verification.md, t107-*.png, t107-completion-gate.log.
+- Deployment (2026-10-15): localhost:3000 (127.0.0.1) now serves 261015-2153 from .next-production-t107; HTTP 200, CSS OK, capture-t107 flow (80 questions, range switch, image add/tools/delete/undo, hover rails) passed; browser pane: 80 items, single open range "50", strip 37 px. Temporary :3102 stopped.
+- Final status (2026-10-15): Verified -> Done.
+
+### T-106 Workspace chrome redesign: calmer hierarchy, readable controls, consistent warm theme
+- Type: Refactor / Workspace UX
+- Status: Done
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Problem: Owner screenshot (2026-10-15) of the active workspace shows eight equal-weight outlined header buttons, two status rows (header pill plus a full-width export banner), 9-10 px labels for page position, question numbers and stepper, cool slate greys mixed with the warm earth palette, whole-button `animate-pulse` on the next step, and an unlabeled icon stepper whose current action is unclear. The result reads mechanical and wastes vertical space.
+- Acceptance Criteria:
+  1. Header separates identity, status and actions: one prominent "เลือกไฟล์ใหม่", the remaining utilities as a quiet icon group with tooltips; export success becomes a header link instead of an extra row. Existing accessible names stay unchanged.
+  2. Source/editor pane chrome uses one warm token set (no slate/blue mix), min 11 px UI text, page position moves into the source header, and the stepper shows a short text label for the next action. Step buttons keep 32x32 geometry and completed opacity 0.4.
+  3. Question navigation chips become larger, easier to hit (>= 24 px) with gap animation intact; desktop nav <= 90 px and mobile <= 120 px expanded.
+  4. Motion is purposeful: a soft halo replaces whole-button pulsing; pane entrance and chip transitions are subtle; everything is disabled under prefers-reduced-motion.
+  5. Exported content styling (question/choice/answer colors, 12 pt Sarabun) is unchanged; DOCX/Google output fidelity is not affected.
+  6. Upload screen uses the same visual language.
+- Affected Files: app/page.tsx, app/globals.css, components/SplitDocumentEditor.tsx (chrome only), components/RichTextToolbar.tsx, components/FileUploader.tsx, documents/design.md, documents/code-map.md, documents/decisions.md, documents/memory.md, documents/traceability.md, features/r-001-browser.md, evidence/t106-verification.md.
+- Expected Verification: typecheck, lint, npm test, E2E (all existing layout contracts), before/after screenshots desktop and 390 px, reduced-motion check, finish-task T-106, fresh production localhost flow.
+- Dependency note: Working tree still carries uncommitted T-105 changes in the same files; T-106 edits only presentation classes and must not alter T-105 behavior.
+- Verification (2026-10-15): typecheck and lint exit 0; npm test exit 0; E2E 28/28 against isolated dev :3101 after fixing an opacity-only pane entrance (first run failed the header-above-nav geometry check mid-animation). finish-task exit 0 against production build 261015-2110 on http://127.0.0.1:3102 (first attempt hit transient Windows UNKNOWN evidence-file writes; unchanged rerun passed, gate build stamp 261015-2114, CSS OK). capture-t106: header 44 px, nav 37 px, chips 24 px, no overflow at 1600/390 px, reduced motion stops all T-106 animation. Production flow exercised in browser pane: upload 30-question fixture, convert, navigation present. Evidence: evidence/t106-verification.md, t106-*.png, t106-completion-gate.log.
+- Final status (2026-10-15): Verified -> Done.
+- Deployment (2026-10-15): owner approved; old T-105 server (pid 8820) stopped and main http://localhost:3000 (bound 127.0.0.1) now serves build 261015-2110 from .next-production-t106. HTTP 200, CSS OK, capture-t106 bounds pass, browser flow on localhost:3000 converted 30 questions with 8 source answers. Temporary :3102 server stopped.
+
+### T-105 Persistent Original Source and Expandable Question Navigation
+- Type: Feature / Bug / Workspace UX
+- Status: Done
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Problem: Drafts retain OCR/editor content but not original source media, leaving the left reference pane empty on reopen. Applying a draft can also reuse an unrelated active source. Completed diagram/answer steps stay visually prominent. Long question navigation auto-expands a moving decade instead of allowing deliberate gap expansion.
+- Acceptance Criteria:
+  1. Persist the original file/rendered source separately from OCR/editor drafts in IndexedDB; reopen it automatically with the matching draft. Never associate another active document's source. Preserve magnifier/capture and original-only left pane. Old drafts missing stored media offer source-only reattachment, validating identity and preserving editor/answers without OCR/AI. Report storage failures honestly.
+  2. Completed diagram/answer actions have the same subdued appearance as completed formatting while remaining repeatable; busy/current/warning states stay distinct.
+  3. Long navigation starts with first/decade/final anchors and small circular gap controls. Click a gap to expand/collapse its hidden questions with animation, keyboard/aria support and reduced-motion behavior; preserve active indication and independent source scrolling, including mobile/non-1/sparse numbering.
+  4. Regression covers source retention across reload, cross-document isolation, legacy reattachment without provider calls, completed opacity, and animated gap navigation. Pass full completion gate and verify a new production build.
+- Affected Files: app/page.tsx, components/FileUploader.tsx, components/SplitDocumentEditor.tsx, lib/file-parser.ts, new source-store/navigation helper if needed, app/globals.css, regression scripts, existing R-001/R-002/R-004 notes, knowledge docs and evidence/t105-verification.md.
+- Expected Verification: IndexedDB browser persistence/isolation/failure, source-only reattachment, capture/magnifier, step states, desktop/mobile/reduced-motion navigation, unit/type/lint/full tests, finish-task T-105, fresh production localhost flow.
+- Verification progress (2026-10-15): IndexedDB persistence/isolation and legacy attachment passed with exact text/media/answer preservation and zero OCR/AI calls. Wrong name and same-size wrong SHA-256 are rejected. Actual source capture after restore contains nonwhite pixels. Completed diagram/answer computed opacity 0.4. Desktop/mobile circular expansion/collapse, keyboard, reduced motion, active indication and compact dimensions passed. Full gate passed once with build 261015-2008 and 27 E2E checks; final gate adds sparse-number anchors and final production verification is pending. Evidence: evidence/t105-verification.md and t105 screenshots/logs.
+- Final gate (2026-10-15): finish-task T-105 exit 0 against isolated production server, including all quality checks, E2E 28/28, build 261015-2016 and CSS. Earlier Windows UNKNOWN writes to version.ts occurred with the isolated dev watcher active; after stopping only that watcher, the unchanged stamping/build flow passed against production. No permission/security changes or stamp bypass. Main localhost deployment verification remains pending.
+- Production verification (2026-10-15, DESKTOP-FNVSAKS): final build 261015-2017 succeeded in .next-production-t105-final; served at http://localhost:3000. Exact-URL E2E passed 28/28 with zero uncaught browser errors, including source persistence/isolation, original-only reattachment and actual capture, opacity 0.4 and animated mobile/desktop/sparse navigation. Build badge visually confirmed in t105-navigation.png. Logs: evidence/t105-final-build.log, evidence/t105-production-browser.log. Source storage is browser/origin-local; legacy drafts require one original attachment if no original was previously stored. T-103/T-104 remain open.
+- Final status (2026-10-15): Verified -> Done after successful completion gate, exact production flow, visual review and final vault/drift checks (exit 0). Main production remains running; isolated test servers stopped. No remaining T-105 blocker. Browser eviction/clearing and missing historical originals remain documented storage boundaries, not silently recoverable data.
+
+### T-102 Idempotent answer decorations and reliable exported images
+- Type: Bug / Editor and Export Reliability
+- Status: Done
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Problem: After answer analysis/manual changes, answer stars and origin badges appear twice in the editor and export. Google Docs shows broken-image placeholders for exported choice figures. Existing tests checked file counts but did not prove imported image readability.
+- Acceptance Criteria:
+  1. Exactly one managed star and origin badge per choice across initial render, repeated AI updates, manual edits, review, restored legacy drafts, and export. Repair already duplicated legacy DOM without discarding edited text/media.
+  2. Inspect image bytes, OOXML relationships and upload payload; correct any demonstrated image interoperability defects. Preserve all question/shared/choice/explanation images and colors in DOCX; verify actual Google conversion if authorized connection is available.
+  3. Export prepares and validates all embedded images, including images not yet loaded because they are offscreen, and reports unreadable media instead of silently producing broken output.
+  4. Add regression fixtures for asynchronous answer updates/legacy duplication and decoded image validity, record evidence and real-conversion limits, pass finish-task T-102, and serve a fresh production build.
+- Affected Files: components/SplitDocumentEditor.tsx, lib/answer-editor.ts, lib/export-document.ts, lib/google-export.ts, app/page.tsx, export/browser regressions, existing R-002/R-003/R-004 feature notes and knowledge files, evidence/t102-verification.md.
+- Expected Verification: targeted browser/export and decoded-image tests, typecheck, lint, npm test, E2E, node scripts/finish-task.mjs T-102, production localhost flow; real Google image readback where available.
+- Reference update (2026-10-15): Owner supplied expected output https://docs.google.com/document/d/1wyAaKDjHQM8lYqhwXqGX7fJgXZ8FZ1Xa/edit (actually a DOCX opened in Docs). Read-only comparison confirms one answer star, embedded figures under choice labels, shared-context grouping. Use as a layout reference, not an authoritative answer key; retain T-101 origin colors. Actual broken output readback contains 78 doubled answer stars and 14 decodable embedded images; its Google-generated PDF renders all four Q16 figures. The screenshot's Google editor warning cannot yet be attributed to missing upload bytes.
+- Verification (2026-10-15): finish-task T-102 exit 0: semantic/platform/drift, typecheck, lint (8 existing img warnings), all tests, E2E 25 checks, build 261015-1930, CSS health. Owner-authorized Google test document 1SQzFqee4XxKPyVSC4ZhRLM6hngjycsZlRP-dFO96hmU imported in target folder and read back as DOCX/PDF: two selected answers each have one star, manual blue fill retained, two PNGs decode and the colored image renders. Production build 261015-1932 is running at http://localhost:3000 from .next-production-t102; E2E against that exact URL passed all 25 checks with no uncaught browser errors. Build badge visually confirmed in t102-repaired-draft.png. Host: DESKTOP-FNVSAKS. Evidence: evidence/t102-verification.md, t102-completion-gate.log, t102-production-browser.log, t102-google-qa-render.png.
+- Final status (2026-10-15): Moved Verified -> Done after successful completion gate and production flow. Final knowledge-vault and drift checks also exit 0. T-103 Google editor rendering and T-104 Q66 upstream table capture remain explicitly open; do not represent these distinct follow-ups as fixed by T-102.
+
+### T-104 Restore Q66 table figure from original source
+- Type: Bug / Diagram Harvesting
+- Status: Ready
+- Lifecycle: Proposed -> Ready
+- Problem: Owner's expected DOCX has 15 image occurrences; reported output has 14. Paragraph/relationship comparison localizes the difference to Q66: its chromatography ranking table is a figure in the reference, but flattened into questionText in the reported export. This precedes serialization; duplicating or changing DOCX upload bytes cannot recover an absent editor image.
+- Acceptance Criteria: Reproduce the source-page harvest for Q66, bind a complete table crop to that question, retain full headers and X/Y/Z values, remove only duplicate flattened table text, and verify editor plus DOCX/Google output without inventing a source answer or re-OCRing the entire document.
+- Affected Files: diagram/parser binding if demonstrated; existing R-002/R-004 notes and evidence/t102-reference-q66.png, evidence/t102-verification.md.
+- Expected Verification: exact source-page fixture/crop before and after, focused regression, real editor/export image association and completion gate under this task.
+- Owner/Action: Codex investigates provider output and crop binding once the original source page or the affected draft with source images is available. No original PDF exists in this checkout; do not fabricate a crop from OCR text or copy the expected document's answer key.
+
+### T-103 Confirm Google Docs editor image-warning recurrence
+- Type: Confirmation / Platform Runtime
+- Status: Proposed
+- Lifecycle: Proposed
+- Problem: Owner screenshot shows warning placeholders in Google Docs, but the same document's DOCX and Google-rendered PDF contain actual Q16 images. The agent's browser requires Google sign-in, so the account-specific editor rendering failure is not reproduced.
+- Acceptance Criteria: Open the affected document in the owner's signed-in browser, reload and inspect Q16; if warnings persist, capture image-request errors and diagnose the demonstrated failing boundary without altering the original/reference documents.
+- Affected Files: evidence/t102-verification.md; export implementation only if a defect is demonstrated.
+- Expected Verification: signed-in Google Docs screenshot and relevant network error evidence; compare PDF readback.
+- Owner/Action: Project owner confirms recurrence; Codex investigates with browser access/evidence. This does not invalidate the verified answer-decoration fix.
+
+### T-101 Three answer origins and export at any working stage
+- Type: Feature / Editing and Export
+- Status: Done
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Problem: Answer shading has only source/AI states; manual answer changes are not recorded as a separate origin. Review issues and workflow stages block export even when the user accepts the current work.
+- Acceptance Criteria:
+  1. Source answers are green, AI answers yellow, manual answers blue, each with an explicit label. Users can select, change, or clear answers without losing edited text/media; manual answers survive draft reload and are not overwritten by AI.
+  2. Export the current raw OCR or formatted editor at any stage, including with unresolved review issues. Google export still requires valid Drive authentication; local DOCX download does not.
+  3. Snapshot/DOCX preserves all three answer background colors, manual text edits, and images. Export does not run OCR/AI or require review first.
+  4. Browser regression exercises manual selection, typed answer correction, draft reopen, raw/formatted download, and Google export payload with review issues.
+- Affected Files: formatter rules, answer provenance/editor helpers, SplitDocumentEditor, RichTextToolbar, app/page.tsx, export snapshot, local DOCX route, regression scripts, related knowledge files and evidence/t101-verification.md.
+- Expected Verification: focused browser/export regressions; typecheck, lint, npm test, E2E, node scripts/finish-task.mjs T-101, production localhost smoke with fresh build.
+- Verification (2026-10-15): `node scripts/finish-task.mjs T-101` exit 0, including knowledge/drift, platform readiness, typecheck, lint (0 errors, 8 existing img warnings), all unit/contract tests, E2E 22 checks, isolated production build 261015-1901 and CSS health. Browser regression tested raw edited OCR download and mocked Google payload, raw answer correction to manual provenance, three computed background colors, actual DOCX fill/media, manual select/change/type/clear, draft reopen and scroll stability. Manual answers are preserved by source/AI readers. Evidence: evidence/t101-verification.md and t101 screenshots.
+- Final access (2026-10-15): Production build 261015-1902 served at http://localhost:3000 using .next-production. Browser E2E against this production server passed all 22 checks. HTTP 200 and matching build badge confirmed. Google payload is mocked in browser verification; real OAuth upload remains account-dependent. Marked Done after Verified and successful completion gate.
+
 ### T-001 Kick Off The Project Context
 - Type: `Project Setup`
 - Status: `Done`

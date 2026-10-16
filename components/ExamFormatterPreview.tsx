@@ -65,6 +65,7 @@ export const ExamFormatterPreview: React.FC<ExamFormatterPreviewProps> = ({ item
                 {item.choices.map((choice) => {
                   const isGreenShaded = choice.isCorrect && choice.shadingType === "source_provided";
                   const isYellowShaded = choice.isCorrect && choice.shadingType === "auto_solved";
+                  const isManualShaded = choice.isCorrect && choice.shadingType === "manual";
 
                   return (
                     <div
@@ -74,7 +75,7 @@ export const ExamFormatterPreview: React.FC<ExamFormatterPreviewProps> = ({ item
                           ? "bg-[#E6F4EA] text-emerald-950 font-normal border-l-3 border-emerald-600"
                           : isYellowShaded
                           ? "bg-[#FFF4CC] text-amber-950 font-normal border-l-3 border-amber-500"
-                          : "text-slate-800 hover:bg-slate-50"
+                          : isManualShaded ? "bg-[#E3EFFA] text-[#28332d] border-l-3 border-[#397493]" : "text-slate-800 hover:bg-slate-50"
                       }`}
                     >
                       <div>
@@ -86,7 +87,7 @@ export const ExamFormatterPreview: React.FC<ExamFormatterPreviewProps> = ({ item
                       </div>
                       {choice.isCorrect && (
                         <span className="text-[10px] px-2 py-0.5 rounded font-mono font-medium bg-white/70 shadow-2xs">
-                          {isGreenShaded ? "เฉลยต้นฉบับ (#E6F4EA)" : "เฉลยจาก AI · ตรวจทาน (#FFF4CC)"}
+                          {isManualShaded ? "เฉลยโดยผู้ใช้" : isGreenShaded ? "เฉลยจากต้นฉบับ" : "เฉลยจาก AI"}
                         </span>
                       )}
                     </div>

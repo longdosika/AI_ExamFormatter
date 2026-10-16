@@ -1,5 +1,18 @@
 # ได้เอกสารในรูปแบบ google doc ไว้ใน dirve ที่กำหนด
 
+### T-109 Master Template Export
+Downloaded DOCX and Google Drive documents follow the master QuizFlow template: A4 with template margins, file-name title, indented keyless choices, Pearl Aqua answer marks, teal labels, italic shared passages with a closing ◆, 661/353/510 px images and a "V-date | file name | page X of Y" footer. Evidence: evidence/t109-verification.md.
+
+### T-108 Reference Export Layout
+Downloaded DOCX and Google Drive documents share the owner reference layout: Letter page, Sarabun 12 pt/1.15, centred stamp + title header, blank-line rhythm, black question/choice text, bold coral numbers/stars/image labels, bold teal choices/shared labels, 528/307 px images, answer-origin shading only on answer rows. Evidence: evidence/t108-verification.md.
+
+### T-102 Single-Star and Readable-Media Export
+Export repairs duplicated legacy answer decorations, keeps one star and the three origin backgrounds, and independently decodes lazy/offscreen images before upload/download. Nonstandard readable image sources become embedded PNG; invalid images produce an explicit error before upload. Proportional bounds preserve tall figures. Read-only Google DOCX/PDF readback of the user's reported file proves its Q16 figures exist and render; account-specific editor placeholders remain confirmation T-103. Expected layout reference: Drive file 1wyAaKDjHQM8lYqhwXqGX7fJgXZ8FZ1Xa. Evidence: evidence/t102-verification.md.
+
+### T-101 Answer Origins and Working-Copy Export
+Source answers use green (#E6F4EA), AI yellow (#FFF4CC), and user-entered/corrected answers blue (#E3EFFA), with named origin badges. Selecting/changing/clearing manual answers keeps live edits and images; draft saves merge ownership without reclassifying user corrections as source answers. Raw OCR and formatted drafts can be downloaded as DOCX or sent through authenticated Google export at any stage, including review findings. Snapshots preserve all answer colors and media. Evidence: evidence/t101-verification.md; scripts/test-e2e.cjs and scripts/test-google.cjs. This supersedes older review-gated export behavior.
+
+
 Status: `Planned`
 
 ## Traceability

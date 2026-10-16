@@ -11,6 +11,8 @@ export interface ParsedFileResult {
   extension: string;
   rawContent: string;
   fileUrl?: string; // Data/Object URL for PDF/Image viewer
+  sourceBlob?: Blob;
+  originalText?: string;
   pageImages?: string[]; // Rendered page images for continuous native PDF viewing
   extractedImages: { id: string; dataUrl: string }[];
   isClean: boolean;

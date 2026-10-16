@@ -17,9 +17,10 @@ export const FORMATTER_CONSTANTS = {
   COLOR_TEAL: "#006D77",   // Stormy Teal (Headers: ตัวเลือก:, คำอธิบาย:, โจทย์ร่วม)
   COLOR_BLACK: "#000000",  // Pure Black (Body text)
 
-  // Dual-Color Answer Shading
+  // Answer origin colors
   SHADING_GREEN: "#E6F4EA",  // Source provided correct answer
   SHADING_YELLOW: "#FFF4CC", // AI auto-solved correct answer
+  SHADING_BLUE: "#E3EFFA",   // User-entered or corrected answer
 
   // Labels
   LABEL_CHOICES: "ตัวเลือก:",
@@ -33,7 +34,7 @@ export interface ChoiceItem {
   key: string; // "ก", "ข", "ค", "ง"
   text: string;
   isCorrect: boolean;
-  shadingType?: "source_provided" | "auto_solved" | "none";
+  shadingType?: "source_provided" | "auto_solved" | "manual" | "none";
   imageUrl?: string;
   imageStatus?: "CLEAN" | "DIRTY";
 }
@@ -51,7 +52,7 @@ export interface ExamItem {
   explanationText: string;
   explanationImageUrl?: string;
   reconciledAnswerKey?: string;
-  reconciliationProvenance?: "source_asterisk" | "reconciled_from_explanation" | "source_vision" | "ai_generated" | "auto_solved" | "unresolved";
+  reconciliationProvenance?: "source_asterisk" | "reconciled_from_explanation" | "source_vision" | "ai_generated" | "auto_solved" | "manual" | "unresolved";
   sourceAnswerEvidence?: { page: number; confidence: number; evidence: string; bbox: number[]; model: string };
   // Shared context properties (โจทย์ร่วม)
   sharedContextText?: string;

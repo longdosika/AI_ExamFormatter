@@ -1,5 +1,15 @@
 # แปลงเอกสารให้เข้ารูปแบบที่กำหนด
 
+### T-105 Workspace Navigation and Source Reference
+Original source media restores when reopening drafts, while legacy sources can be reattached without converting/OCRing again. Long question navigation uses first/decade/final anchors and circular expandable ranges. It preserves current-question indication, independent source scrolling, keyboard operation, responsive wrapping and reduced motion. Completed diagram/answer steps are subdued but remain repeatable. Evidence: evidence/t105-verification.md.
+
+### T-102 Duplicate Answer Regression
+Answer decorations use one stable marker/badge slot per choice. Repeated AI updates and saved legacy duplicates are normalized without removing edited text or images. The owner's expected DOCX is a layout reference, not an answer-key replacement. Both export paths prepare readable image bytes before sending. Evidence: evidence/t102-verification.md; regression: scripts/test-e2e.cjs and scripts/test-google.cjs.
+
+### T-101 Answer Origins and Working-Copy Export
+Source answers use green (#E6F4EA), AI yellow (#FFF4CC), and user-entered/corrected answers blue (#E3EFFA), with named origin badges. Selecting/changing/clearing manual answers keeps live edits and images; draft saves merge ownership without reclassifying user corrections as source answers. Raw OCR and formatted drafts can be downloaded as DOCX or sent through authenticated Google export at any stage, including review findings. Snapshots preserve all answer colors and media. Evidence: evidence/t101-verification.md; scripts/test-e2e.cjs and scripts/test-google.cjs. This supersedes older review-gated export behavior.
+
+
 Status: `In Progress`
 
 ## Traceability

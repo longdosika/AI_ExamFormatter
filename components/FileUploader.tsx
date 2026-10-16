@@ -48,6 +48,8 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onFileParsed, onErro
     try {
       setLoading(true);
       const result = await parseUploadedFile(file, { signal: controller.signal });
+      result.sourceBlob = file;
+      result.originalText = result.rawContent;
       if (globalThis.crypto?.subtle) {
         const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
         result.sourceHash = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
@@ -102,12 +104,12 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onFileParsed, onErro
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`border-2 border-dashed rounded-xl p-8 text-center transition cursor-pointer ${
+        className={`group border-[1.5px] border-dashed rounded-2xl px-6 py-10 text-center cursor-pointer transition-[border-color,background-color,transform] duration-200 ${
           isDragging
-            ? "border-[#496053] bg-[#eae8e1]/80"
+            ? "border-[var(--ui-olive)] bg-[#eef2ee] scale-[1.01]"
             : errorMessage
-            ? "border-red-300 bg-red-50/20"
-            : "border-[#dedad0] hover:border-[#b3996a] bg-[#f7f6f2] hover:bg-[#eae8e1]/50"
+            ? "border-[#e2a99f] bg-[#fdf4f2]"
+            : "border-[var(--ui-line-strong)] hover:border-[var(--ui-sand)] bg-[var(--ui-sunken)] hover:bg-[#f1eee6]"
         }`}
       >
         <input
@@ -119,14 +121,14 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onFileParsed, onErro
           onChange={handleFileSelect}
         />
         <button type="button" onClick={() => inputRef.current?.click()} className="w-full space-y-3 block rounded-lg" aria-label="เลือกไฟล์ข้อสอบ">
-          <div className="w-12 h-12 rounded-full bg-[#eae8e1] text-[#496053] border border-[#dedad0] flex items-center justify-center mx-auto shadow-xs">
+          <div className={`w-14 h-14 rounded-2xl bg-white text-[var(--ui-olive)] border border-[var(--ui-line)] flex items-center justify-center mx-auto transition-transform duration-300 group-hover:-translate-y-1 motion-reduce:transform-none ${isDragging ? "-translate-y-1" : ""}`}>
             <Upload className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-[#28332d]">
+            <p className="text-[15px] font-semibold text-[var(--ui-ink)]">
               {isDragging ? "ปล่อยไฟล์ที่นี่เพื่ออัปโหลด" : "ลากไฟล์มาวางที่นี่ หรือ คลิกเพื่อเลือกไฟล์"}
             </p>
-            <p className="text-xs text-stone-500 mt-1">
+            <p className="text-[13px] text-[var(--ui-ink-3)] mt-1">
               รองรับ: .docx, .pdf, .png, .jpg, .md, .html (สูงสุด 50MB)
             </p>
           </div>
@@ -135,17 +137,17 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onFileParsed, onErro
 
       {/* Loading state */}
       {loading && (
-        <div role="status" className="p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-3 text-xs text-blue-800">
-          <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        <div role="status" className="ui-status-in p-3 bg-white border border-[var(--ui-line)] rounded-xl flex items-center gap-3 text-[13px] text-[var(--ui-ink)]">
+          <div className="w-4 h-4 border-2 border-[var(--ui-olive)] border-t-transparent rounded-full animate-spin"></div>
           <span className="flex-1 min-w-0 break-words">กำลังอ่านไฟล์ {currentFile?.name}…</span>
-          <button type="button" onClick={cancelImport} className="underline shrink-0">ยกเลิกการอ่าน</button>
+          <button type="button" onClick={cancelImport} className="ui-btn ui-btn-quiet h-7">ยกเลิกการอ่าน</button>
         </div>
       )}
 
       {/* Error state */}
       {errorMessage && (
-        <div role="alert" className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-xs text-red-700">
-          <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
+        <div role="alert" className="ui-status-in p-3 bg-[#fdf4f2] border border-[#efc9c1] rounded-xl flex items-center gap-2 text-[13px] text-[#8a2f22]">
+          <AlertCircle className="w-4 h-4 shrink-0 text-[#c4503d]" />
           <span>{errorMessage}</span>
         </div>
       )}

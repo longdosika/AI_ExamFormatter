@@ -1,4 +1,11 @@
 # PRD
+
+### T-105 Original Reference and User-Controlled Navigation (2026-10-15)
+R-001/R-004: Keep original source media associated with its editable draft across browser reloads; source-left remains original-only and supports capture/magnifier without re-OCR. Legacy drafts without stored originals allow identity-checked source-only reattachment without resetting edits. Storage failures must be visible; browser-local storage is not cross-device backup. R-002/R-004: completed diagram/answer steps become subdued but can run again. Long question navigation uses first/decade/final anchors and circular controls that explicitly expand/collapse hidden questions with accessible, reduced-motion-aware animation.
+
+### T-101 Accepted Working-Copy Export and Answer Ownership (2026-10-15)
+R-002/R-004: Distinguish source answers (green), AI answers (yellow), and user-entered/corrected answers (blue), with visible origin labels. Selecting or typing a corrected answer creates manual provenance and survives draft resume. R-003: User acceptance permits exporting current raw OCR or a formatted working copy at any stage, including unresolved review issues. This supersedes older T-039/T-055 review-gated export restrictions. Drive authentication and server payload limits still apply; DOCX download is available without Google login.
+
 ## Related
 - [[00-index]]
 - [[architecture]]

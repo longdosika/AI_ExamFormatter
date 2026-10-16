@@ -1,4 +1,26 @@
 # Traceability
+
+### T-109 Master Template Export
+Requirement R-003/R-004 -> Task T-109 -> [[features/r-003-google-doc-dirve]] -> lib/export-layout.ts, lib/google-export.ts, lib/export-document.ts -> scripts/test-google.cjs, scripts/test-e2e.cjs, scripts/capture-t108.cjs, evidence/t109-verification.md. Supersedes the T-108 layout; T-101 origin colours remain editor-only.
+
+### T-108 Export Layout From Reference
+Requirement R-003/R-004 -> Task T-108 -> [[features/r-003-google-doc-dirve]] -> lib/export-document.ts, lib/export-layout.ts, lib/google-export.ts -> scripts/test-google.cjs (layout unit), scripts/test-e2e.cjs (DOCX page/header/rhythm/choice key), scripts/capture-t108.cjs, evidence/t108-verification.md.
+
+### T-107 Accordion Strip, Image Management and Hover Rails
+Requirement R-001/R-004 -> Task T-107 -> [[features/r-001-browser]] -> components/SplitDocumentEditor.tsx, components/RichTextToolbar.tsx, app/page.tsx, app/globals.css, lib/export-document.ts -> scripts/test-e2e.cjs (accordion, one-line, image add/resize/delete/undo with DOCX extent), scripts/capture-t107.cjs, evidence/t107-verification.md.
+
+### T-106 Workspace Chrome Redesign
+Requirement R-001 -> Task T-106 -> [[features/r-001-browser]] -> app/globals.css, app/layout.tsx, app/page.tsx, components/SplitDocumentEditor.tsx, components/RichTextToolbar.tsx, components/FileUploader.tsx, components/GoogleDriveStatus.tsx -> scripts/test-e2e.cjs (unchanged contracts), scripts/capture-t106.cjs, evidence/t106-verification.md. Refactor of presentation only; no requirement or export behavior change.
+
+### T-105 Original Persistence and Expandable Navigation
+Requirement R-001/R-002/R-004 -> Task T-105 -> [[features/r-001-browser]], [[features/r-002-feature]], [[features/r-004-feature]] -> lib/original-source-store.ts, lib/file-parser.ts, components/FileUploader.tsx, app/page.tsx, components/SplitDocumentEditor.tsx, app/globals.css -> scripts/test-document-drafts.cjs, scripts/test-e2e.cjs, evidence/t105-verification.md. Legacy originals require one identity-checked attachment; no OCR/AI reprocessing. Old Google editor/Q66 follow-ups T-103/T-104 remain separate.
+
+### T-102 Answer/Media Export Regression
+Existing R-002/R-003/R-004 -> Task T-102 -> [[features/r-002-feature]], [[features/r-003-google-doc-dirve]], [[features/r-004-feature]] -> lib/answer-editor.ts, components/SplitDocumentEditor.tsx, lib/export-document.ts, lib/google-export.ts, app/page.tsx -> scripts/test-e2e.cjs, scripts/test-google.cjs, evidence/t102-verification.md. Covers async/repeated AI updates, manual changes, legacy duplicate repair, real DOCX single-star/media decoding, offscreen image canonicalization and corrupt-image rejection. Google editor warning recurrence is T-103, separate from successful Google PDF/media readback.
+
+### T-101 Three Answer Origins and Export at Any Working Stage
+Requirement R-002/R-003/R-004 -> Task T-101 -> Feature Note: [[features/r-002-feature]], [[features/r-003-google-doc-dirve]], [[features/r-004-feature]] -> Code: lib/answer-editor.ts, lib/formatter-rules.ts, components/SplitDocumentEditor.tsx, components/RichTextToolbar.tsx, app/page.tsx, lib/export-document.ts, app/api/export/docx/route.ts -> Verification: scripts/test-e2e.cjs, scripts/test-google.cjs, evidence/t101-verification.md. Regression covers source/AI/manual colors, manual override and clearing, typed correction, saved draft resume, raw export, unresolved-draft export, and image/color preservation in real DOCX bytes. Google UI payload uses an isolated mock; real OAuth destination acceptance remains separate.
+
 ## Related
 - [[00-index]]
 - [[prd]]

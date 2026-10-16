@@ -1,4 +1,59 @@
 # Code Map
+
+### T-109 Master Template Export Layout
+- lib/export-layout.ts: rewritten to the master template (`EXPORT_PAGE` A4, `BLOCK` spacing/indent table, `TEMPLATE_COLORS`, `IMAGE_MAX`, `FOOTER_TABS`, key stripping, inline choice images, run-level answer shading, shared passage/diamond, footer data).
+- lib/google-export.ts: paragraph spacing/indent/alignment, run shading, footer1.xml with PAGE/NUMPAGES fields and footerReference.
+- lib/export-document.ts: export image cap 661 px.
+- scripts/test-google.cjs (template unit fixture), scripts/test-e2e.cjs (A4/footer/spacing/keyless choices, Pearl Aqua answers, transient copyFile retry).
+
+### T-108 Export Layout
+- lib/export-document.ts: `ParagraphRole`/`PARAGRAPH_ROLES`, role + item tagging from editor data attributes in `snapshotDocument`; translucent backgrounds no longer export as solid fills.
+- lib/export-layout.ts: pure `layoutExamDocument` (header, blank rhythm, colours, run merge, image caps, keep-with-next, shared header merge), `exportStamp`, `EXPORT_PAGE`.
+- lib/google-export.ts: `createExportDocx` applies the layout for both /api/export/docx and Google Drive upload; Letter page/margins, styles.xml defaults, role validation.
+- scripts/test-google.cjs: layout unit fixture; scripts/test-e2e.cjs: DOCX page/header/blank/choice-key checks and transient Windows evidence-write retry; scripts/capture-t108.cjs: representative export generator.
+
+### T-107 Accordion Strip, Image Management, Hover Rails
+- components/SplitDocumentEditor.tsx: `openGap` single-open accordion, `nav-range` capsule and coral marker, nav auto-reveal effect, `flashQuestion`; image tools (`placeImageTools`, `replaceImage`, `recaptureImage`, `resizeImage`, `deleteImage`/`undoDeleteImage`), `openUploadDialog` shared by toolbar/drop/paste, origin-aware insert dialog, reading-progress ref, source rail labels and page tick.
+- lib/export-document.ts: `data-export-scale` -> `displayScale` reduces exported image width/height; cache keyed by source and scale.
+- components/RichTextToolbar.tsx: copy confirmation morph (`onCopyAll` may resolve false).
+- app/page.tsx: header utility group as `ui-rail` with labels.
+- app/globals.css: `nav-scroll`, `nav-range`, `nav-gap-marker`, `ui-rail*` (media-scoped transitions), `ui-image-frame`, `[data-drop-target]`, `ui-copied`, reduced-motion overrides.
+- scripts/test-e2e.cjs: accordion/one-line and image add/resize-in-DOCX/delete/undo assertions; scripts/capture-t107.cjs: screenshots and bounds.
+
+### T-106 Workspace Chrome Redesign
+- app/globals.css: `--ui-*` tokens; `ui-surface`, `ui-pane-head`, `ui-group`, `ui-icon-btn`, `ui-btn`, `ui-chip`, `ui-tip` component classes; halo/status/pane/check/logo-scan motion with reduced-motion overrides; `nav-chip`.
+- app/layout.tsx: warm page ground and ink.
+- app/page.tsx: identity/status/actions header; export-success link in header; warm draft banner and upload card.
+- components/SplitDocumentEditor.tsx: chrome only (pane heads, source tools group, page chip, stepper halo/check/connectors, next-step label, review details, question chips). `StepDoneBadge` helper. Editor item rendering untouched.
+- components/RichTextToolbar.tsx, components/FileUploader.tsx, components/GoogleDriveStatus.tsx: shared tokens/classes.
+- scripts/capture-t106.cjs: desktop 1600/1912 and 390 px screenshots, layout bounds and reduced-motion assertion.
+
+### T-105 Original Retention and Circular Question Gaps
+- lib/original-source-store.ts: IndexedDB original snapshots, transaction outcomes/timeouts, identity checks, restore URL creation and deletion.
+- lib/file-parser.ts, components/FileUploader.tsx: original Blob/text carried with parsed results.
+- app/page.tsx: pre-OCR persistence, matching-source draft reopen, non-destructive identity-checked attachment, source cleanup/error state and non-overlapping header status.
+- components/SplitDocumentEditor.tsx: original attachment/display, subdued completed controls, explicit anchor/gap navigation with inert hidden buttons.
+- app/globals.css: gap expansion/collapse and existing reduced-motion override.
+- scripts/test-document-drafts.cjs, scripts/test-e2e.cjs: identity/failure and browser persistence, isolation, legacy reattachment, opacity, mobile/keyboard/reduced-motion checks.
+
+### T-102 Single Answer Slots and Image Preparation
+- components/SplitDocumentEditor.tsx: unconditional managed star/badge slots shared with decoration.
+- lib/answer-editor.ts: normalizeAnswerDecorations repairs duplicate legacy nodes.
+- lib/export-document.ts: normalize snapshots; prepareExportDocument decodes, embeds and sizes images before export.
+- app/page.tsx: both export paths await prepared snapshots.
+- lib/google-export.ts: proportional maximum image dimensions.
+- scripts/test-e2e.cjs, scripts/test-google.cjs: async duplicate/legacy repair, actual media decoding, offscreen WebP pixel checks, corrupt-image rejection and tall-aspect regression.
+
+### T-101 Answer Ownership and Stage-Independent Export
+- lib/formatter-rules.ts: manual shading/provenance and pale blue color.
+- lib/answer-editor.ts: decorate old/new DOM, manual selection/clear, and structured answer-only draft merge.
+- components/SplitDocumentEditor.tsx: delegated answer controls, typed answer markers, current raw/editor export element.
+- components/RichTextToolbar.tsx: always-available current-document DOCX/Google actions when content exists.
+- app/page.tsx: local download and Drive callbacks, preserve manual ownership before AI and draft saves; remove review gate.
+- lib/export-document.ts: nested paragraph background inheritance.
+- app/api/export/docx/route.ts: same-origin 8 MB bounded local DOCX response with existing validation/builder.
+- scripts/test-e2e.cjs, scripts/test-google.cjs: end-to-end ownership/export and OOXML regression.
+
 ## Related
 - [[00-index]]
 - [[architecture]]

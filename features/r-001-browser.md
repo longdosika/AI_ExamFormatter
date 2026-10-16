@@ -2,6 +2,15 @@
 
 Status: `In Progress`
 
+### T-107 Accordion Strip and Editor Image Tools
+One-line question strip with a single open range (teal capsule) and a coral marker for the current question inside folded ranges. Editor images can be replaced, recaptured, resized (exported size) and deleted with Undo; images can be added by file, drop or paste through the insert dialog. Header/source icon rails show labels on hover. Evidence: evidence/t107-verification.md.
+
+### T-106 Calm Workspace Chrome
+Header separates identity, live status and actions; utilities are icon buttons with tooltips and one primary "เลือกไฟล์ใหม่". Source and editor heads share warm tokens, larger readable labels, page chip, a stepper with halo/next-step label and 24 px question chips. Exported content unchanged. Evidence: evidence/t106-verification.md.
+
+### T-105 Original Reference Persistence
+Original files, immutable text and rendered pages are stored separately in browser IndexedDB and restored with the matching draft. Old drafts without stored sources can attach the same file without re-OCRing or losing edits. Name/size/hash checks prevent mismatches; source storage failures are visible. Original source remains browser/origin-local and follows draft deletion, not cloud backup. Evidence: evidence/t105-verification.md.
+
 ## Traceability
 
 - Requirement: R-001 in [[documents/prd]]

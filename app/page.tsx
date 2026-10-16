@@ -17,7 +17,8 @@ import {
   Trash2
 } from "lucide-react";
 import { FileUploader } from "@/components/FileUploader";
-import { ParsedFileResult, revokeParsedFileUrls } from "@/lib/file-parser";
+import { ParsedFileResult, parseUploadedFile, revokeParsedFileUrls } from "@/lib/file-parser";
+import { saveOriginalSource, loadOriginalSource, deleteOriginalSource, sourceMatchesDraft } from "@/lib/original-source-store";
 import { parseExamText } from "@/lib/exam-parser";
 import { validateExamItems } from "@/lib/exam-validation";
 import { readReviewedDocument } from "@/lib/reviewed-document";
@@ -28,7 +29,8 @@ import { SplitDocumentEditor } from "@/components/SplitDocumentEditor";
 import { StatisticsModal } from "@/components/StatisticsModal";
 import { GoogleDriveStatus } from "@/components/GoogleDriveStatus";
 import { generateFallbackExamItems } from "@/lib/exam-fallback";
-import { snapshotDocument } from "@/lib/export-document";
+import { prepareExportDocument, snapshotDocument } from "@/lib/export-document";
+import { answerItemsFromEditor } from "@/lib/answer-editor";
 import { appendExperiment, experimentReport, readExperiments, ImportExperiment } from "@/lib/experiment-stats";
 import { readOcrDocument } from "@/lib/ocr-client";
 import { readSourceAnswers, solveUnresolvedAnswers } from "@/lib/source-answer-client";
@@ -76,6 +78,9 @@ export default function Home() {
   const [availableDraft, setAvailableDraft] = useState<DocumentDraft | null>(null);
   const [showDraftsModal, setShowDraftsModal] = useState(false);
   const [savedDrafts, setSavedDrafts] = useState<DocumentDraft[]>([]);
+  const [sourceError, setSourceError] = useState<string | null>(null);
+  const [draftOpening, setDraftOpening] = useState(false);
+  const sourceDraftKey = useRef<string | undefined>(undefined);
   const restoredEditorHtml = useRef<string | null>(null);
   const autosaveTimer = useRef<number | null>(null);
 
@@ -95,19 +100,30 @@ export default function Home() {
     sourceHash: draft.sourceHash || undefined,
     fileType: "application/pdf",
     extension: draft.fileName.includes(".") ? `.${draft.fileName.split(".").pop()?.toLowerCase() || "pdf"}` : ".pdf",
-    rawContent: draft.ocrText || "",
+    rawContent: "",
     extractedImages: [],
     isClean: true,
     statusMessage: "โหลดจากแบบร่างที่บันทึกไว้ในเครื่อง",
   });
 
-  const handleApplyDraft = (draft: DocumentDraft) => {
+  const handleApplyDraft = async (draft: DocumentDraft) => {
+    const epoch = ++uploadEpoch.current;
+    setDraftOpening(true);
+    setSourceError(null);
+    setOcrProgress(null);
     answerEpoch.current++;
     setAnswerBusy(false);
     setDiagramBusy(false);
     setExportLink(null);
-    const currentFile = activeFile.current || parsedFileFromDraft(draft);
-    currentFile.rawContent = draft.ocrText || currentFile.rawContent || "";
+    let currentFile = activeFile.current && sourceMatchesDraft(activeFile.current, draft) ? activeFile.current : null;
+    if (!currentFile) {
+      try { currentFile = await loadOriginalSource(draft); }
+      catch { if (epoch === uploadEpoch.current) setSourceError("อ่านไฟล์ต้นฉบับที่เก็บไว้ไม่ได้ กรุณาแนบไฟล์เดิมกลับมา"); }
+    }
+    if (epoch !== uploadEpoch.current) { if (currentFile && currentFile !== activeFile.current) revokeParsedFileUrls(currentFile); setDraftOpening(false); return; }
+    if (activeFile.current && activeFile.current !== currentFile) revokeParsedFileUrls(activeFile.current);
+    currentFile ||= parsedFileFromDraft(draft);
+    sourceDraftKey.current = draft.docKey;
     activeFile.current = currentFile;
     setParsedFile(currentFile);
     setOcrText(draft.ocrText || currentFile.rawContent || "");
@@ -130,12 +146,15 @@ export default function Home() {
     setDocumentVersion(version => version + 1);
     setAvailableDraft(null);
     setShowDraftsModal(false);
+    setDraftOpening(false);
     setInfoNotice(`โหลดแบบร่างและประวัติ OCR เรียบร้อย (${draft.itemCount || (draft.formattedItems?.length ?? 0)} ข้อ) แก้ไขต่อได้โดยไม่ต้องเริ่มใหม่หรือเรียก AI ซ้ำ`);
   };
 
   const handleDeleteDraft = (id: string) => {
     try {
+      const draft = loadAllDrafts(window.localStorage).find(entry => entry.id === id);
       deleteDocumentDraft(window.localStorage, id);
+      if (draft) void deleteOriginalSource(draft.docKey).catch(() => setStatisticsError("ลบไฟล์ต้นฉบับที่เก็บไว้ไม่ได้"));
       setSavedDrafts(loadAllDrafts(window.localStorage));
       if (availableDraft?.id === id) setAvailableDraft(null);
     } catch {
@@ -146,6 +165,7 @@ export default function Home() {
   const handleClearAllDrafts = () => {
     try {
       clearAllDocumentDrafts(window.localStorage);
+      void deleteOriginalSource().catch(() => setStatisticsError("ลบไฟล์ต้นฉบับที่เก็บไว้ไม่ได้"));
       setSavedDrafts([]);
       setAvailableDraft(null);
     } catch {
@@ -187,11 +207,32 @@ export default function Home() {
   const exportDocument = async (editor: HTMLElement) => {
     if (!parsedFile) throw new Error("ไม่พบเอกสารที่จะส่งออก");
     setExportLink(null);
-    const document = snapshotDocument(editor, parsedFile.fileName);
+    const document = await prepareExportDocument(editor, parsedFile.fileName);
     const response = await fetch("/api/google/export", { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(document) });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || "ส่งออกไม่สำเร็จ");
     setExportLink(result.url);
+  };
+
+  const downloadDocument = async (editor: HTMLElement) => {
+    if (!parsedFile) return;
+    const exportSnapshot = await prepareExportDocument(editor, parsedFile.fileName);
+    const response = await fetch("/api/export/docx", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(exportSnapshot) });
+    if (!response.ok) {
+      const result = await response.json();
+      throw new Error(result.error || "ดาวน์โหลดไม่สำเร็จ");
+    }
+    const url = URL.createObjectURL(await response.blob());
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = parsedFile.fileName.replace(/\.[^.]+$/, "") + ".docx";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  const workingAnswerItems = () => {
+    const editor = document.querySelector<HTMLElement>('[role="textbox"][aria-label="ข้อสอบที่จัดรูปแบบแล้ว"]');
+    return editor ? answerItemsFromEditor(formattedItems || [], editor) : formattedItems || [];
   };
 
   const activeFile = useRef<ParsedFileResult | null>(null);
@@ -205,6 +246,8 @@ export default function Home() {
   }, []);
 
   const handleReset = () => {
+    sourceDraftKey.current = undefined;
+    setSourceError(null);
     answerEpoch.current++;
     setAnswerBusy(false);
     setDiagramBusy(false);
@@ -230,6 +273,27 @@ export default function Home() {
   const handleStartUpload = () => {
     // Clear previous document immediately when a new file upload starts
     handleReset();
+  };
+
+  const attachOriginalSource = async (file: File) => {
+    const expected = activeFile.current;
+    if (!expected) return;
+    const epoch = uploadEpoch.current;
+    if (file.name !== expected.fileName || file.size !== expected.fileSize) throw new Error("ไฟล์ไม่ตรงกับแบบร่าง กรุณาเลือกต้นฉบับชื่อและขนาดเดิม");
+    const hash = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", await file.arrayBuffer())), byte => byte.toString(16).padStart(2, "0")).join("");
+    if (expected.sourceHash && expected.sourceHash !== hash) throw new Error("เนื้อหาไฟล์ไม่ตรงกับต้นฉบับของแบบร่างนี้ (SHA-256)");
+    const restored = await parseUploadedFile(file);
+    restored.sourceHash = expected.sourceHash;
+    restored.sourceBlob = file;
+    restored.originalText = restored.rawContent;
+    if (epoch !== uploadEpoch.current || activeFile.current !== expected) { revokeParsedFileUrls(restored); return; }
+    setSourceError(null);
+    try { await saveOriginalSource(restored, sourceDraftKey.current); }
+    catch { if (epoch === uploadEpoch.current) setSourceError("เก็บต้นฉบับในเครื่องไม่ได้ ไฟล์จะแสดงได้เฉพาะรอบนี้ กรุณาตรวจพื้นที่จัดเก็บ"); }
+    if (epoch !== uploadEpoch.current || activeFile.current !== expected) { revokeParsedFileUrls(restored); return; }
+    revokeParsedFileUrls(expected);
+    activeFile.current = restored;
+    setParsedFile(restored);
   };
 
   const handleCreateStarterDraft = () => {
@@ -283,6 +347,9 @@ export default function Home() {
     setInfoNotice(null);
 
     try {
+      try { await saveOriginalSource(result); }
+      catch { if (epoch === uploadEpoch.current) setSourceError("เก็บไฟล์ต้นฉบับในเครื่องไม่ได้ กรุณาตรวจพื้นที่จัดเก็บ ก่อนปิดหน้านี้ให้ดาวน์โหลดงานไว้"); }
+      if (epoch !== uploadEpoch.current) { revokeParsedFileUrls(result); return false; }
       const cachedDraft = findDraftByDoc(window.localStorage, result.fileName, result.fileSize, result.sourceHash);
       if (cachedDraft && (cachedDraft.ocrText || (cachedDraft.formattedItems && cachedDraft.formattedItems.length > 0))) {
         setAvailableDraft(cachedDraft);
@@ -461,6 +528,14 @@ export default function Home() {
     const upload = uploadEpoch.current;
     const current = () => epoch === answerEpoch.current && upload === uploadEpoch.current;
     const items = parseExamText(text, parserImages(parsedFile), parsedFile.fileName);
+    const originalAnswers = new Map(parseExamText(ocrText || parsedFile.rawContent, [], parsedFile.fileName).map(item => [item.questionNumber, item.reconciledAnswerKey]));
+    items.forEach(item => {
+      if (item.reconciledAnswerKey && item.reconciledAnswerKey !== originalAnswers.get(item.questionNumber)) {
+        item.reconciliationProvenance = "manual";
+        item.sourceAnswerEvidence = undefined;
+        item.choices.forEach(choice => { choice.shadingType = choice.isCorrect ? "manual" : "none"; });
+      }
+    });
     const issues = validateExamItems(items);
     if (!sourcePagesComplete.current) issues.push("OCR ยังอ่านไม่ครบทุกหน้า กรุณานำเข้าต้นฉบับใหม่ก่อนจัดรูปแบบ");
     const originalNumbers = sourceQuestionNumbers.current;
@@ -507,7 +582,7 @@ export default function Home() {
         ? parsedFile.extractedImages.map(img => img.dataUrl)
         : [];
       const res = await harvestExamDiagrams(
-        formattedItems,
+        workingAnswerItems(),
         images,
         current,
         (done, total, msg) => setInfoNotice(msg)
@@ -541,7 +616,7 @@ export default function Home() {
     const epoch = ++answerEpoch.current;
     const upload = uploadEpoch.current;
     const current = () => epoch === answerEpoch.current && upload === uploadEpoch.current;
-    const items = [...formattedItems];
+    const items = workingAnswerItems();
     let sourceAnswerCount = 0;
     let aiAnswerCount = 0;
     let answerError = "";
@@ -659,7 +734,7 @@ export default function Home() {
           // editorHtml snapshot is the authoritative edited text; storing the
           // parser-only review result here would drop choice-image metadata
           // when a draft is reopened without its live DOM.
-          formattedItems,
+          formattedItems: answerItemsFromEditor(formattedItems, editor),
           editorHtml: editor.innerHTML,
           diagramsHarvested,
           itemCount: items.length || formattedItems.length,
@@ -672,6 +747,7 @@ export default function Home() {
     if (!parsedFile || !formattedItems?.length) return;
     if (autosaveTimer.current) window.clearTimeout(autosaveTimer.current);
     const html = editor.innerHTML;
+    const answerItems = answerItemsFromEditor(formattedItems, editor);
     autosaveTimer.current = window.setTimeout(() => {
       try {
         saveDocumentDraft(window.localStorage, {
@@ -679,7 +755,7 @@ export default function Home() {
           fileBytes: parsedFile.fileSize,
           sourceHash: parsedFile.sourceHash,
           ocrText: ocrText || parsedFile.rawContent || "",
-          formattedItems,
+          formattedItems: answerItems,
           editorHtml: html,
           diagramsHarvested,
           itemCount: formattedItems.length,
@@ -691,103 +767,98 @@ export default function Home() {
   const isDocumentActive = Boolean(parsedFile && formattedItems);
 
   return (
-    <main className={isDocumentActive ? "w-full h-screen max-h-screen flex flex-col p-2 bg-[#f7f6f2] overflow-hidden" : "max-w-[1600px] mx-auto px-4 py-6"}>
-      {/* Top Header Navigation - Single-Line Compact (Earth Tone - Rose Benedict) */}
-      <header className={`relative flex flex-wrap items-center justify-between gap-2 border-b border-[#dedad0] bg-white rounded-lg shadow-2xs shrink-0 ${isDocumentActive ? "min-h-10 px-3 py-1 mb-1.5" : "px-5 py-3 mb-4 rounded-xl"}`}>
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-md bg-[#496053] flex items-center justify-center text-[#eae8e1] font-bold shadow-xs shrink-0">
-            <Sparkles className="w-3.5 h-3.5" />
+    <main className={isDocumentActive ? "w-full h-screen max-h-screen flex flex-col gap-2 p-2 sm:p-2.5 bg-[var(--background)] overflow-hidden" : "max-w-[1600px] mx-auto px-4 py-6"}>
+      {/* T-106: identity · live status · actions. Utilities are quiet icons; one primary action. */}
+      <header className={`relative flex flex-wrap items-center gap-x-3 gap-y-2 shrink-0 ${isDocumentActive ? "min-h-11 px-1 sm:px-1.5" : "ui-surface px-5 py-3 mb-4"}`}>
+        <div className="flex items-center gap-2.5 shrink-0">
+          <div aria-hidden="true" className="relative w-8 h-8 rounded-[10px] bg-[var(--ui-olive)] flex items-center justify-center text-[#f7f6f2] shrink-0 overflow-hidden">
+            <FileText className="w-4 h-4" />
+            <span className="ui-logo-scan absolute inset-x-1.5 top-1.5 h-px bg-[#cbb58c]" />
           </div>
-          <div className="flex items-center gap-1.5">
-            <h1 className="text-xs sm:text-sm font-bold text-[#28332d] tracking-tight whitespace-nowrap">AI Exam Formatter</h1>
-            <span className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-[#eae8e1] text-[#496053] border border-[#dedad0] rounded shadow-2xs">
-              {APP_VERSION}
+          <div className="flex flex-col leading-tight">
+            <h1 className="text-[15px] font-semibold text-[var(--ui-ink)] tracking-tight whitespace-nowrap">AI Exam Formatter</h1>
+            <span className="flex items-center gap-1.5 text-[11px] text-[var(--ui-ink-3)]">
+              <span className="font-mono">{APP_VERSION}</span>
+              {driveReady && (
+                <span className="inline-flex items-center gap-1 text-[var(--ui-olive)]" title="เชื่อมต่อ Google Drive แล้ว">
+                  <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-[var(--ui-olive)]" />
+                  Drive พร้อม
+                </span>
+              )}
             </span>
-            {isDocumentActive && driveReady && (
-              <span className="hidden lg:inline-flex items-center gap-1 text-[10px] font-semibold text-[#496053] bg-[#eae8e1] border border-[#dedad0] px-1.5 py-0.5 rounded-full">
-                <CheckCircle2 className="w-3 h-3 text-[#496053]" />
-                Drive พร้อม
-              </span>
-            )}
           </div>
           {!isDocumentActive && (
-            <p className="hidden md:block text-xs text-stone-500 ml-2">จัดรูปแบบข้อสอบ ตรวจทาน และแก้ไขก่อนนำไปใช้งาน</p>
+            <p className="hidden md:block text-[13px] text-[var(--ui-ink-3)] ml-3 pl-3 border-l border-[var(--ui-line)]">จัดรูปแบบข้อสอบ ตรวจทาน และแก้ไขก่อนนำไปใช้งาน</p>
           )}
         </div>
 
-        {/* Inlined Notice Pill when document is active - Zero Vertical Space consumed */}
-        {isDocumentActive && infoNotice && (
-          <div role="status" data-layout="compact-status" aria-label={infoNotice} title={infoNotice} className="absolute left-1/2 top-1/2 z-10 hidden max-w-[34vw] -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 rounded-full border border-[#dedad0] bg-[#eae8e1]/95 px-2.5 py-0.5 text-[11px] text-[#496053] shadow-2xs backdrop-blur-sm md:flex">
-            <span className="truncate">{infoNotice}</span>
-            <button 
-              aria-label="ปิดข้อความสถานะ"
-              onClick={() => setInfoNotice(null)} 
-              className="text-[#496053] hover:text-[#28332d] font-bold px-1 rounded hover:bg-[#dedad0] text-xs shrink-0" 
-              title="ปิดข้อความแจ้งเตือน"
-            >
-              ✕
-            </button>
-          </div>
-        )}
+        <div className="flex min-w-0 flex-1 items-center justify-center gap-2">
+          {isDocumentActive && infoNotice && (
+            <div key={infoNotice} role="status" data-layout="compact-status" aria-label={infoNotice} title={infoNotice} className="ui-status-in hidden min-w-0 max-w-[36rem] items-center gap-2 rounded-full border border-[var(--ui-line)] bg-white py-1 pl-3 pr-1 text-[12px] text-[var(--ui-ink-2)] md:flex">
+              <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--ui-teal)]" />
+              <span className="truncate">{infoNotice}</span>
+              <button
+                type="button"
+                aria-label="ปิดข้อความสถานะ"
+                onClick={() => setInfoNotice(null)}
+                className="ui-icon-btn h-6 w-6 rounded-full"
+                title="ปิดข้อความแจ้งเตือน"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+          {exportLink && (
+            <div role="status" className="ui-status-in shrink-0"><a href={exportLink} target="_blank" rel="noreferrer" title="ส่งออกและยืนยันตำแหน่งเรียบร้อยแล้ว" className=" inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[#e6f4ea] px-3 py-1 text-[12px] font-medium text-[#1d5b38] hover:bg-[#d6ecdc]">
+              <CheckCircle2 aria-hidden="true" className="w-3.5 h-3.5" />
+              <span className="sr-only">ส่งออกและยืนยันตำแหน่งเรียบร้อยแล้ว · </span>
+              เปิด Google Doc
+              <ExternalLink aria-hidden="true" className="w-3 h-3" />
+            </a></div>
+          )}
+        </div>
 
-        <div className="flex items-center gap-1.5 shrink-0">
-          <button 
-            type="button" 
-            onClick={openDraftsModal} 
-            aria-label="แบบร่างและแคช OCR" 
-            title="ดูแบบร่างและประวัติการถอดข้อความ OCR ที่บันทึกไว้" 
-            className="flex items-center gap-1 px-2 py-1 text-xs text-[#28332d] bg-[#f7f6f2] border border-[#dedad0] rounded-md hover:bg-[#eae8e1]"
-          >
-            <Bookmark className="w-3.5 h-3.5 text-[#496053]" />
-            <span className="hidden lg:inline">แบบร่าง & แคช</span>
-          </button>
-          <button ref={historyButton} type="button" onClick={openImportHistory} aria-label="ประวัติไฟล์นำเข้า" title="ประวัติไฟล์นำเข้า" className="flex items-center gap-1 px-2 py-1 text-xs text-[#28332d] bg-[#f7f6f2] border border-[#dedad0] rounded-md hover:bg-[#eae8e1]"><Files className="w-3.5 h-3.5" /><span className="hidden lg:inline">ประวัติไฟล์</span></button>
-          <button type="button" onClick={openStatisticsModal} aria-label="สถิติ 10 รอบล่าสุด" title="ดูสถิติและผลการทดลอง (10 รอบล่าสุด)" className="flex items-center gap-1 px-2 py-1 text-xs text-[#28332d] bg-[#f7f6f2] border border-[#dedad0] rounded-md hover:bg-[#eae8e1]">
-            <BarChart3 className="w-3.5 h-3.5" />
-            <span className="hidden lg:inline">สถิติ</span>
-          </button>
-          <button type="button" onClick={downloadStatistics} aria-label="ดาวน์โหลดสถิติการทดลอง" title="ดาวน์โหลด JSON สถิติการทดลองทั้งหมด" className="flex items-center gap-1 px-2 py-1 text-xs text-[#28332d] bg-[#f7f6f2] border border-[#dedad0] rounded-md hover:bg-[#eae8e1]">
-            <Download className="w-3.5 h-3.5" />
-            <span className="hidden lg:inline">ดาวน์โหลด</span>
-          </button>
-          {parsedFile && (
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="ui-group ui-rail" role="group" aria-label="เครื่องมือเสริม">
+            <button type="button" onClick={openDraftsModal} aria-label="แบบร่างและแคช OCR" className="ui-rail-btn">
+              <Bookmark className="w-4 h-4" /><span aria-hidden="true" className="ui-rail-label">แบบร่าง</span>
+            </button>
+            <button ref={historyButton} type="button" onClick={openImportHistory} aria-label="ประวัติไฟล์นำเข้า" className="ui-rail-btn">
+              <Files className="w-4 h-4" /><span aria-hidden="true" className="ui-rail-label">ประวัติไฟล์</span>
+            </button>
+            <button type="button" onClick={openStatisticsModal} aria-label="สถิติ 10 รอบล่าสุด" className="ui-rail-btn">
+              <BarChart3 className="w-4 h-4" /><span aria-hidden="true" className="ui-rail-label">สถิติ</span>
+            </button>
+            <button type="button" onClick={downloadStatistics} aria-label="ดาวน์โหลดสถิติการทดลอง" className="ui-rail-btn">
+              <Download className="w-4 h-4" /><span aria-hidden="true" className="ui-rail-label">ดาวน์โหลดสถิติ</span>
+            </button>
             <button
-              onClick={handleReset}
-              title="เลือกไฟล์ใหม่"
-              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-[#28332d] bg-[#f7f6f2] border border-[#dedad0] hover:bg-[#eae8e1] rounded-md transition"
+              ref={caseButton}
+              type="button"
+              aria-expanded={showCaseLog}
+              aria-controls="case-log-panel"
+              aria-label="บันทึกปัญหาและวิธีแก้"
+              onClick={() => setShowCaseLog(!showCaseLog)}
+              className="ui-rail-btn"
             >
-              <ArrowLeft className="w-3.5 h-3.5" />
+              <History className="w-4 h-4" /><span aria-hidden="true" className="ui-rail-label">บันทึกปัญหา</span>
+            </button>
+            <a
+              href={FORMATTER_CONSTANTS.TEMPLATE_URL}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="แม่แบบข้อสอบ (Google Docs)"
+              className="ui-rail-btn"
+            >
+              <BookOpen className="w-4 h-4" /><span aria-hidden="true" className="ui-rail-label">แม่แบบ ↗</span>
+            </a>
+          </div>
+          {parsedFile && (
+            <button type="button" onClick={handleReset} title="เลือกไฟล์ใหม่" aria-label="เลือกไฟล์ใหม่" className="ui-btn ui-btn-quiet">
+              <ArrowLeft className="w-4 h-4" />
               <span className="hidden sm:inline">เลือกไฟล์ใหม่</span>
             </button>
           )}
-
-          <button 
-            ref={caseButton}
-            aria-expanded={showCaseLog}
-            aria-controls="case-log-panel"
-            onClick={() => setShowCaseLog(!showCaseLog)}
-            title="บันทึกปัญหาและวิธีแก้"
-            className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md transition ${
-              showCaseLog 
-                ? "bg-[#496053] text-white shadow-xs" 
-                : "text-[#28332d] bg-[#f7f6f2] border border-[#dedad0] hover:bg-[#eae8e1]"
-            }`}
-          >
-            <History className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">บันทึกปัญหาและวิธีแก้</span>
-          </button>
-
-          <a
-            href={FORMATTER_CONSTANTS.TEMPLATE_URL}
-            target="_blank"
-            rel="noreferrer"
-            title="ดูแม่แบบข้อสอบ (Google Docs)"
-            className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-[#496053] border border-[#496053]/30 rounded-md hover:bg-[#eae8e1] transition"
-          >
-            <BookOpen className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">แม่แบบ</span>
-            <ExternalLink className="w-3 h-3 hidden md:inline" />
-          </a>
         </div>
       </header>
 
@@ -795,15 +866,6 @@ export default function Home() {
       <div className={isDocumentActive ? "hidden" : "mb-4"}>
         <GoogleDriveStatus onReady={setDriveReady} />
       </div>
-
-      {exportLink && (
-        <div role="status" className="mb-2 px-3 py-1.5 rounded-lg bg-[#eae8e1] border border-[#dedad0] text-xs text-[#496053] flex items-center justify-between shrink-0">
-          <span>ส่งออกและยืนยันตำแหน่งเรียบร้อยแล้ว</span>
-          <a href={exportLink} target="_blank" rel="noreferrer" className="underline font-semibold flex items-center gap-1 text-[#496053] hover:text-[#394c42]">
-            เปิด Google Doc <ExternalLink className="w-3 h-3" />
-          </a>
-        </div>
-      )}
 
       {/* Case Decision Manager Overlay */}
       {importHistory && (
@@ -893,6 +955,7 @@ export default function Home() {
                       <button
                         type="button"
                         onClick={() => handleApplyDraft(draft)}
+                        disabled={draftOpening}
                         className="bg-[#496053] hover:bg-[#394c42] text-white px-2.5 py-1 rounded text-xs font-medium shadow-2xs transition"
                       >
                         เปิดทำต่อ
@@ -933,7 +996,7 @@ export default function Home() {
 
       {/* Status & Error Alerts */}
       {availableDraft && (
-        <div className="bg-[#eef5f2] border border-[#496053]/30 text-[#28332d] px-3 py-1.5 rounded-lg flex items-center justify-between gap-2 text-xs mb-2 shadow-2xs shrink-0">
+        <div className="ui-status-in flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--ui-line)] bg-white py-1.5 pl-3 pr-1.5 text-[13px] text-[var(--ui-ink)] shrink-0">
           <div className="flex items-center gap-1.5 min-w-0">
             <Bookmark className="w-4 h-4 text-[#496053] shrink-0" />
             <span className="truncate">
@@ -944,14 +1007,14 @@ export default function Home() {
             <button
               type="button"
               onClick={() => handleApplyDraft(availableDraft)}
-              className="bg-[#496053] hover:bg-[#394c42] text-white font-semibold px-2.5 py-1 rounded shadow-2xs text-[11px] transition"
+              className="ui-btn ui-btn-primary h-7"
             >
               โหลดแบบร่างเดิม (ประหยัดค่าใช้จ่าย)
             </button>
             <button
               type="button"
               onClick={() => setAvailableDraft(null)}
-              className="text-[#718096] hover:text-[#28332d] px-1.5 py-0.5 rounded text-[11px]"
+              className="ui-btn h-7 text-[var(--ui-ink-2)] hover:bg-[var(--ui-hover)]"
             >
               ไม่ใช้
             </button>
@@ -1007,6 +1070,8 @@ export default function Home() {
           <SplitDocumentEditor
             key={`${parsedFile.fileName}_${documentVersion}`}
             parsedFile={parsedFile}
+            sourceError={sourceError}
+            onAttachOriginal={attachOriginalSource}
             formattedItems={formattedItems}
             rawOcrText={ocrText}
             ocrProgress={ocrProgress}
@@ -1023,17 +1088,18 @@ export default function Home() {
             onEditorDraftChange={handleEditorDraftChange}
             onReset={handleReset}
             onExportDrive={exportDocument}
-            exportAvailable={driveReady && formattedItems.length > 0 && reviewIssues.length === 0}
+            onDownloadDocx={downloadDocument}
+            exportAvailable={driveReady}
             onCreateStarterDraft={handleCreateStarterDraft}
           />
         </div>
       ) : (
         /* Initial File Import & Setup Screen */
-        <div className="max-w-xl mx-auto space-y-6 pt-4 sm:pt-12">
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-8 shadow-sm space-y-6">
-            <div className="text-center space-y-2">
-              <h2 className="text-base font-bold text-slate-900">นำเข้าไฟล์ข้อสอบ</h2>
-              <p className="text-xs text-slate-500">
+        <div className="ui-pane-in max-w-xl mx-auto space-y-6 pt-4 sm:pt-12">
+          <div className="ui-surface p-5 sm:p-8 space-y-6">
+            <div className="text-center space-y-1.5">
+              <h2 className="text-xl font-semibold tracking-tight text-[var(--ui-ink)]">นำเข้าไฟล์ข้อสอบ</h2>
+              <p className="text-[13px] leading-relaxed text-[var(--ui-ink-3)]">
                 เลือกไฟล์เพื่อเทียบต้นฉบับกับข้อสอบที่จัดรูปแบบแล้ว จากนั้นตรวจทานและแก้ไขข้อความได้
               </p>
             </div>
@@ -1050,4 +1116,4 @@ export default function Home() {
   );
 }
 
-/* BUILD_STAMP: 261015-1509 */
+/* BUILD_STAMP: 261015-2302 */

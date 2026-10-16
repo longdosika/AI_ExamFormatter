@@ -1,5 +1,15 @@
 # ปรับแต่ง ตัวหนา ตัวเอียง ขีดเส้นใต้ได้ (อนาคตอยากให้รองรับ สูตรเลข สูตรเคมี เลขยกกำลัง)
 
+### T-105 Continuous Original Reference and Expandable Question Ranges
+Stored originals survive draft reopen, enabling magnifier/capture. Legacy source-only attachment keeps the live edited DOM/answers intact and verifies known identity. Circular gap controls expose hidden questions explicitly, support keyboard/aria/reduced motion and mobile wrapping. Completed workflow icons share subdued styling, with repeat actions still enabled. Evidence: evidence/t105-verification.md.
+
+### T-102 Idempotent Live/Restored Answer Controls
+The same managed marker/badge slots serve React updates and DOM editing. Legacy draft reopen and export remove doubled decorations while preserving text/media. Browser regressions exercise repeated AI analysis, manual changes and old duplicated snapshots; image preparation validates bytes even when an image has not scrolled into view. Evidence: evidence/t102-verification.md.
+
+### T-101 Answer Origins and Working-Copy Export
+Source answers use green (#E6F4EA), AI yellow (#FFF4CC), and user-entered/corrected answers blue (#E3EFFA), with named origin badges. Selecting/changing/clearing manual answers keeps live edits and images; draft saves merge ownership without reclassifying user corrections as source answers. Raw OCR and formatted drafts can be downloaded as DOCX or sent through authenticated Google export at any stage, including review findings. Snapshots preserve all answer colors and media. Evidence: evidence/t101-verification.md; scripts/test-e2e.cjs and scripts/test-google.cjs. This supersedes older review-gated export behavior.
+
+
 Status: `In Progress`
 
 ## Traceability

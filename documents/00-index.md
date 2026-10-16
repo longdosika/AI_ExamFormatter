@@ -1,4 +1,11 @@
 # Project Knowledge Vault
+## Latest Verified Work
+- T-109 Done, 2026-10-15, build 261015-2300 (main http://localhost:3000): DOCX/Drive export follows the master QuizFlow template (design.md §1.1): A4, file-name title, keyless indented choices, Pearl Aqua answers, italic shared passage + ◆, V-date/file/page footer. Supersedes the T-108 look. Gate exit 0, E2E 30/30; [[evidence/t109-verification]].
+- T-108 Done, 2026-10-15, build 261015-2227 (main http://localhost:3000): DOCX download and Google Drive export follow the owner reference layout (Letter, Sarabun 12/1.15, stamp+title header, blank rhythm, black text, 528/307 px images); solid shared-context shading bug fixed. Gate exit 0, E2E 30/30; [[evidence/t108-verification]].
+- T-107 Done, 2026-10-15, build 261015-2153 (main http://localhost:3000): one-line single-open question strip with coral current marker, editor image add/replace/recapture/resize/delete+undo (size exported), hover-label rails, jump flash/progress/copy motion. Gate exit 0, E2E 30/30; [[evidence/t107-verification]].
+- T-106 Done, 2026-10-15, build 261015-2110 (main http://localhost:3000): calmer workspace chrome with warm tokens, icon utility group, readable pane heads, halo stepper with next-step label, 24 px question chips; exported content unchanged. Gate exit 0, E2E 28/28; [[evidence/t106-verification]].
+- T-105 Done, 2026-10-15, build 261015-2017: persistent original media, safe legacy reattachment, muted completed steps and circular question gaps. Production E2E 28/28; [[evidence/t105-verification]].
+- T-102, 2026-10-15, build 261015-1932: single answer decorations, legacy repair, validated export media; [[evidence/t102-verification]]. Pending signed-in Google editor confirmation T-103 and Q66 table-image harvesting T-104 in [[tasks]].
 ## Project
 AI Exam Formatter
 ## How To Use This Vault

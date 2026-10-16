@@ -1,4 +1,14 @@
 # Architecture
+
+### T-105 Browser-Local Original Source Store
+lib/original-source-store.ts stores structured-cloned original File/Blob, original text, page renders and embedded source images in IndexedDB (exam-formatter-originals-v1 / sources), keyed by the existing draft docKey. LocalStorage drafts continue to contain OCR/editor/answer state separately. Import saves source before OCR mutates rawContent. Reopen checks identity and reconstructs object URLs; it never uses an unrelated active source or presents OCR as original. Legacy reattachment parses/renders only, verifies name/size and SHA-256 when available, then updates source props without remounting the live editor. Delete/clear draft actions also remove associated source records. Failure/blocked/timeout paths are explicit. Data stays per browser/origin until user deletion or browser eviction; no cross-device/cloud persistence is implied.
+
+### T-102 Export Preparation and Stable Answer Slots
+React always renders one marker/badge slot per choice; the DOM decorator upgrades legacy snapshots and paints these same slots. Snapshot normalization removes duplicate legacy decorations before traversal. Both download and Google callbacks await prepareExportDocument: independently decode offscreen/lazy media, embed non-PNG/JPEG/GIF sources as PNG, preserve aspect ratio and fail visibly before an API request if decoding fails. Original valid embedded bytes are retained. Review-only snapshots remain synchronous.
+
+### T-101 Current-Document Export and Answer State
+lib/answer-editor.ts decorates live/restored editor rows, applies manual answer selection, and merges answer ownership into saved ExamItems without replacing live text/media. lib/export-document.ts carries inherited background colors into nested text paragraphs. POST /api/export/docx validates same-origin and bounded JSON input and uses the existing createExportDocx builder; it returns a downloadable DOCX without requiring a Google session. Existing /api/google/export keeps OAuth and target-folder enforcement. Both export paths snapshot current OCR or the live editor and are independent of review stage.
+
 ## Related
 - [[00-index]]
 - [[prd]]

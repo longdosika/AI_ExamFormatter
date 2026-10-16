@@ -1,5 +1,6 @@
 import JSZip from "jszip";
-import { ExportDocument, ExportRun } from "./export-document";
+import { ExportDocument, PARAGRAPH_ROLES } from "./export-document";
+import { EXPORT_PAGE, IMAGE_MAX, LaidOutParagraph, LaidOutRun, TEMPLATE_COLORS, FOOTER_TABS, layoutExamDocument } from "./export-layout";
 
 export const TARGET_FOLDER = "1bZeNZ7De9pxsoQH-Zo9ni3A3Rd6XmnuG";
 export const EXPORT_LIMIT = 8 * 1024 * 1024;
@@ -13,6 +14,7 @@ export function validateExportDocument(value: unknown): asserts value is ExportD
   let size = 0;
   for (const paragraph of doc.paragraphs) {
     if (!paragraph || !Array.isArray(paragraph.runs) || paragraph.runs.length > 10000 || (paragraph.background !== undefined && !validColor(paragraph.background))) throw new Error("รูปแบบย่อหน้าไม่ถูกต้อง");
+    if ((paragraph.role !== undefined && !PARAGRAPH_ROLES.includes(paragraph.role)) || (paragraph.item !== undefined && (!Number.isInteger(paragraph.item) || paragraph.item < 0))) throw new Error("รูปแบบย่อหน้าไม่ถูกต้อง");
     for (const run of paragraph.runs) {
       if (!run || typeof run !== "object") throw new Error("ข้อความไม่ถูกต้อง");
       if (run.color !== undefined && !validColor(run.color)) throw new Error("สีข้อความไม่ถูกต้อง");
@@ -27,13 +29,15 @@ export function validateExportDocument(value: unknown): asserts value is ExportD
 }
 
 /** Native OOXML keeps embedded images and edited text styles during Drive conversion. */
-export async function createExportDocx(doc: ExportDocument): Promise<Buffer> {
+export async function createExportDocx(doc: ExportDocument, now = new Date()): Promise<Buffer> {
   validateExportDocument(doc);
+  // T-109: reshape into the master QuizFlow template layout (design.md §1.1) before writing OOXML.
+  const laid = layoutExamDocument(doc, now);
   const zip = new JSZip();
   const relationships: string[] = [];
   const imageTypes = new Map<string, string>();
   let imageCount = 0;
-  const renderRun = (run: ExportRun): string => {
+  const renderRun = (run: LaidOutRun): string => {
     if (run.image) {
       const match = run.image.match(/^data:image\/(png|jpeg|gif);base64,(.*)$/)!;
       const ext = match[1] === "jpeg" ? "jpg" : match[1];
@@ -42,21 +46,36 @@ export async function createExportDocx(doc: ExportDocument): Promise<Buffer> {
       zip.file(`word/media/${name}`, Buffer.from(match[2], "base64"));
       imageTypes.set(ext, `image/${match[1]}`);
       relationships.push(`<Relationship Id="img${id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${name}"/>`);
-      const sourceWidth = run.width || 500;
-      const width = Math.min(sourceWidth, 600);
-      const height = Math.min((run.height || 300) * width / sourceWidth, 800);
+      const sourceWidth = run.width || 500, sourceHeight = run.height || 300;
+      const scale = Math.min(1, IMAGE_MAX.question / sourceWidth, 800 / sourceHeight);
+      const width = sourceWidth * scale, height = sourceHeight * scale;
       const cx = Math.round(width * 9525), cy = Math.round(height * 9525);
       return `<w:r><w:drawing><wp:inline><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="${id}" name="Image ${id}"/><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="${id}" name="${name}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="img${id}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`;
     }
-    const styles = `<w:rFonts w:ascii="Sarabun" w:hAnsi="Sarabun" w:cs="Sarabun"/><w:sz w:val="24"/><w:szCs w:val="24"/>${run.bold ? '<w:b/><w:bCs/>' : ''}${run.italic ? '<w:i/><w:iCs/>' : ''}${run.underline ? '<w:u w:val="single"/>' : ''}<w:color w:val="${run.color || '000000'}"/>`;
+    const size = run.size || 24;
+    const styles = `<w:rFonts w:ascii="Sarabun" w:hAnsi="Sarabun" w:cs="Sarabun"/><w:sz w:val="${size}"/><w:szCs w:val="${size}"/>${run.bold ? '<w:b/><w:bCs/>' : ''}${run.italic ? '<w:i/><w:iCs/>' : ''}${run.underline ? '<w:u w:val="single"/>' : ''}<w:color w:val="${run.color || '000000'}"/>${run.shade ? `<w:shd w:val="clear" w:color="auto" w:fill="${run.shade}"/>` : ''}`;
     const text = (run.text || "").split("\n").map(part => `<w:t xml:space="preserve">${xml(part)}</w:t>`).join("<w:br/>");
     return `<w:r><w:rPr>${styles}</w:rPr>${text}</w:r>`;
   };
-  const body = doc.paragraphs.map(p => `<w:p><w:pPr><w:keepLines/>${p.keepWithNext ? '<w:keepNext/>' : ''}<w:spacing w:after="80"/>${p.background ? `<w:shd w:val="clear" w:fill="${p.background}"/>` : ''}</w:pPr>${p.runs.map(renderRun).join('')}</w:p>`).join('');
-  zip.file("word/document.xml", `<?xml version="1.0" encoding="UTF-8"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body>${body}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="720" w:right="720" w:bottom="720" w:left="720"/></w:sectPr></w:body></w:document>`);
+  const paragraphProps = (p: LaidOutParagraph) => {
+    const spacing = `<w:spacing w:before="${p.before ?? 0}" w:after="${p.after ?? 0}"${p.line ? ` w:line="${p.line}"` : ''} w:lineRule="auto"/>`;
+    const indent = p.indentLeft || p.hanging ? `<w:ind w:left="${p.indentLeft ?? 0}"${p.hanging ? ` w:hanging="${p.hanging}"` : ' w:firstLine="0"'}/>` : '';
+    return `<w:pPr>${p.keepWithNext ? '<w:keepNext/>' : ''}<w:keepLines/>${p.background ? `<w:shd w:val="clear" w:color="auto" w:fill="${p.background}"/>` : ''}${spacing}${indent}<w:jc w:val="${p.align || 'left'}"/></w:pPr>`;
+  };
+  const body = laid.paragraphs.map(p => `<w:p>${paragraphProps(p)}${p.runs.map(renderRun).join('')}</w:p>`).join('');
+  const page = EXPORT_PAGE;
+  // Template footer: italic "V-<date>" | file name in red | "PAGE of NUMPAGES", positions measured from the template render.
+  const footerRun = (content: string, color?: string) => `<w:r><w:rPr><w:rFonts w:ascii="Sarabun" w:hAnsi="Sarabun" w:cs="Sarabun"/><w:i/><w:iCs/>${color ? `<w:color w:val="${color}"/>` : ''}<w:sz w:val="18"/><w:szCs w:val="18"/></w:rPr>${content}</w:r>`;
+  const field = (code: string) => ['<w:fldChar w:fldCharType="begin"/>', `<w:instrText xml:space="preserve"> ${code} </w:instrText>`, '<w:fldChar w:fldCharType="separate"/>', '<w:t>1</w:t>', '<w:fldChar w:fldCharType="end"/>'].map(part => footerRun(part)).join('');
+  const footer = `<?xml version="1.0" encoding="UTF-8"?><w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:p><w:pPr><w:tabs><w:tab w:val="left" w:pos="${FOOTER_TABS.name}"/><w:tab w:val="right" w:pos="${FOOTER_TABS.page}"/></w:tabs><w:spacing w:before="0" w:after="0"/><w:ind w:left="${FOOTER_TABS.indent}" w:firstLine="0"/></w:pPr>${footerRun(`<w:t xml:space="preserve">${xml(laid.footer.code)}</w:t><w:tab/>`)}${footerRun(`<w:t xml:space="preserve">${xml(laid.footer.name)}</w:t>`, TEMPLATE_COLORS.footerName)}${footerRun('<w:tab/>')}${field("PAGE")}${footerRun('<w:t xml:space="preserve"> of </w:t>')}${field("NUMPAGES")}</w:p></w:ftr>`;
+  zip.file("word/footer1.xml", footer);
+  relationships.push('<Relationship Id="footer1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>');
+  zip.file("word/document.xml", `<?xml version="1.0" encoding="UTF-8"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body>${body}<w:sectPr><w:footerReference w:type="default" r:id="footer1"/><w:pgSz w:w="${page.widthTwips}" w:h="${page.heightTwips}" w:orient="portrait"/><w:pgMar w:top="${page.marginTopTwips}" w:right="${page.marginRightTwips}" w:bottom="${page.marginBottomTwips}" w:left="${page.marginLeftTwips}" w:header="${page.headerTwips}" w:footer="${page.footerTwips}" w:gutter="0"/><w:pgNumType w:start="1"/></w:sectPr></w:body></w:document>`);
   zip.file("_rels/.rels", '<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="doc" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>');
+  zip.file("word/styles.xml", `<?xml version="1.0" encoding="UTF-8"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Sarabun" w:hAnsi="Sarabun" w:eastAsia="Sarabun" w:cs="Sarabun"/><w:color w:val="000000"/><w:sz w:val="24"/><w:szCs w:val="24"/><w:lang w:val="th-TH" w:bidi="th-TH"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:before="0" w:after="0" w:lineRule="auto"/><w:jc w:val="left"/></w:pPr></w:pPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style></w:styles>`);
+  relationships.push('<Relationship Id="styles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>');
   zip.file("word/_rels/document.xml.rels", `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${relationships.join('')}</Relationships>`);
-  zip.file("[Content_Types].xml", `<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>${Array.from(imageTypes, ([ext, mime]) => `<Default Extension="${ext}" ContentType="${mime}"/>`).join('')}<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>`);
+  zip.file("[Content_Types].xml", `<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>${Array.from(imageTypes, ([ext, mime]) => `<Default Extension="${ext}" ContentType="${mime}"/>`).join('')}<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/></Types>`);
   return zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" });
 }
 

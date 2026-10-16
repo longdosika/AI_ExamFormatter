@@ -53,7 +53,22 @@
     ".next-e2e-9276/types/**/*.ts",
     ".next-e2e-3640/types/**/*.ts",
     ".next-e2e-8664/types/**/*.ts",
-    ".next-e2e-6824/types/**/*.ts"
+    ".next-e2e-6824/types/**/*.ts",
+    ".next-t101/types/**/*.ts",
+    ".next-production/types/**/*.ts",
+    ".next-t102/types/**/*.ts",
+    ".next-production-t102/types/**/*.ts",
+    ".next-t105/types/**/*.ts",
+    ".next-production-t105/types/**/*.ts",
+    ".next-production-t105-final/types/**/*.ts",
+    ".next-t106/types/**/*.ts",
+    ".next-production-t106/types/**/*.ts",
+    ".next-t107/types/**/*.ts",
+    ".next-production-t107/types/**/*.ts",
+    ".next-t108/types/**/*.ts",
+    ".next-production-t108/types/**/*.ts",
+    ".next-t109/types/**/*.ts",
+    ".next-production-t109/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

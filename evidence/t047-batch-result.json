@@ -1,6 +1,6 @@
 {
   "status": "passed",
-  "fixture": "generated twelve-page blank PDF; mocked OCR transport",
+  "fixture": "generated twelve-page colored PDF; mocked OCR transport",
   "batchSizes": [
     10,
     2
