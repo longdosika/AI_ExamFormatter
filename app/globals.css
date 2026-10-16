@@ -161,3 +161,108 @@ button:disabled {
     scroll-behavior: auto !important;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   T-110 dark pane heads: deep olive-ink rails framing the paper.
+   Tokens are redefined inside the head so every var(--ui-*) control flips to light-on-dark.
+   --------------------------------------------------------------------------- */
+.ui-pane-head {
+  --ui-ink: #f1ede3; --ui-ink-2: #dad5c8; --ui-ink-3: #b4af9f;
+  --ui-line: rgba(255, 255, 255, .12); --ui-line-strong: rgba(255, 255, 255, .2);
+  --ui-hover: rgba(255, 255, 255, .1); --ui-sunken: rgba(255, 255, 255, .06);
+  position: relative;
+  background: linear-gradient(180deg, #2c3a33 0%, #24302a 100%);
+  border-bottom-color: rgba(0, 0, 0, .3);
+  color: var(--ui-ink);
+}
+.ui-pane-head .ui-icon-btn[aria-pressed="true"], .ui-pane-head .ui-rail-btn[aria-pressed="true"] { background: #cbb58c; color: #24302a; }
+.ui-pane-head .ui-tip::after { background: #f1ede3; color: #24302a; }
+.ui-pane-head :focus-visible { outline-color: #cbb58c; }
+.ui-pane-head .ui-connector { background: rgba(255, 255, 255, .14); }
+/* Work in progress: a sand shimmer runs along the rail's lower edge. */
+.ui-pane-head[data-busy="true"]::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; pointer-events: none;
+  background: linear-gradient(90deg, transparent 0%, #cbb58c 45%, #f2e3bf 50%, #cbb58c 55%, transparent 100%);
+  background-size: 40% 100%; background-repeat: no-repeat;
+  animation: ui-rail-shimmer 1.4s linear infinite;
+}
+@keyframes ui-rail-shimmer { from { background-position: -40% 0; } to { background-position: 140% 0; } }
+@keyframes ui-halo-sand { 0% { box-shadow: 0 0 0 0 rgba(203, 181, 140, .55); } 70%, 100% { box-shadow: 0 0 0 7px rgba(203, 181, 140, 0); } }
+.ui-halo-sand { animation: ui-halo-sand 1.8s ease-out infinite; }
+
+/* One export control: export / export again, with the open-document segment attached after success. */
+.ui-export { display: inline-flex; align-items: stretch; height: 32px; border-radius: 9px; overflow: hidden; box-shadow: 0 1px 0 rgba(255, 255, 255, .25) inset, 0 6px 16px -10px rgba(0, 0, 0, .6); }
+.ui-export-main, .ui-export-open { display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; font-size: 13px; font-weight: 600; white-space: nowrap; transition: background-color .18s ease, filter .18s ease; }
+.ui-export-main { background: #d8c59c; color: #24302a; }
+.ui-export-main:hover:not(:disabled) { background: #e4d4ae; }
+.ui-export-main:disabled { opacity: .55; cursor: not-allowed; }
+.ui-export.is-done .ui-export-main { background: #e9dfc6; }
+.ui-export-open { background: #8fb3a0; color: #1f2a24; border-left: 1px solid rgba(36, 48, 42, .35); animation: ui-export-open-in .38s var(--ui-ease) both; }
+.ui-export-open:hover { background: #a3c4b2; }
+@keyframes ui-export-open-in { from { max-width: 0; padding-left: 0; padding-right: 0; opacity: 0; } to { max-width: 120px; opacity: 1; } }
+
+/* Question strip: answer-origin dot and review ring are drawn by CSS so chip text stays the bare number. */
+.nav-chip { position: relative; }
+.nav-chip[data-answer]::after { content: ""; position: absolute; left: 50%; bottom: 1px; width: 4px; height: 4px; border-radius: 50%; transform: translateX(-50%); background: var(--nav-dot); }
+.nav-chip[data-answer="source"] { --nav-dot: #3f7d55; }
+.nav-chip[data-answer="ai"] { --nav-dot: #c69a1d; }
+.nav-chip[data-answer="manual"] { --nav-dot: #397493; }
+.nav-chip[aria-current="true"][data-answer]::after { box-shadow: 0 0 0 1.5px #fff; }
+.nav-chip[data-issue="true"]:not([aria-current="true"]) { box-shadow: inset 0 0 0 1.5px #e0a32e; color: #8a5a00; }
+.nav-gap-toggle[data-issue="true"] { color: #e0a32e; }
+.nav-summary { display: inline-flex; height: 24px; align-items: center; gap: 4px; border-radius: 999px; padding: 0 8px; font-size: 11px; font-weight: 600; background: #fff; color: var(--ui-olive); border: 1px solid var(--ui-line); white-space: nowrap; }
+.nav-summary-issue { background: #fff6e2; color: #8a5a00; border-color: #f0d79b; transition: background-color .18s ease; }
+.nav-summary-issue:hover { background: #ffeec7; }
+.nav-preview { position: absolute; z-index: 40; width: 280px; padding: 10px 12px; border-radius: 12px; background: #fffdf8; border: 1px solid var(--ui-line); box-shadow: 0 14px 34px -16px rgba(36, 48, 42, .55); font-size: 12px; pointer-events: none; animation: ui-status-in .2s var(--ui-ease) both; }
+.nav-preview-mark { flex-shrink: 0; border-radius: 999px; padding: 1px 8px; font-size: 10.5px; font-weight: 600; background: #eeece5; color: #646e68; }
+.nav-preview-mark[data-answer="source"] { background: #e6f4ea; color: #2f6a45; }
+.nav-preview-mark[data-answer="ai"] { background: #fff4cc; color: #7a5c00; }
+.nav-preview-mark[data-answer="manual"] { background: #e3effa; color: #2c5a74; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-pane-head[data-busy="true"]::after { animation: none; background: #cbb58c; opacity: .7; }
+  .ui-halo-sand, .ui-export-open, .nav-preview { animation: none; }
+}
+
+/* ---------------------------------------------------------------------------
+   T-111 convenience + feedback. Priority: performance > clarity > looks.
+   Only transform/opacity/box-shadow animate; nothing loops; everything stops under reduced motion.
+   --------------------------------------------------------------------------- */
+/* Header notice folds to its dot after a moment; hover or keyboard focus opens it again. */
+.ui-notice .ui-notice-text { max-width: 32rem; transition: max-width .35s var(--ui-ease), opacity .2s ease; }
+.ui-notice[data-folded="true"]:not(:hover):not(:focus-within):not(:focus) { gap: 0; padding-left: 10px; }
+.ui-notice[data-folded="true"]:not(:hover):not(:focus-within):not(:focus) .ui-notice-text { max-width: 0; opacity: 0; }
+.ui-notice[data-folded="true"]:not(:hover):not(:focus-within):not(:focus) button { display: none; }
+
+/* Upload screen: recent drafts and the "file received" moment. */
+.recent-draft { display: flex; align-items: center; gap: 10px; border-radius: 12px; border: 1px solid var(--ui-line); background: var(--ui-sunken); padding: 8px 8px 8px 12px; animation: ui-status-in .3s var(--ui-ease) both; }
+@keyframes ui-file-received { 0% { transform: translateY(-14px) scale(.85); opacity: .4; } 60% { transform: translateY(2px) scale(1.04); opacity: 1; } 100% { transform: none; } }
+.ui-file-received { animation: ui-file-received .45s var(--ui-ease) both; }
+
+/* Next-step text doubles as the button for that step. */
+.ui-next-step { align-items: center; gap: 2px; border-radius: 999px; padding: 2px 6px 2px 8px; font-size: 12px; color: #cbb58c; white-space: nowrap; transition: background-color .18s ease, color .18s ease; }
+.ui-next-step:hover { background: rgba(203, 181, 140, .14); color: #e9dcbd; }
+.ui-next-step svg { transition: transform .18s var(--ui-ease); }
+.ui-next-step:hover svg { transform: translateX(2px); }
+
+/* Answered summary fills like a progress bar and jumps to the next unanswered question. */
+.nav-summary-answered { background: linear-gradient(90deg, #e3efe6 var(--fill, 0%), #fff var(--fill, 0%)); transition: border-color .18s ease; }
+.nav-summary-answered:hover:not(:disabled) { border-color: var(--ui-olive); }
+.nav-summary-answered:disabled { cursor: default; }
+
+/* Choosing an answer: the star pops and the row rings once (box-shadow only; exported colours untouched). */
+@keyframes ui-answer-ring { from { box-shadow: inset 0 0 0 2px rgba(242, 96, 77, .55); } to { box-shadow: inset 0 0 0 2px rgba(242, 96, 77, 0); } }
+[data-answer-origin]:not([data-answer-origin="none"]) { animation: ui-answer-ring .6s ease-out; }
+[data-answer-origin]:not([data-answer-origin="none"]) [data-answer-marker] { display: inline-block; animation: ui-check-in .35s var(--ui-ease) both; }
+
+/* Crop: dim everything outside the frame so the selection reads at a glance. */
+.ui-crop-box { box-shadow: 0 0 0 9999px rgba(36, 48, 42, .42); background: transparent; }
+
+/* Current question pill floats over the editor while scrolling, then fades. */
+.ui-question-pill { position: absolute; right: 18px; z-index: 25; pointer-events: none; border-radius: 999px; background: #24302a; color: #f1ede3; padding: 4px 12px; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; box-shadow: 0 8px 20px -10px rgba(36, 48, 42, .7); opacity: 0; transform: translateY(-4px); transition: opacity .2s ease, transform .2s var(--ui-ease); }
+.ui-question-pill[data-show="true"] { opacity: 1; transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-notice .ui-notice-text, .ui-question-pill, .ui-next-step svg { transition: none; }
+  .recent-draft, .ui-file-received, [data-answer-origin]:not([data-answer-origin="none"]), [data-answer-origin]:not([data-answer-origin="none"]) [data-answer-marker] { animation: none; }
+}

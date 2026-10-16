@@ -2,6 +2,12 @@
 
 Status: `In Progress`
 
+### T-111 Workspace Conveniences
+Header draft chip and folding notice, recent drafts on the upload screen, clickable next step, J/K question keys, answered chip jump, answer pop, current-question pill and dimmed crop surround. Evidence: evidence/t111-verification.md.
+
+### T-110 Dark Rails and Question Strip Insight
+Source and editor header bars are dark olive rails with a working shimmer; the question strip shows answer-origin dots, review rings, a preview card and answered/issue summary chips. Evidence: evidence/t110-verification.md.
+
 ### T-107 Accordion Strip and Editor Image Tools
 One-line question strip with a single open range (teal capsule) and a coral marker for the current question inside folded ranges. Editor images can be replaced, recaptured, resized (exported size) and deleted with Undo; images can be added by file, drop or paste through the insert dialog. Header/source icon rails show labels on hover. Evidence: evidence/t107-verification.md.
 

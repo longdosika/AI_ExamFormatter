@@ -44,6 +44,8 @@ interface SplitDocumentEditorProps {
   onExportDrive?: (element: HTMLElement) => Promise<void>;
   onDownloadDocx?: (element: HTMLElement) => Promise<void>;
   exportAvailable?: boolean;
+  /** T-110: last successful Google export link, shown inside the toolbar export control. */
+  exportedUrl?: string | null;
   onCreateStarterDraft?: () => void;
   restoredEditorHtml?: string | null;
   sourceError?: string | null;
@@ -69,6 +71,7 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
   onExportDrive,
   onDownloadDocx,
   exportAvailable = false,
+  exportedUrl = null,
   onCreateStarterDraft,
   restoredEditorHtml = null,
   sourceError = null,
@@ -166,7 +169,7 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
   const [activeQuestionId, setActiveQuestionId] = useState(1);
   // T-107: one range open at a time keeps the strip on a single line.
   const [openGap, setOpenGap] = useState<number | null>(null);
-  const navRef = useRef<HTMLElement>(null);
+  const navRef = useRef<HTMLDivElement>(null);
   const navigationGroups = useMemo(() => {
     if (navigationItems.length <= 20) return navigationItems.map(item => ({ anchor: item, hidden: [] as ExamItem[] }));
     const groups: { anchor: ExamItem; hidden: ExamItem[] }[] = [];
@@ -178,7 +181,8 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
     return groups;
   }, [navigationItems]);
   const answersCompleted = formattedItems.some(item => item.reconciliationProvenance === "source_vision" || item.reconciliationProvenance === "ai_generated");
-  const completedStepClass = "bg-[#496053] text-white shadow-xs opacity-40 hover:opacity-60";
+  // T-110: steps sit on the dark olive rail; sand marks the next action, sage marks finished steps.
+  const completedStepClass = "bg-[#8fb3a0] text-[#1f2a24] shadow-xs opacity-40 hover:opacity-60";
   const stepIdleClass = "bg-[var(--ui-sunken)] border border-[var(--ui-line)] text-[var(--ui-ink-3)]";
   const nextStepLabel = ocrProgress ? "กำลังสแกน OCR…"
     : !itemsList.length ? (reviewText.trim() ? "ถัดไป: จัดรูปแบบข้อสอบ" : "รอข้อความ OCR")
@@ -188,6 +192,13 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
     : !answersCompleted ? "ถัดไป: วิเคราะห์เฉลย"
     : reviewIssues.length ? `ถัดไป: ตรวจแก้ ${reviewIssues.length} รายการ`
     : "พร้อมส่งออก";
+  // T-111: the next-step text runs that step, so the guidance and the action are the same thing.
+  const nextStepAction: (() => void) | null = ocrProgress || diagramBusy || answerBusy ? null
+    : !itemsList.length ? (reviewText.trim() && sourcePagesComplete ? () => onConvertReviewedText?.(reviewText) : null)
+    : !diagramsHarvested && onHarvestDiagrams ? () => onHarvestDiagrams()
+    : !answersCompleted && onExtractAnswers ? () => onExtractAnswers()
+    : reviewIssues.length && onReviewEditor ? () => { if (editorPaneRef.current) onReviewEditor(editorPaneRef.current); }
+    : null;
   const prefersReducedMotion = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   // Box-shadow only: background colors are read by export, so the flash must never touch them.
   const flashQuestion = (target: HTMLElement) => {
@@ -215,7 +226,56 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
     const timer = setTimeout(reveal, openGap !== null ? 320 : 60);
     return () => clearTimeout(timer);
   }, [activeQuestionId, openGap]);
+  // T-110 question strip: answer origin per question (read from the live editor DOM so manual edits count),
+  // questions named in review findings, and a hover/focus preview card.
+  const [answerMarks, setAnswerMarks] = useState<Record<number, "source" | "ai" | "manual">>({});
+  useEffect(() => {
+    const editor = editorPaneRef.current;
+    if (!editor || !itemsList.length) { setAnswerMarks({}); return; }
+    let frame: number | null = null;
+    const read = () => {
+      frame = null;
+      const marks: Record<number, "source" | "ai" | "manual"> = {};
+      editor.querySelectorAll<HTMLElement>("[data-item-id]").forEach(item => {
+        const origin = item.querySelector<HTMLElement>('[data-answer-origin]:not([data-answer-origin="none"])')?.dataset.answerOrigin;
+        const id = Number(item.dataset.itemId);
+        if (origin === "source_provided") marks[id] = "source";
+        else if (origin === "auto_solved") marks[id] = "ai";
+        else if (origin === "manual") marks[id] = "manual";
+      });
+      setAnswerMarks(previous => JSON.stringify(previous) === JSON.stringify(marks) ? previous : marks);
+    };
+    const schedule = () => { if (frame === null) frame = requestAnimationFrame(read); };
+    read();
+    const observer = new MutationObserver(schedule);
+    observer.observe(editor, { subtree: true, childList: true, attributes: true, attributeFilter: ["data-answer-origin"] });
+    return () => { observer.disconnect(); if (frame !== null) cancelAnimationFrame(frame); };
+  }, [itemsList]);
+  const answeredCount = itemsList.filter(item => answerMarks[item.id]).length;
+  const issueNumbers = useMemo(() => {
+    const numbers = new Set<number>();
+    reviewIssues.forEach(issue => { for (const match of issue.matchAll(/ข้อ\s*(\d+)/g)) numbers.add(Number(match[1])); });
+    return numbers;
+  }, [reviewIssues]);
+  const [preview, setPreview] = useState<{ id: number; top: number; left: number } | null>(null);
+  const previewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (previewTimer.current) clearTimeout(previewTimer.current); }, []);
+  const showPreview = (item: ExamItem, chip: HTMLElement) => {
+    if (previewTimer.current) clearTimeout(previewTimer.current);
+    previewTimer.current = setTimeout(() => {
+      const pane = conversionPaneRef.current;
+      if (!pane || !chip.isConnected) return;
+      const box = chip.getBoundingClientRect(), frame = pane.getBoundingClientRect();
+      const left = Math.min(Math.max(8, box.left - frame.left + box.width / 2 - 140), frame.width - 288);
+      setPreview({ id: item.id, top: box.bottom - frame.top + 8, left });
+    }, 220);
+  };
+  const hidePreview = () => {
+    if (previewTimer.current) clearTimeout(previewTimer.current);
+    setPreview(null);
+  };
   const jumpToQuestion = (item: ExamItem) => {
+    hidePreview();
     setActiveQuestionId(item.id);
     setTargetQuestionId(item.id);
     // Accordion: leaving the open range closes it, so only one range is ever expanded.
@@ -239,6 +299,45 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
       }
     }
   };
+  /** Jump and, when the target sits in a folded range, open that range so the active chip is visible. */
+  const jumpAndReveal = (target: ExamItem) => {
+    const group = navigationGroups.find(entry => entry.hidden.some(hidden => hidden.id === target.id));
+    // Jump first: jumpToQuestion may close the previously open range, then open the one holding the target.
+    jumpToQuestion(target);
+    if (group) setOpenGap(group.anchor.id);
+  };
+  const jumpToFirstIssue = () => {
+    const target = navigationItems.find(item => issueNumbers.has(item.questionNumber));
+    if (target) jumpAndReveal(target);
+  };
+  /** T-111: step through questions; wraps around and skips nothing unless a filter is given. */
+  const stepQuestion = (direction: 1 | -1, accept: (item: ExamItem) => boolean = () => true) => {
+    const list = navigationItems;
+    if (!list.length) return;
+    const current = Math.max(0, list.findIndex(item => item.id === activeQuestionId));
+    for (let offset = 1; offset <= list.length; offset++) {
+      const candidate = list[(current + direction * offset + list.length * offset) % list.length];
+      if (accept(candidate)) { jumpAndReveal(candidate); return; }
+    }
+  };
+  const jumpToNextUnanswered = () => stepQuestion(1, item => !answerMarks[item.id]);
+  useEffect(() => {
+    // T-111: J/K move between questions, Shift+J/K between questions needing review.
+    // Ignored while typing (inputs, selects, the contentEditable editor) so text entry is never hijacked.
+    const onKey = (event: KeyboardEvent) => {
+      if (event.ctrlKey || event.metaKey || event.altKey || event.defaultPrevented) return;
+      const target = event.target as HTMLElement | null;
+      if (target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
+      const key = event.key.toLowerCase();
+      if (key !== "j" && key !== "k") return;
+      event.preventDefault();
+      const direction = key === "j" ? 1 : -1;
+      if (event.shiftKey) stepQuestion(direction, item => issueNumbers.has(item.questionNumber));
+      else stepQuestion(direction);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  });
   useEffect(() => {
     const pane = editorPaneRef.current;
     if (!pane || !itemsList.length) return;
@@ -318,6 +417,9 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
   const addImageInputRef = useRef<HTMLInputElement>(null);
   const replaceImageInputRef = useRef<HTMLInputElement>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
+  const questionPillRef = useRef<HTMLDivElement>(null);
+  const pillTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (pillTimer.current) clearTimeout(pillTimer.current); }, []);
   useEffect(() => () => {
     if (imageToolsTimer.current) clearTimeout(imageToolsTimer.current);
     if (undoTimer.current) clearTimeout(undoTimer.current);
@@ -944,7 +1046,7 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
         {/* LEFT PANEL: Original Source File (50%) */}
         <div data-workspace="source" className="ui-surface ui-pane-in lg:col-span-6 min-w-0 h-full flex flex-col overflow-hidden relative">
           {/* Header Toolbar (T-106: title, page position and file in one calm row) */}
-          <div className="ui-pane-head">
+          <div className="ui-pane-head" data-busy={sourceAttaching ? "true" : undefined}>
             <div className="flex min-w-0 flex-1 items-center gap-2">
               <FileText aria-hidden="true" className="w-4 h-4 shrink-0 text-[var(--ui-ink-3)]" />
               <span className="ui-title">ต้นฉบับ</span>
@@ -992,7 +1094,7 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
                       aria-pressed={magnifierZoom === z}
                       onClick={() => setMagnifierZoom(z)}
                       className={`h-7 min-w-8 rounded-md px-1.5 font-mono text-[11px] font-semibold transition-colors ${
-                        magnifierZoom === z ? "bg-white text-[var(--ui-ink)] shadow-[0_1px_2px_rgba(40,51,45,.15)]" : "text-[var(--ui-ink-3)] hover:text-[var(--ui-ink)]"
+                        magnifierZoom === z ? "bg-[#cbb58c] text-[#24302a]" : "text-[var(--ui-ink-3)] hover:text-[var(--ui-ink)]"
                       }`}
                     >
                       {z}x
@@ -1065,7 +1167,7 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
             {/* Interactive Region Capture Drag Selection Box */}
             {isCaptureActive && selectionBox && (
               <div
-                className="absolute z-40 border-2 border-dashed border-[#F2604D] bg-[#F2604D]/25 pointer-events-none rounded shadow-xs"
+                className="ui-crop-box absolute z-40 border-2 border-dashed border-[#F2604D] pointer-events-none rounded"
                 style={{
                   left: `${Math.min(selectionBox.startX, selectionBox.currentX)}px`,
                   top: `${Math.min(selectionBox.startY, selectionBox.currentY)}px`,
@@ -1223,10 +1325,10 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
 
         {/* RIGHT PANEL: OCR, Conversion & Rich Text Editor (50%) */}
         <div ref={conversionPaneRef} data-workspace="conversion" className="ui-surface ui-pane-in relative lg:col-span-6 min-w-0 h-full flex flex-col overflow-hidden" style={{ animationDelay: "70ms" }}>
-          <div data-layout="compact-conversion-header" className="ui-pane-head">
+          <div data-layout="compact-conversion-header" className="ui-pane-head" data-busy={Boolean(ocrProgress) || diagramBusy || answerBusy || exporting ? "true" : undefined}>
             <div className="flex min-w-0 flex-1 basis-full sm:basis-auto flex-wrap items-center gap-x-3 gap-y-1">
               <span className="ui-title">
-                {itemsList.length ? <>ฉบับร่าง <span className="font-normal text-[var(--ui-ink-3)]">· {itemsList.length} ข้อ</span></> : "OCR ดิบ"}
+                {itemsList.length ? <>ฉบับร่าง <span className="ml-1 rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-medium text-[var(--ui-ink-2)] tabular-nums">{itemsList.length} ข้อ</span></> : "OCR ดิบ"}
               </span>
 
               {/* Stepper Timeline with Horizontal Connectors and Status Animations */}
@@ -1242,7 +1344,7 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
                     itemsList.length > 0
                       ? completedStepClass
                       : !itemsList.length && reviewText.trim() && !ocrProgress
-                      ? "bg-[var(--ui-olive)] text-white ui-halo hover:bg-[var(--ui-olive-dark)]"
+                      ? "bg-[#cbb58c] text-[#24302a] ui-halo-sand hover:bg-[#d8c59c]"
                       : stepIdleClass
                   }`}
                   title={itemsList.length ? "ขั้นตอนที่ 1: จัดรูปแบบแล้ว (ผ่านแล้ว)" : "ขั้นตอนที่ 1: แปลง OCR เป็นรูปแบบข้อสอบ (ขั้นตอนปัจจุบัน)"}
@@ -1252,7 +1354,7 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
                   {itemsList.length > 0 && <StepDoneBadge />}
                 </button>
 
-                <span aria-hidden="true" className="ui-connector h-0.5 w-3 sm:w-4 rounded-full shrink-0">{itemsList.length > 0 && <span className="bg-[var(--ui-olive)]" />}</span>
+                <span aria-hidden="true" className="ui-connector h-0.5 w-3 sm:w-4 rounded-full shrink-0">{itemsList.length > 0 && <span className="bg-[#8fb3a0]" />}</span>
 
                 {/* Step 2: AI Diagram & Figure Extraction */}
                 {onHarvestDiagrams && (
@@ -1264,11 +1366,11 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
                     onClick={() => onHarvestDiagrams?.()}
                     className={`group relative w-8 h-8 rounded-full transition-[background-color,color,opacity] duration-200 flex items-center justify-center shrink-0 disabled:opacity-40 ${
                       diagramBusy
-                        ? "bg-[var(--ui-teal)] text-white ui-halo-teal"
+                        ? "bg-[#cbb58c] text-[#24302a] ui-halo-sand"
                         : diagramsHarvested
                         ? completedStepClass
                         : itemsList.length > 0
-                        ? "bg-[var(--ui-teal)] hover:bg-[#005a63] text-white ui-halo-teal"
+                        ? "bg-[#cbb58c] hover:bg-[#d8c59c] text-[#24302a] ui-halo-sand"
                         : stepIdleClass
                     }`}
                     title={diagramBusy ? "กำลังสกัดรูปภาพและตาราง (กำลังประมวลผล)..." : diagramsHarvested ? "ขั้นตอนที่ 2: สกัดรูปประกอบแล้ว (ผ่านแล้ว · คลิกเพื่อสกัดซ้ำ)" : "ขั้นตอนที่ 2: สกัดรูปประกอบ ตาราง และภาพตัวเลือกด้วย AI Vision (ขั้นตอนปัจจุบัน)"}
@@ -1281,7 +1383,7 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
 
                 {/* Connector 2: Step 2 -> Step 3 */}
                 {onExtractAnswers && (
-                  <span aria-hidden="true" className="ui-connector h-0.5 w-3 sm:w-4 rounded-full shrink-0">{diagramsHarvested && <span className="bg-[var(--ui-olive)]" />}</span>
+                  <span aria-hidden="true" className="ui-connector h-0.5 w-3 sm:w-4 rounded-full shrink-0">{diagramsHarvested && <span className="bg-[#8fb3a0]" />}</span>
                 )}
 
                 {/* Step 3: Optional AI Answer Detection */}
@@ -1294,11 +1396,11 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
                     onClick={() => onExtractAnswers?.()}
                     className={`group relative w-8 h-8 rounded-full transition-[background-color,color,opacity] duration-200 flex items-center justify-center shrink-0 disabled:opacity-40 ${
                       answerBusy
-                        ? "bg-[var(--ui-olive)] text-white ui-halo"
+                        ? "bg-[#cbb58c] text-[#24302a] ui-halo-sand"
                         : answersCompleted
                         ? completedStepClass
                         : diagramsHarvested
-                        ? "bg-[var(--ui-olive)] hover:bg-[var(--ui-olive-dark)] text-white ui-halo"
+                        ? "bg-[#cbb58c] hover:bg-[#d8c59c] text-[#24302a] ui-halo-sand"
                         : stepIdleClass
                     }`}
                     title={answerBusy ? "กำลังวิเคราะห์เฉลย..." : answersCompleted ? "วิเคราะห์แล้ว · คลิกเพื่อตรวจซ้ำ" : "อ่านเฉลยต้นฉบับ แล้วให้ AI เติมข้อที่ยังว่าง"}
@@ -1334,7 +1436,14 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
                 )}
               </div>
 
-              <span key={nextStepLabel} className="ui-status-in hidden 2xl:inline text-[12px] text-[var(--ui-ink-3)] whitespace-nowrap">{nextStepLabel}</span>
+              {nextStepAction ? (
+                <button key={nextStepLabel} type="button" onClick={nextStepAction} className="ui-next-step ui-status-in hidden 2xl:inline-flex" title="กดเพื่อทำขั้นนี้">
+                  {nextStepLabel}
+                  <ChevronRight aria-hidden="true" className="h-3.5 w-3.5" />
+                </button>
+              ) : (
+                <span key={nextStepLabel} className="ui-status-in hidden 2xl:inline text-[12px] text-[#cbb58c] whitespace-nowrap">{nextStepLabel}</span>
+              )}
             </div>
 
             {(itemsList.length > 0 || reviewText.trim()) && (
@@ -1347,6 +1456,7 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
                   onDownloadDocx={handleDownloadDocx}
                   documentAvailable={Boolean(itemsList.length || reviewText.trim())}
                   exportAvailable={exportAvailable}
+                  exportedUrl={exportedUrl}
                   exporting={exporting}
                   editingAvailable={itemsList.length > 0}
                 />
@@ -1363,22 +1473,30 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
 
           {navigationItems.length > 0 && (
             <nav
-              ref={navRef}
               data-layout="compact-question-nav"
               aria-label="เลือกข้อสอบ"
-              className="nav-scroll flex flex-nowrap items-center gap-x-0.5 overflow-x-auto border-b border-[var(--ui-line)] bg-[var(--ui-sunken)] px-3 py-1.5 shrink-0 min-w-0"
+              className="flex items-center gap-2 border-b border-[var(--ui-line)] bg-[var(--ui-sunken)] py-1.5 pl-3 pr-2 shrink-0 min-w-0"
             >
-              <span className="mr-1.5 shrink-0 text-[11px] font-medium text-[var(--ui-ink-3)]">ข้อ</span>
+              <span className="shrink-0 text-[11px] font-medium text-[var(--ui-ink-3)]">ข้อ</span>
+              <div ref={navRef} className="nav-scroll flex min-w-0 flex-1 flex-nowrap items-center gap-x-0.5 overflow-x-auto">
               {navigationGroups.map(({ anchor, hidden }) => {
                 const expanded = openGap === anchor.id;
                 const activeHidden = hidden.find(item => item.id === activeQuestionId);
+                const hiddenIssue = hidden.some(item => issueNumbers.has(item.questionNumber));
                 const renderNumber = (item: ExamItem) => (
                 <button
                   key={item.id}
                   type="button"
                   aria-label={`ไปข้อ ${item.questionNumber}`}
                   aria-current={activeQuestionId === item.id ? "true" : undefined}
+                  aria-describedby={preview?.id === item.id ? "question-preview" : undefined}
+                  data-answer={answerMarks[item.id]}
+                  data-issue={issueNumbers.has(item.questionNumber) ? "true" : undefined}
                   onClick={() => jumpToQuestion(item)}
+                  onMouseEnter={event => showPreview(item, event.currentTarget)}
+                  onFocus={event => showPreview(item, event.currentTarget)}
+                  onMouseLeave={hidePreview}
+                  onBlur={hidePreview}
                   className={`nav-chip h-6 min-w-6 shrink-0 rounded-md px-1 text-[11px] leading-none tabular-nums ${
                     activeQuestionId === item.id
                       ? "bg-[var(--ui-olive)] text-white font-semibold"
@@ -1392,7 +1510,7 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
                 const range = `${hidden[0].questionNumber}–${hidden[hidden.length - 1].questionNumber}`;
                 return <span key={anchor.id} className="nav-range" data-open={expanded ? "true" : "false"}>
                   {renderNumber(anchor)}
-                  <button type="button" data-nav-gap={anchor.questionNumber} aria-expanded={expanded} aria-controls={`question-gap-${anchor.id}`} aria-label={`${expanded ? "ซ่อน" : "แสดง"}ข้อ ${hidden[0].questionNumber} ถึง ${hidden[hidden.length - 1].questionNumber}`} title={`${expanded ? "ซ่อน" : "แสดง"}ข้อ ${range}`} onClick={() => setOpenGap(previous => previous === anchor.id ? null : anchor.id)} className={`nav-gap-toggle flex h-6 shrink-0 items-center justify-center rounded-full focus-visible:outline-offset-0 ${!expanded && activeHidden ? "px-0.5" : "w-5"} ${expanded ? "text-[var(--ui-teal)] hover:bg-white" : activeHidden ? "" : "text-[#9aa29d] hover:text-[var(--ui-teal)]"}`}>
+                  <button type="button" data-nav-gap={anchor.questionNumber} data-issue={!expanded && hiddenIssue ? "true" : undefined} aria-expanded={expanded} aria-controls={`question-gap-${anchor.id}`} aria-label={`${expanded ? "ซ่อน" : "แสดง"}ข้อ ${hidden[0].questionNumber} ถึง ${hidden[hidden.length - 1].questionNumber}`} title={`${expanded ? "ซ่อน" : "แสดง"}ข้อ ${range}${!expanded && hiddenIssue ? " (มีข้อที่ต้องตรวจแก้)" : ""}`} onClick={() => setOpenGap(previous => previous === anchor.id ? null : anchor.id)} className={`nav-gap-toggle flex h-6 shrink-0 items-center justify-center rounded-full focus-visible:outline-offset-0 ${!expanded && activeHidden ? "px-0.5" : "w-5"} ${expanded ? "text-[var(--ui-teal)] hover:bg-white" : activeHidden ? "" : "text-[#9aa29d] hover:text-[var(--ui-teal)]"}`}>
                     {expanded
                       ? <ChevronLeft aria-hidden="true" className="nav-gap-icon h-3.5 w-3.5" />
                       : activeHidden
@@ -1405,8 +1523,41 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
                   </span>
                 </span>;
               })}
+              </div>
+              {itemsList.length > 0 && (
+                <div className="flex shrink-0 items-center gap-1" data-nav-summary="true">
+                  <button type="button" onClick={jumpToNextUnanswered} disabled={answeredCount === itemsList.length} aria-label={answeredCount === itemsList.length ? "ทุกข้อมีเฉลยแล้ว" : `ไปข้อถัดไปที่ยังไม่มีเฉลย (มีเฉลย ${answeredCount} จาก ${itemsList.length} ข้อ)`} title={answeredCount === itemsList.length ? "ทุกข้อมีเฉลยแล้ว" : "ไปข้อถัดไปที่ยังไม่มีเฉลย"} className="nav-summary nav-summary-answered" style={{ "--fill": `${Math.round(answeredCount / itemsList.length * 100)}%` } as React.CSSProperties}>
+                    <Check aria-hidden="true" className="h-3 w-3" />
+                    <span className="tabular-nums">{answeredCount}/{itemsList.length}</span>
+                    <span className="sr-only">ข้อที่มีเฉลยแล้ว</span>
+                  </button>
+                  {issueNumbers.size > 0 && (
+                    <button type="button" onClick={jumpToFirstIssue} aria-label={`ไปข้อแรกที่ต้องตรวจแก้ (${issueNumbers.size} ข้อ)`} title="ไปข้อแรกที่ต้องตรวจแก้" className="nav-summary nav-summary-issue">
+                      <AlertTriangle aria-hidden="true" className="h-3 w-3" />
+                      <span className="tabular-nums">{issueNumbers.size}</span>
+                    </button>
+                  )}
+                </div>
+              )}
             </nav>
           )}
+          {preview && (() => {
+            const item = itemsList.find(entry => entry.id === preview.id) || navigationItems.find(entry => entry.id === preview.id);
+            if (!item) return null;
+            const mark = answerMarks[item.id];
+            const markLabel = mark === "source" ? "เฉลยจากต้นฉบับ" : mark === "ai" ? "เฉลยจาก AI" : mark === "manual" ? "เฉลยโดยผู้ใช้" : "ยังไม่มีเฉลย";
+            const text = item.questionText.replace(/\s+/g, " ").trim();
+            return (
+              <div id="question-preview" role="tooltip" className="nav-preview" style={{ top: preview.top, left: preview.left }}>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-semibold text-[var(--ui-ink)]">ข้อ {item.questionNumber}</span>
+                  <span className="nav-preview-mark" data-answer={mark}>{markLabel}</span>
+                </div>
+                <p className="mt-1 line-clamp-2 text-[12px] leading-snug text-[var(--ui-ink-2)]">{text.length > 120 ? `${text.slice(0, 120)}…` : text || "(ยังไม่มีข้อความโจทย์)"}</p>
+                {issueNumbers.has(item.questionNumber) && <p className="mt-1 text-[11px] font-medium text-[#9a6200]">มีรายการที่ต้องตรวจแก้</p>}
+              </div>
+            );
+          })()}
 
           {/* Editable Continuous Document Area */}
           <div
@@ -1430,6 +1581,13 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
             onMouseLeave={() => { if (imageTools) releaseImageTools(); }}
             onScroll={event => {
               if (imageTools) setImageTools(null);
+              const pill = questionPillRef.current;
+              if (pill) {
+                pill.style.top = `${event.currentTarget.offsetTop + 10}px`;
+                pill.dataset.show = "true";
+                if (pillTimer.current) clearTimeout(pillTimer.current);
+                pillTimer.current = setTimeout(() => { delete pill.dataset.show; }, 1100);
+              }
               const pane = event.currentTarget;
               const max = pane.scrollHeight - pane.clientHeight;
               // Direct style write: a state update here would re-render every question on each scroll frame.
@@ -1756,6 +1914,11 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
             ))}
           </div>
 
+          {itemsList.length > 0 && (
+            <div ref={questionPillRef} aria-hidden="true" className="ui-question-pill">
+              ข้อ {navigationItems.find(item => item.id === activeQuestionId)?.questionNumber ?? "-"} <span className="opacity-70">จาก {itemsList.length}</span>
+            </div>
+          )}
           {/* T-107: reading progress for long documents */}
           {itemsList.length > 0 && (
             <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-[3px]">
@@ -1812,7 +1975,7 @@ export const SplitDocumentEditor: React.FC<SplitDocumentEditorProps> = ({
 // T-106: completed-step check that pops in once instead of a static dot.
 function StepDoneBadge() {
   return (
-    <span aria-hidden="true" className="ui-check-in absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-white bg-[#2f855a]">
+    <span aria-hidden="true" className="ui-check-in absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-[#24302a] bg-[#5f9a74]">
       <Check className="h-2 w-2 stroke-[3.5] text-white" />
     </span>
   );

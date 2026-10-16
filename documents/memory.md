@@ -1,5 +1,11 @@
 # Memory
 
+### T-111 Owner Priority for UI Work (2026-10-16)
+Owner priority: 1 performance, 2 convenience and easy-to-understand (not complex or confusing), 3 looks. Apply it to future UI suggestions. Deferred T-111 ideas: minimap of all questions, workspace dark mode, export preview card, OCR-coordinate source highlight, per-step progress ring, export history menu.
+
+### T-110 Rails and Export Control (2026-10-16)
+The frontend-design skill became available in this session and guided the T-110 pass (one bold move: dark rails; motion only for actions). Keep chip textContent equal to the question number; use data attributes + CSS for strip markers. The header template link "แม่แบบข้อสอบ (Google Docs)" also matches /Google Doc/ in tests; use specific names. Background servers started by the session die when the session/compact is interrupted; restart localhost:3000 with NEXT_DIST_DIR of the latest verified build.
+
 ### T-109 Master Template Is Supreme (2026-10-15)
 The template doc 1uA8A1Q1lXCDIGRPtgBA0H77xYoMWCoo7thp5Hi0nvBQ exports publicly as DOCX (HTTP 200). T-108 wrongly followed a secondary example; owner corrected it. Template choices have no keys and no list numbering (numPr count 0); answers use run-level B8F2E6 shading. Playwright download.saveAs also hits the transient Windows UNKNOWN lock (copyfile); E2E now retries copies as well as writes.
 

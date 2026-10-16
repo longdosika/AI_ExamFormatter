@@ -78,6 +78,10 @@ export default function Home() {
   const [availableDraft, setAvailableDraft] = useState<DocumentDraft | null>(null);
   const [showDraftsModal, setShowDraftsModal] = useState(false);
   const [savedDrafts, setSavedDrafts] = useState<DocumentDraft[]>([]);
+  // T-111: the header notice folds to a dot after a moment; hover/focus shows it again.
+  const [noticeFolded, setNoticeFolded] = useState(false);
+  // T-111: the upload screen offers the latest drafts so work can resume in one click.
+  const [recentDrafts, setRecentDrafts] = useState<DocumentDraft[]>([]);
   const [sourceError, setSourceError] = useState<string | null>(null);
   const [draftOpening, setDraftOpening] = useState(false);
   const sourceDraftKey = useRef<string | undefined>(undefined);
@@ -93,6 +97,13 @@ export default function Home() {
       setStatisticsError("อ่านแบบร่างไม่ได้");
     }
   };
+
+  useEffect(() => {
+    setNoticeFolded(false);
+    if (!infoNotice) return;
+    const timer = window.setTimeout(() => setNoticeFolded(true), 6000);
+    return () => window.clearTimeout(timer);
+  }, [infoNotice]);
 
   const parsedFileFromDraft = (draft: DocumentDraft): ParsedFileResult => ({
     fileName: draft.fileName,
@@ -765,6 +776,15 @@ export default function Home() {
   };
 
   const isDocumentActive = Boolean(parsedFile && formattedItems);
+  // T-111: refresh the recent-draft cards whenever the upload screen is shown.
+  useEffect(() => {
+    if (isDocumentActive) return;
+    try {
+      setRecentDrafts([...loadAllDrafts(window.localStorage)].sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt)).slice(0, 3));
+    } catch {
+      setRecentDrafts([]);
+    }
+  }, [isDocumentActive]);
 
   return (
     <main className={isDocumentActive ? "w-full h-screen max-h-screen flex flex-col gap-2 p-2 sm:p-2.5 bg-[var(--background)] overflow-hidden" : "max-w-[1600px] mx-auto px-4 py-6"}>
@@ -793,10 +813,18 @@ export default function Home() {
         </div>
 
         <div className="flex min-w-0 flex-1 items-center justify-center gap-2">
+          {isDocumentActive && availableDraft && (
+            <div role="group" aria-label="แบบร่างเดิมของไฟล์นี้" className="ui-status-in flex shrink-0 items-center gap-1 rounded-full border border-[#cfe0d4] bg-[#eef5f0] py-0.5 pl-3 pr-0.5 text-[12px] text-[var(--ui-olive-dark)]" title={`บันทึกเมื่อ ${new Date(availableDraft.updatedAt).toLocaleString("th-TH")}`}>
+              <Bookmark aria-hidden="true" className="h-3.5 w-3.5" />
+              <span className="hidden whitespace-nowrap lg:inline">มีแบบร่างเดิม {availableDraft.itemCount} ข้อ</span>
+              <button type="button" onClick={() => handleApplyDraft(availableDraft)} aria-label="โหลดแบบร่างเดิม (ประหยัดค่าใช้จ่าย)" className="ml-1 h-6 rounded-full bg-[var(--ui-olive)] px-2.5 text-[12px] font-medium text-white hover:bg-[var(--ui-olive-dark)]">โหลด</button>
+              <button type="button" onClick={() => setAvailableDraft(null)} aria-label="ไม่ใช้แบบร่างเดิม" className="ui-icon-btn h-6 w-6 rounded-full"><X className="h-3.5 w-3.5" /></button>
+            </div>
+          )}
           {isDocumentActive && infoNotice && (
-            <div key={infoNotice} role="status" data-layout="compact-status" aria-label={infoNotice} title={infoNotice} className="ui-status-in hidden min-w-0 max-w-[36rem] items-center gap-2 rounded-full border border-[var(--ui-line)] bg-white py-1 pl-3 pr-1 text-[12px] text-[var(--ui-ink-2)] md:flex">
+            <div key={infoNotice} role="status" data-layout="compact-status" data-folded={noticeFolded ? "true" : undefined} tabIndex={0} aria-label={infoNotice} title={infoNotice} className="ui-notice ui-status-in hidden min-w-0 max-w-[36rem] items-center gap-2 rounded-full border border-[var(--ui-line)] bg-white py-1 pl-3 pr-1 text-[12px] text-[var(--ui-ink-2)] md:flex">
               <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--ui-teal)]" />
-              <span className="truncate">{infoNotice}</span>
+              <span className="ui-notice-text truncate">{infoNotice}</span>
               <button
                 type="button"
                 aria-label="ปิดข้อความสถานะ"
@@ -807,14 +835,6 @@ export default function Home() {
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
-          )}
-          {exportLink && (
-            <div role="status" className="ui-status-in shrink-0"><a href={exportLink} target="_blank" rel="noreferrer" title="ส่งออกและยืนยันตำแหน่งเรียบร้อยแล้ว" className=" inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[#e6f4ea] px-3 py-1 text-[12px] font-medium text-[#1d5b38] hover:bg-[#d6ecdc]">
-              <CheckCircle2 aria-hidden="true" className="w-3.5 h-3.5" />
-              <span className="sr-only">ส่งออกและยืนยันตำแหน่งเรียบร้อยแล้ว · </span>
-              เปิด Google Doc
-              <ExternalLink aria-hidden="true" className="w-3 h-3" />
-            </a></div>
           )}
         </div>
 
@@ -995,7 +1015,7 @@ export default function Home() {
       )}
 
       {/* Status & Error Alerts */}
-      {availableDraft && (
+      {availableDraft && !isDocumentActive && (
         <div className="ui-status-in flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--ui-line)] bg-white py-1.5 pl-3 pr-1.5 text-[13px] text-[var(--ui-ink)] shrink-0">
           <div className="flex items-center gap-1.5 min-w-0">
             <Bookmark className="w-4 h-4 text-[#496053] shrink-0" />
@@ -1090,6 +1110,7 @@ export default function Home() {
             onExportDrive={exportDocument}
             onDownloadDocx={downloadDocument}
             exportAvailable={driveReady}
+            exportedUrl={exportLink}
             onCreateStarterDraft={handleCreateStarterDraft}
           />
         </div>
@@ -1109,6 +1130,23 @@ export default function Home() {
               onError={handleUploadError} 
               onStart={handleStartUpload}
             />
+            {recentDrafts.length > 0 && (
+              <section aria-labelledby="recent-drafts-title" className="space-y-2">
+                <h3 id="recent-drafts-title" className="text-[13px] font-semibold text-[var(--ui-ink-2)]">ทำต่อจากแบบร่างล่าสุด</h3>
+                <ul className="space-y-1.5">
+                  {recentDrafts.map((draft, index) => (
+                    <li key={draft.id} className="recent-draft" style={{ animationDelay: `${index * 60}ms` }}>
+                      <FileText aria-hidden="true" className="h-4 w-4 shrink-0 text-[var(--ui-olive)]" />
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-[13px] font-medium text-[var(--ui-ink)]" title={draft.fileName}>{draft.fileName}</div>
+                        <div className="text-[11px] text-[var(--ui-ink-3)]">{draft.itemCount ? `${draft.itemCount} ข้อ` : "ข้อความ OCR"}, {new Date(draft.updatedAt).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" })}</div>
+                      </div>
+                      <button type="button" disabled={draftOpening} onClick={() => handleApplyDraft(draft)} aria-label={`ทำต่อจากแบบร่าง ${draft.fileName}`} className="ui-btn ui-btn-quiet h-8 shrink-0">ทำต่อ</button>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
           </div>
         </div>
       )}
@@ -1116,4 +1154,4 @@ export default function Home() {
   );
 }
 
-/* BUILD_STAMP: 261015-2302 */
+/* BUILD_STAMP: 261016-0947 */

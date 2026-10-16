@@ -1,5 +1,8 @@
 # ได้เอกสารในรูปแบบ google doc ไว้ใน dirve ที่กำหนด
 
+### T-110 One Export Control
+Export to Google Drive, export again and open the exported document all live in one toolbar control; the header link was removed. Evidence: evidence/t110-verification.md.
+
 ### T-109 Master Template Export
 Downloaded DOCX and Google Drive documents follow the master QuizFlow template: A4 with template margins, file-name title, indented keyless choices, Pearl Aqua answer marks, teal labels, italic shared passages with a closing ◆, 661/353/510 px images and a "V-date | file name | page X of Y" footer. Evidence: evidence/t109-verification.md.
 

@@ -484,6 +484,16 @@ async function ready() {
   await page.screenshot({path:path.join(root,'evidence','t105-navigation.png'),fullPage:true});
   mark('80-question circular gaps expand/collapse by click and keyboard, preserve active item and fit mobile/reduced motion');
   mark('Question strip is one line with a single open range and a current-question marker');
+  // T-111: J/K step through questions (not while typing); the answered chip jumps to the next unanswered question.
+  const activeNumber=()=>page.evaluate(()=>Number(document.querySelector('nav[aria-label="เลือกข้อสอบ"] [aria-current="true"]')?.textContent));
+  await longNavigation.getByRole('button',{name:'ไปข้อ 1',exact:true}).click();
+  await page.keyboard.press('j');
+  await page.waitForFunction(()=>document.querySelector('nav[aria-label="เลือกข้อสอบ"] [aria-current="true"]')?.textContent==='2');
+  await page.keyboard.press('k');
+  await page.waitForFunction(()=>document.querySelector('nav[aria-label="เลือกข้อสอบ"] [aria-current="true"]')?.textContent==='1');
+  await longNavigation.locator('.nav-summary-answered').click();
+  assert.equal(await activeNumber(),2,'Answered chip jumps to the next question without an answer');
+  mark('J/K and the answered chip move between questions without typing interference');
   // T-107 image management: add from file via the insert dialog, resize (honored in DOCX), delete and undo.
   const figurePng = Buffer.from((await page.evaluate(()=>{const canvas=document.createElement('canvas');canvas.width=240;canvas.height=120;const ctx=canvas.getContext('2d');ctx.fillStyle='#006D77';ctx.fillRect(0,0,240,120);ctx.fillStyle='#F2604D';ctx.fillRect(20,20,80,80);return canvas.toDataURL('image/png');})).split(',')[1],'base64');
   await longNavigation.getByRole('button',{name:'ไปข้อ 1',exact:true}).click();
@@ -519,6 +529,10 @@ async function ready() {
   assert.equal(await editor.locator('[data-item-id="1"] [data-question-image] img').count(),1,'Undo restores the figure');
   mark('Editor images can be added from file, resized for export, deleted and restored');
   await page.getByRole('button',{name:'เลือกไฟล์ใหม่',exact:true}).click();
+  // T-111: the upload screen offers recent drafts below the uploader.
+  await page.getByRole('heading',{name:'ทำต่อจากแบบร่างล่าสุด',exact:true}).waitFor();
+  assert.ok(await page.getByRole('button',{name:/^ทำต่อจากแบบร่าง /}).count()>0,'Recent drafts can be resumed from the upload screen');
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Recent drafts fit the viewport');
   const offsetFixture = Buffer.from(Array.from({length:25},(_,index)=>{
     const q=index+21;
     return `${q}. แบบทดสอบข้อ ${q}\nก. ตัวเลือก ก\nข. ตัวเลือก ข\nค. ตัวเลือก ค\nง. ตัวเลือก ง`;
@@ -623,6 +637,20 @@ async function ready() {
   await googleExportResponse;
   assert.ok(exportedPayload.paragraphs.some(p=>p.background==='E3EFFA'));
   assert.equal((exportedPayload.paragraphs.flatMap(p=>p.runs).map(r=>r.text||'').join('').match(/\*/g)||[]).length,3);
+  // T-110: exporting and opening share one toolbar control; the page header no longer carries a separate link.
+  const openExported=page.locator('[data-export-control]').getByRole('link',{name:'เปิดเอกสารที่ส่งออกใน Google Docs',exact:true});
+  await openExported.waitFor();
+  assert.equal(await openExported.getAttribute('href'),'https://docs.google.com/document/d/fixture-t101');
+  assert.equal(await page.locator('header').getByRole('link',{name:/เปิด Google Doc|ส่งออกและยืนยัน/}).count(),0,'Header has no second export link');
+  assert.equal(await page.locator('[data-export-control]').getByRole('button',{name:'ส่งออกเข้า Google Drive',exact:true}).getAttribute('title'),'ส่งออกฉบับปัจจุบันเป็นเอกสารใหม่อีกครั้ง','Same button now exports again');
+  // T-110: question strip shows answer-origin dots and a summary of answered questions.
+  const originNav=page.getByRole('navigation',{name:'เลือกข้อสอบ'});
+  assert.equal(await originNav.locator('[data-answer="manual"]').count()>0,true,'Manual answer origin is marked on its question chip');
+  assert.match(await originNav.locator('[data-nav-summary] .nav-summary').first().innerText(),/^3\/\d+/,'Summary counts answered questions');
+  await originNav.getByRole('button',{name:/^ไปข้อ \d+$/}).first().hover();
+  await page.getByRole('tooltip').waitFor();
+  assert.match(await page.getByRole('tooltip').innerText(),/^ข้อ \d+/,'Hover preview shows the question');
+  assert.equal(await page.locator('[data-layout="compact-conversion-header"]').evaluate(node=>getComputedStyle(node).backgroundImage.includes('gradient')),true,'Editor rail uses the dark olive surface');
   await page.waitForFunction(()=>JSON.parse(localStorage.getItem('exam-formatter-document-drafts-v1')).drafts[0].formattedItems[2].reconciliationProvenance==='manual');
   await page.reload();
   await openOriginDraft();

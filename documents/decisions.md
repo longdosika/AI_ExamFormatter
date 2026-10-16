@@ -1,5 +1,11 @@
 # Decisions
 
+### D-035 Rank UI Polish by Performance, Then Clarity, Then Looks (T-111, 2026-10-16)
+Owner set the order performance > convenience/clarity > beauty. From 30 proposals, items needing heavy rendering or new concepts (minimap, whole-app dark mode, export preview, OCR-coordinate highlighting, per-step progress rings) were deferred; implemented items reuse existing state, animate only compositor-friendly properties once, and avoid per-frame React updates. Keyboard shortcuts are ignored inside inputs and the contentEditable editor so typing is never captured.
+
+### D-034 Export Owns One Spot; Rails Go Dark (T-110, 2026-10-16)
+Owner found the post-export link in the page header confusing next to the toolbar export button. Decision: the toolbar export control owns the whole flow (export, export again, open), keeping the accessible name "ส่งออกเข้า Google Drive" so tests and assistive tech stay stable; the open segment only appears after a confirmed export. Pane rails become dark olive-ink to separate chrome from the paper; implemented by redefining the existing --ui-* tokens inside the rail instead of restyling each control. Strip state is drawn with CSS from data attributes because chip text must remain the bare number (navigation tests and screen readers rely on it). Answer origin is read from the live editor DOM so manual edits are reflected without reparsing.
+
 ### D-033 Master Template Overrides Earlier Export Choices (T-109, 2026-10-15)
 Owner restated that the master QuizFlow template is the supreme reference and decided: (1) template wins everywhere, replacing the T-108 look taken from a secondary example; (2) export drops "ก./ข." choice keys; (3) every correct answer is marked with run-level Pearl Aqua #B8F2E6 + coral "*" regardless of origin, so T-101 origin colours are editor-only; (4) title = file name in the template title style, footer = "V-<date>" + file name + page X of Y. The editor DOM is unchanged; the layout is applied at export for both download and Drive. Lesson: check design.md §1.1 and the template before following any other reference.
 

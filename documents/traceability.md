@@ -1,5 +1,11 @@
 # Traceability
 
+### T-111 Workspace Conveniences
+Requirement R-001 -> Task T-111 -> [[features/r-001-browser]] -> app/page.tsx, components/SplitDocumentEditor.tsx, components/FileUploader.tsx, app/globals.css -> scripts/test-e2e.cjs, scripts/capture-t111.cjs, evidence/t111-verification.md.
+
+### T-110 Rails, Export Control, Question Strip
+Requirement R-001/R-003 -> Task T-110 -> [[features/r-001-browser]], [[features/r-003-google-doc-dirve]] -> app/globals.css, components/RichTextToolbar.tsx, components/SplitDocumentEditor.tsx, app/page.tsx -> scripts/test-e2e.cjs, scripts/capture-t110.cjs, evidence/t110-verification.md.
+
 ### T-109 Master Template Export
 Requirement R-003/R-004 -> Task T-109 -> [[features/r-003-google-doc-dirve]] -> lib/export-layout.ts, lib/google-export.ts, lib/export-document.ts -> scripts/test-google.cjs, scripts/test-e2e.cjs, scripts/capture-t108.cjs, evidence/t109-verification.md. Supersedes the T-108 layout; T-101 origin colours remain editor-only.
 

@@ -5,6 +5,34 @@
 - [[architecture]]
 - [[decisions]]
 ## Backlog
+### T-111 Fast, clear workspace conveniences and feedback
+- Type: Feature / Workspace UX
+- Status: Done
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Problem: Owner asked for more polish and chose implementation by priority: (1) performance, (2) convenience and clarity, (3) looks. From the 30-item proposal, the selected items avoid heavy rendering and complexity.
+- Acceptance Criteria: (1) "พบแบบร่างเดิม" row becomes a compact header chip with load/dismiss while a document is open; (2) header notice folds to its dot after 6 s and reopens on hover/focus; (3) upload screen lists the 3 most recent drafts after the uploader with a resume button; (4) the next-step text runs that step; (5) J/K move between questions and Shift+J/K between review items, ignored while typing; (6) answered chip shows a fill and jumps to the next unanswered question; (7) selecting an answer pops the star and rings the row once without changing exported colours; (8) a current-question pill floats over the editor while scrolling (DOM-only updates); (9) crop dims the outside of the frame; (10) the upload icon replays a short received motion. Only transform/opacity/box-shadow animate, nothing loops, reduced motion disables all.
+- Affected Files: app/page.tsx, components/SplitDocumentEditor.tsx, components/FileUploader.tsx, app/globals.css, scripts/test-e2e.cjs, scripts/capture-t111.cjs, knowledge docs, evidence/t111-verification.md.
+- Expected Verification: typecheck, lint, npm test, E2E, screenshots, finish-task, restart localhost:3000.
+- Verification (2026-10-16): E2E 31/31 (J/K, answered chip jump, recent drafts); capture-t111 screenshots; finish-task exit 0 on production 261016-0945 (gate stamp 261016-0947, CSS OK). Process note: this entry was written after implementation began in the pass. Evidence: evidence/t111-verification.md.
+- Deployment (2026-10-16): localhost:3000 (127.0.0.1) serves 261016-0945 from .next-production-t111; HTTP 200, CSS OK; capture-t111 passed on :3000. Obsolete .next-production-t109 removed.
+- Final status (2026-10-16): Verified -> Done.
+
+### T-110 One export control, richer question strip, dark pane headers
+- Type: Feature / Workspace UX
+- Status: Done
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Problem: Owner screenshot (2026-10-16, build 261015-2300): after export the "เปิด Google Doc" link appears in the page header (A) far from the export button (B), so exporting and opening live in two places. The question strip (C) shows only numbers. Pane header bars (D, E) are light and blend with the paper; owner wants a darker tone, a redesign and more motion.
+- Acceptance Criteria:
+  1. Export and open-document share one toolbar control: the export button keeps its accessible name and becomes "ส่งออกใหม่" after a successful export; an attached open-document segment appears beside it; the header link is removed.
+  2. Question strip shows each question's answer origin as a dot (source/AI/manual colours), amber ring for questions named in review findings, a hover/focus preview of the question text, and an end-of-strip summary (answered count, issue count that jumps to the first issue). Strip stays one line, <= 48 px.
+  3. Source and editor header bars use a dark olive-ink surface with light controls; stepper, toolbar, chips and rails restyled for contrast; a shimmer line shows while OCR/image/answer/export work runs; motion respects reduced motion and adds no infinite animation inside the question nav.
+  4. Existing contracts kept (accessible names, data-layout/data-step, 32 px step geometry, completed opacity 0.4); E2E extended; screenshots; finish-task; restart localhost:3000.
+- Affected Files: app/page.tsx, components/SplitDocumentEditor.tsx, components/RichTextToolbar.tsx, app/globals.css, scripts/test-e2e.cjs, knowledge docs, evidence/t110-verification.md.
+- Expected Verification: typecheck, lint, npm test, E2E, capture screenshots desktop/mobile, finish-task, production restart.
+- Verification (2026-10-16): E2E 30/30 with merged-control, strip and dark-rail checks; capture-t110 strip 37 px desktop/mobile, no overflow. First production gate failed at build with ENOSPC: drive D: was 100% full (592 GB; this project uses about 1.5 GB, so the space is held outside the project). Removed only agent-created obsolete build folders (.next-production-t106/t107/t108, .next-t106..t110), freeing about 0.5 GB; rerun finish-task exit 0 on production 261016-0902 (gate stamp 261016-0911, CSS OK). Evidence: evidence/t110-verification.md.
+- Deployment (2026-10-16): localhost:3000 (127.0.0.1) serves 261016-0902 from .next-production-t110; HTTP 200, CSS OK; capture-t110 flow on :3000 passed (answered 20/80, issue 1, export control open segment).
+- Final status (2026-10-16): Verified -> Done. Owner action: free space on drive D: (only ~0.5 GB left).
+
 ### T-109 Align export with the master QuizFlow template
 - Type: Feature / Export Formatting
 - Status: Done

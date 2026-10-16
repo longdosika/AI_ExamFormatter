@@ -12,6 +12,8 @@ interface FileUploaderProps {
 
 export const FileUploader: React.FC<FileUploaderProps> = ({ onFileParsed, onError, onStart }) => {
   const [isDragging, setIsDragging] = useState(false);
+  // T-111: bumps on every accepted drop/selection so the icon replays a short "received" motion.
+  const [received, setReceived] = useState(0);
   const [loading, setLoading] = useState(false);
   const [currentFile, setCurrentFile] = useState<File | null>(null);
   const [parseResult, setParseResult] = useState<ParsedFileResult | null>(null);
@@ -86,6 +88,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onFileParsed, onErro
     e.preventDefault();
     setIsDragging(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      setReceived(count => count + 1);
       processFile(e.dataTransfer.files[0]);
     }
   };
@@ -94,6 +97,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onFileParsed, onErro
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       e.target.value = ""; // Clear input value so selecting the same file triggers cleanly
+      setReceived(count => count + 1);
       processFile(file);
     }
   };
@@ -121,7 +125,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onFileParsed, onErro
           onChange={handleFileSelect}
         />
         <button type="button" onClick={() => inputRef.current?.click()} className="w-full space-y-3 block rounded-lg" aria-label="เลือกไฟล์ข้อสอบ">
-          <div className={`w-14 h-14 rounded-2xl bg-white text-[var(--ui-olive)] border border-[var(--ui-line)] flex items-center justify-center mx-auto transition-transform duration-300 group-hover:-translate-y-1 motion-reduce:transform-none ${isDragging ? "-translate-y-1" : ""}`}>
+          <div key={received} className={`${received ? "ui-file-received " : ""}w-14 h-14 rounded-2xl bg-white text-[var(--ui-olive)] border border-[var(--ui-line)] flex items-center justify-center mx-auto transition-transform duration-300 group-hover:-translate-y-1 motion-reduce:transform-none ${isDragging ? "-translate-y-1" : ""}`}>
             <Upload className="w-6 h-6" />
           </div>
           <div>

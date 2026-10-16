@@ -9,7 +9,10 @@ import {
   Copy, 
   Check,
   Download,
-  FolderOutput
+  FolderOutput,
+  RefreshCw,
+  ExternalLink,
+  Loader2
 } from "lucide-react";
 
 interface RichTextToolbarProps {
@@ -22,6 +25,8 @@ interface RichTextToolbarProps {
   exportAvailable?: boolean;
   exporting?: boolean;
   editingAvailable?: boolean;
+  /** T-110: link of the last successful Google export; the same control then offers open + export again. */
+  exportedUrl?: string | null;
 }
 
 export const RichTextToolbar: React.FC<RichTextToolbarProps> = ({
@@ -34,6 +39,7 @@ export const RichTextToolbar: React.FC<RichTextToolbarProps> = ({
   exportAvailable = false,
   exporting = false,
   editingAvailable = true,
+  exportedUrl = null,
 }) => {
   // T-107: the copy icon morphs into a check only after the clipboard write really succeeded.
   const [copied, setCopied] = useState(false);
@@ -117,18 +123,28 @@ export const RichTextToolbar: React.FC<RichTextToolbarProps> = ({
           <Download className="w-4 h-4" />
         </button>
 
-        <button
-          type="button"
-          onClick={onExportDrive}
-          aria-label="ส่งออกเข้า Google Drive" aria-busy={exporting}
-          disabled={!documentAvailable || !exportAvailable || exporting}
-          title={exportAvailable ? "สร้างเอกสารใน Google Drive" : "เชื่อมต่อ Google Drive และตรวจสอบโฟลเดอร์ปลายทางก่อนส่งออก"}
-          className="ui-btn ml-1 bg-[var(--ui-teal)] text-white hover:bg-[#005a63] disabled:opacity-50"
-        >
-          <FolderOutput className={`w-4 h-4 ${exporting ? "animate-pulse" : ""}`} />
-          <span aria-hidden="true" className="hidden min-[1800px]:inline">{exporting ? "กำลังส่งออก…" : "ส่งออก"}</span>
-          <span className="sr-only">{exporting ? "กำลังส่งออก…" : "ส่งออกเข้า Google Drive"}</span>
-        </button>
+        {/* T-110: one place for Google export. Export first; once done, the same control re-exports and opens the document. */}
+        <div className={`ui-export ml-1 ${exportedUrl ? "is-done" : ""}`} data-export-control="true">
+          <button
+            type="button"
+            onClick={onExportDrive}
+            aria-label="ส่งออกเข้า Google Drive" aria-busy={exporting}
+            disabled={!documentAvailable || !exportAvailable || exporting}
+            title={!exportAvailable ? "เชื่อมต่อ Google Drive และตรวจสอบโฟลเดอร์ปลายทางก่อนส่งออก" : exportedUrl ? "ส่งออกฉบับปัจจุบันเป็นเอกสารใหม่อีกครั้ง" : "สร้างเอกสารใน Google Drive"}
+            className="ui-export-main"
+          >
+            {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : exportedUrl ? <RefreshCw className="w-4 h-4" /> : <FolderOutput className="w-4 h-4" />}
+            <span aria-hidden="true" className="hidden min-[1800px]:inline">{exporting ? "กำลังส่งออก…" : exportedUrl ? "ส่งออกใหม่" : "ส่งออก"}</span>
+            <span className="sr-only">{exporting ? "กำลังส่งออก…" : "ส่งออกเข้า Google Drive"}</span>
+          </button>
+          {exportedUrl && (
+            <a href={exportedUrl} target="_blank" rel="noreferrer" aria-label="เปิดเอกสารที่ส่งออกใน Google Docs" title="เปิดเอกสารที่ส่งออกใน Google Docs" className="ui-export-open">
+              <ExternalLink className="w-4 h-4" />
+              <span aria-hidden="true" className="hidden min-[1800px]:inline">เปิด</span>
+            </a>
+          )}
+        </div>
+        <span role="status" className="sr-only">{exportedUrl ? "ส่งออกและยืนยันตำแหน่งเรียบร้อยแล้ว เปิดเอกสารได้จากปุ่มข้างปุ่มส่งออก" : ""}</span>
         {!exportAvailable && <span title="เชื่อมต่อ Google Drive ก่อนส่งออก" className="sr-only">เชื่อมต่อ Google Drive ก่อนส่งออก</span>}
       </div>
     </div>

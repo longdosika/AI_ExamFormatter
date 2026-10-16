@@ -68,7 +68,11 @@
     ".next-t108/types/**/*.ts",
     ".next-production-t108/types/**/*.ts",
     ".next-t109/types/**/*.ts",
-    ".next-production-t109/types/**/*.ts"
+    ".next-production-t109/types/**/*.ts",
+    ".next-t110/types/**/*.ts",
+    ".next-production-t110/types/**/*.ts",
+    ".next-t111/types/**/*.ts",
+    ".next-production-t111/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

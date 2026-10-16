@@ -21,6 +21,7 @@
     "Original pages persist, isolate across drafts and reattach legacy sources without rerunning OCR/AI or changing edits",
     "80-question circular gaps expand/collapse by click and keyboard, preserve active item and fit mobile/reduced motion",
     "Question strip is one line with a single open range and a current-question marker",
+    "J/K and the answered chip move between questions without typing interference",
     "Editor images can be added from file, resized for export, deleted and restored",
     "non-1 first-question navigation keeps the parsed first anchor without hard-coded question 1",
     "Sparse numbering uses real decade anchors without inventing missing question numbers",

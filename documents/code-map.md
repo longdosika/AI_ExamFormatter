@@ -1,5 +1,19 @@
 # Code Map
 
+### T-111 Conveniences
+- app/page.tsx: `noticeFolded` timer and foldable notice, header draft chip, `recentDrafts` on the upload screen.
+- components/SplitDocumentEditor.tsx: `nextStepAction`, `jumpAndReveal`, `stepQuestion`, `jumpToNextUnanswered`, J/K keydown listener (skips editable targets), answered chip button with fill, current-question pill (ref + timer), crop box class.
+- components/FileUploader.tsx: `received` counter replays the icon motion.
+- app/globals.css: `.ui-notice`, `.recent-draft`, `.ui-file-received`, `.ui-next-step`, `.nav-summary-answered`, answer ring/star pop, `.ui-crop-box`, `.ui-question-pill`, reduced-motion overrides.
+- scripts/test-e2e.cjs (J/K, answered chip, recent drafts), scripts/capture-t111.cjs.
+
+### T-110 Rails, Export Control, Question Strip
+- app/globals.css: dark `.ui-pane-head` token scope, busy shimmer, `ui-halo-sand`, `.ui-export` control, strip dots/issue ring/summary/preview styles, reduced-motion overrides.
+- components/RichTextToolbar.tsx: merged export control (`exportedUrl`, re-export state, open segment, live status).
+- components/SplitDocumentEditor.tsx: `exportedUrl` prop, rail busy flags, sand/sage stepper, answer-origin observer (`answerMarks`), `issueNumbers`, preview card, `jumpToFirstIssue`, strip scroller + summary.
+- app/page.tsx: header export link removed; `exportLink` passed to the editor.
+- scripts/test-e2e.cjs (merged control, strip dots/summary/preview, dark rail); scripts/capture-t110.cjs (screenshots, bounds).
+
 ### T-109 Master Template Export Layout
 - lib/export-layout.ts: rewritten to the master template (`EXPORT_PAGE` A4, `BLOCK` spacing/indent table, `TEMPLATE_COLORS`, `IMAGE_MAX`, `FOOTER_TABS`, key stripping, inline choice images, run-level answer shading, shared passage/diamond, footer data).
 - lib/google-export.ts: paragraph spacing/indent/alignment, run shading, footer1.xml with PAGE/NUMPAGES fields and footerReference.
