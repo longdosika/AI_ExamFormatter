@@ -18,7 +18,7 @@ T-121 remains In Progress with explicit B-18/source-mark/QuizFlow/publication bo
 ## GitHub Preparation
 - [[release-checklist]]: T-112 local-only build/CI preparation and explicit pre-publication security/content review. No push authorized; verification in [[evidence/t112-verification]].
 ## Latest Verified Work
-- T-132, 2026-10-17: crop top for figures beside the question line (set 2 Q20/Q22, rule C-10); capture rules now enforced by [[capture-rules]] section ฉ. and scripts/test-capture-rules.cjs in npm test. [[decisions]] D-079, [[../evidence/t132/verification]].
+- T-132 Done, 2026-10-17, build 261017-2046 (main http://localhost:3000): crop top for figures beside the question line (set 2 Q20/Q22, rule C-10); capture rules now enforced by [[capture-rules]] section ฉ. and scripts/test-capture-rules.cjs in npm test. [[decisions]] D-079, [[../evidence/t132/verification]].
 - T-131 Done, 2026-10-17 (dev http://127.0.0.1:3121; not deployed to :3000): a question keeps several question figures in source order (capture rule C-37, set 2 Q25 รูปที่ 1-4), one "รูปคำถาม:" with one image per figure in DOCX/Google export. [[decisions]] D-078, [[capture-rules]], [[../evidence/t131/verification]].
 - T-130 Done, 2026-10-17, build 261017-1907 (main http://localhost:3000): choice tables are not question figures (capture rule C-36, set 2 Q5/7/8/10); no header status text; one Drive/export control with menu. [[decisions]] D-077, [[capture-rules]], [[../evidence/t130/verification]].
 - T-129 Done, 2026-10-17, build 261017-1543 (main http://localhost:3000): header rail is four entries (คลังไฟล์, แบบร่าง/ประวัติ, เครื่องมือ menu, แม่แบบ); import history lives in the drafts dialog. [[decisions]] D-076, [[../evidence/t129/verification]].

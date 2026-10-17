@@ -3,6 +3,7 @@ import { DetectedDiagram } from "./diagram-service";
 import { parseSharedContextHeader, stripCapturedTableText } from "./exam-parser";
 import { figureReach, isChoiceTableFigure, choiceBelowFigureTop, constrainFigure, figureVerticalLimits, hasCellRowEvidence, stripTrailingFigureLabels, hasTabularTextEvidence, removeCapturedGridText, removeCapturedFigureEnumerations, tableContinuationTop, type OcrTextRegion } from "./capture-geometry";
 import { detectRuledTable } from "./table-bounds";
+import { whitenPenInkOutsideBox } from "./ink-filter";
 
 type EdgeTrimMode = boolean | "all" | "top" | "bottom" | "none";
 
@@ -328,6 +329,11 @@ export async function cropBboxFromImage(
       ctx.fillStyle = "#FFFFFF";
       ctx.fillRect(0, 0, w, h);
       ctx.drawImage(img, x, y, w, h, 0, 0, w, h);
+      // T-135 (C-18): padding and widening must not bring in teacher pen marks beside the figure (set 2 Q20).
+      try {
+        const frame = ctx.getImageData(0, 0, w, h);
+        if (whitenPenInkOutsideBox(frame.data, w, h, { x: rawX - x, y: rawY - y, w: rawW, h: rawH })) ctx.putImageData(frame, 0, 0);
+      } catch { /* tainted canvas: keep the crop as drawn */ }
 
       const trimOptions =
         trimEdges === "bottom" ? { top: false, bottom: true } :

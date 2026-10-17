@@ -6,15 +6,33 @@
 - [[decisions]]
 ## Backlog
 
+### T-135 Teacher pen circle enters the question-figure crop (set 2 Q20, I-062)
+- Type: Bug
+- Status: In Progress
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Problem: release_log I-062 (found during T-132 on 261017-2046): chapter 7 set 2 Q20, the teacher's red pen circle around answer ก. sits right of the cylinder figure and the crop padding (lib/diagram-client.ts cropBboxFromImage, 32px for question figures) takes part of it in at the right edge. The coloured-ink filter (lib/ink-filter.ts) is applied to the OCR copy only, never to cropped figures. Feature note: features/r-002-feature.md (figure capture).
+- Acceptance Criteria: decided with evidence (pen ink vs figure colour in sets 1-5) whether to whiten pen ink in question-figure crops or stop padding into it; set 2 Q20 crop (recorded + live boxes) has no coloured pen ink; figures whose own content is coloured are not altered; set 1/2/3 replay suites still pass; new capture rule in capture-rules.md (rule table, section ฉ. row, learning-log row) enforced by test-capture-rules and a test wired into npm test or test:e2e; release_log I-062 updated.
+- Affected Files: lib/diagram-client.ts, possibly lib/ink-filter.ts, scripts/test-t132-crop-top.cjs or new test, scripts/test-capture-rules.cjs, package.json, documents/capture-rules.md, tasks, decisions, memory, code-map, traceability, 00-index, features/r-002-feature.md, release_log.md
+- Expected Verification: colour audit of figure boxes (evidence/t135); test-t132-crop-top (set 2 recorded + live), test-t130, test-t131, test-t121-fidelity (set 3, and T121_SOURCE80=1 set 1); npm test; full test:e2e against own dev server on 127.0.0.1 free port; node scripts/finish-task.mjs T-135 exit0.
+
+### T-134 Completion gate fails on build-stamp-only drift after an owner commit (I-063)
+- Type: Bug
+- Status: In Progress
+- Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
+- Problem: release_log I-063. finish-task runs the Git Drift Gate before `npm run build`; prebuild (scripts/stamp-version.cjs) re-stamps lib/version.ts (APP_VERSION) and the `/* BUILD_STAMP */` line of app/page.tsx, and Next rewrites the routes reference in next-env.d.ts to .next-build. The isolated build is deleted but those lines stay, so after the owner commits, the next gate run sees app/ and lib/ changes with no Feature Note and fails ("Source code changed without a Feature Note..."). Observed after c472032 during T-132.
+- Acceptance Criteria: (1) check-knowledge-drift.mjs drops lib/version.ts, app/page.tsx and next-env.d.ts from the changed set when their diff touches only the stamp lines (APP_VERSION, BUILD_STAMP, routes.d.ts reference) or only line endings; any other line change in those files still counts as source change. (2) finish-task restores those stamp lines to their pre-build values after the isolated build, line-by-line so concurrent edits elsewhere in the files are kept. (3) A regression test in npm test proves stamp-only diff passes, a real code change fails, a stamp+code change fails, and restore keeps unrelated edits.
+- Affected Files: scripts/build-stamp-lines.mjs (new), scripts/check-knowledge-drift.mjs, scripts/finish-task.mjs, scripts/test-drift-stamp.mjs (new), package.json, documents/tasks.md, decisions.md, memory.md, code-map.md, traceability.md, 00-index.md, features/r-001-browser.md (Feature Note, build isolation), release_log.md
+- Expected Verification: node scripts/test-drift-stamp.mjs; npm test; node scripts/finish-task.mjs T-134 exit0 with stamp lines back at 261017-2046 afterwards.
+
 ### T-132 Crop top cut when the figure sits beside its question line (set 2 Q20/Q22); make capture rules enforceable
 - Type: Bug
-- Status: Verified
+- Status: Done
 - Lifecycle: Proposed -> Ready -> In Progress -> Verified -> Done
 - Problem: owner screenshots 2026-10-17 on 261017-1907 (chapter 7 set 2): Q22 crop lost the funnel top with labels 3 and กรวย; Q20 cylinder top cut. Owner also asks whether the crop rules are really recorded, applied and learned from. Recorded OCR merges "22. 3 จากรูป…" into one full-width line (y 204-228), and rule C-10 always sets the crop top to that line bottom +3, even when the figure starts beside the question line.
 - Acceptance Criteria: Q20 and Q22 crops include the full figure (top of funnel/cylinder) without the question number or stem text; set 1/3 crops unchanged (existing replay suites pass); C-10 rewritten in capture-rules.md with the beside case and a learning-log row; a rule check script fails when a capture rule has no code reference or no test, and runs in the gate chain.
 - Affected Files: lib/capture-geometry.ts (figureVerticalLimits), possibly lib/diagram-client.ts crop padding block, scripts/test-t132-crop-top.cjs (new), scripts/check-capture-rules.cjs (new), package.json, documents/capture-rules.md, tasks, decisions, memory, code-map, traceability, 00-index, release_log.md, README
 - Expected Verification: replay set 2 (evidence/t121/t130-set2) with before/after crops saved; set 1/3 suites; full test:e2e on dev; finish-task T-132; deploy and live set-2 check.
-- Verification (2026-10-17): C-10 beside case + C-14 upward ink walk (figureReach, extendCropUpAcrossInk); rule map section ฉ. + scripts/test-capture-rules.cjs in npm test; test-t123 and test-t121-fidelity wired (were never run). test-t132-crop-top passes on recorded and live set-2 boxes; npm test, tsc, full test:e2e (3122) exit0; set 1 fidelity pass; production 261017-2046 (.next-production-t132b) on localhost:3000: badge, CSS200, 8 deployed suites exit0; live set-2 on 2046 complete Q20/Q22. Open: I-062 pen mark at Q20 right edge. Evidence: evidence/t132/verification.md.
+- Verification (2026-10-17): C-10 beside case + C-14 upward ink walk (figureReach, extendCropUpAcrossInk); rule map section ฉ. + scripts/test-capture-rules.cjs in npm test; test-t123 and test-t121-fidelity wired (were never run). test-t132-crop-top passes on recorded and live set-2 boxes; npm test, tsc, full test:e2e (3122) exit0; set 1 fidelity pass; production 261017-2046 (.next-production-t132b) on localhost:3000: badge, CSS200, 8 deployed suites exit0; live set-2 on 2046 complete Q20/Q22. Open: I-062 pen mark at Q20 right edge. Evidence: evidence/t132/verification.md. finish-task T-132 exit0 (evidence/t132/completion-gate.log); Verified -> Done.
 
 ### T-131 Several question figures per question (I-059 / H-13)
 - Type: Bug

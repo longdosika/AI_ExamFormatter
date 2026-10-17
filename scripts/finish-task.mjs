@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+import { restoreStampLines, snapshotStampLines } from "./build-stamp-lines.mjs";
 
 const root = process.cwd();
 const isWindows = process.platform === "win32";
@@ -99,7 +100,17 @@ for (const qualityCommand of qualityCommands) {
     // Isolate build verification into .next-build to preserve active dev server cache in .next
     const buildDist = path.join(root, ".next-build");
     try { fs.rmSync(buildDist, { recursive: true, force: true }); } catch {}
+    // The build re-stamps version lines for a build that is thrown away; put them back (T-134 / I-063)
+    // (also when the build fails: run() exits the process, so restore from an exit handler).
+    const stampSnapshot = snapshotStampLines(root);
+    const restoreStamps = () => {
+      const restored = restoreStampLines(root, stampSnapshot);
+      if (restored.length) console.log(`[completion-gate] Restored build stamp lines: ${restored.join(", ")}`);
+    };
+    process.once("exit", restoreStamps);
     run(qualityCommand.command, qualityCommand.args, qualityCommand.label, { NEXT_DIST_DIR: ".next-build" });
+    process.removeListener("exit", restoreStamps);
+    restoreStamps();
     try { fs.rmSync(buildDist, { recursive: true, force: true }); } catch {}
   } else {
     run(qualityCommand.command, qualityCommand.args, qualityCommand.label);

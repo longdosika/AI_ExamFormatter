@@ -36,6 +36,7 @@
     ".next-build/types/**/*.ts",
     ".next-debug/types/**/*.ts",
     ".next-dev-t131/types/**/*.ts",
+    ".next-dev-t135/types/**/*.ts",
     ".next-e2e-12656/types/**/*.ts",
     ".next-e2e-18616/types/**/*.ts",
     ".next-e2e-22388/types/**/*.ts",
@@ -89,6 +90,7 @@
     ".next-production-t129/types/**/*.ts",
     ".next-production-t130/types/**/*.ts",
     ".next-production-t132/types/**/*.ts",
+    ".next-production-t132b/types/**/*.ts",
     ".next-production/types/**/*.ts",
     ".next-release-t112/types/**/*.ts",
     ".next-t101/types/**/*.ts",
@@ -117,7 +119,7 @@
     ".next-weekly-audit-20261012-evening/types/**/*.ts",
     ".next/types/**/*.ts",
     "next-env.d.ts",
-    ".next-production-t132b/types/**/*.ts"
+    ".next-dev-t134/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

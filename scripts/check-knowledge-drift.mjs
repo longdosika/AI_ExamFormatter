@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { BUILD_STAMP_LINES, isStampOnlyDiff } from "./build-stamp-lines.mjs";
 
 const cliArgs = process.argv.slice(2);
 const stagedOnly = cliArgs.includes("--staged");
@@ -26,11 +27,23 @@ if (repositoryCheck.status !== 0) {
   process.exit(0);
 }
 
+// Build stamp files whose diff only re-stamps the version lines are build output, not source drift (T-134).
+function withoutStampOnlyChanges(files, diffRange) {
+  return files.filter((fileName) => {
+    if (!(fileName in BUILD_STAMP_LINES)) return true;
+    const diff = git(["diff", "-U0", "--ignore-cr-at-eol", ...diffRange, "--", fileName]);
+    if (diff.status !== 0 || !isStampOnlyDiff(fileName, diff.stdout)) return true;
+    stampOnlyFiles.push(fileName);
+    return false;
+  });
+}
+
+const stampOnlyFiles = [];
 let changedFiles = [];
 let comparisonLabel = "working tree against HEAD";
 
 if (stagedOnly) {
-  changedFiles = outputLines(git(["diff", "--cached", "--name-only", "--diff-filter=ACMR"]));
+  changedFiles = withoutStampOnlyChanges(outputLines(git(["diff", "--cached", "--name-only", "--diff-filter=ACMR"])), ["--cached"]);
   comparisonLabel = "staged changes";
 } else if (requestedBase) {
   const baseCheck = git(["rev-parse", "--verify", `${requestedBase}^{commit}`]);
@@ -38,7 +51,7 @@ if (stagedOnly) {
     console.error(`Knowledge drift check could not resolve base revision: ${requestedBase}.`);
     process.exit(1);
   }
-  changedFiles = outputLines(git(["diff", "--name-only", "--diff-filter=ACMR", `${requestedBase}...HEAD`]));
+  changedFiles = withoutStampOnlyChanges(outputLines(git(["diff", "--name-only", "--diff-filter=ACMR", `${requestedBase}...HEAD`])), [`${requestedBase}...HEAD`]);
   comparisonLabel = `${requestedBase}...HEAD`;
 } else {
   const headCheck = git(["rev-parse", "--verify", "HEAD"]);
@@ -47,14 +60,19 @@ if (stagedOnly) {
     : outputLines(git(["ls-files", "--cached"]));
   changedFiles.push(...outputLines(git(["ls-files", "--others", "--exclude-standard"])));
   changedFiles = [...new Set(changedFiles)];
+  if (headCheck.status === 0) changedFiles = withoutStampOnlyChanges(changedFiles, ["HEAD"]);
   if (headCheck.status !== 0) comparisonLabel = "initial working tree (no HEAD)";
   if (changedFiles.length === 0) {
     const parentCheck = git(["rev-parse", "--verify", "HEAD~1"]);
     changedFiles = parentCheck.status === 0
-      ? outputLines(git(["diff", "HEAD~1...HEAD", "--name-only", "--diff-filter=ACMR"]))
+      ? withoutStampOnlyChanges(outputLines(git(["diff", "HEAD~1...HEAD", "--name-only", "--diff-filter=ACMR"])), ["HEAD~1...HEAD"])
       : headCheck.status === 0 ? outputLines(git(["diff-tree", "--root", "--no-commit-id", "--name-only", "-r", "HEAD"])) : [];
     comparisonLabel = parentCheck.status === 0 ? "HEAD~1...HEAD" : "initial commit";
   }
+}
+
+if (stampOnlyFiles.length > 0) {
+  console.log(`Knowledge drift check ignored build-stamp-only changes: ${stampOnlyFiles.join(", ")}.`);
 }
 
 if (changedFiles.length === 0) {

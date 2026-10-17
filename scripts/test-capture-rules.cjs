@@ -2,7 +2,7 @@
 //  1. every rule C-xx has a row in "ฉ. กฎ → โค้ด → test" and every row names a real rule;
 //  2. each `file#name` exists and the file contains that name;
 //  3. each test file exists and is run by `npm test` or `npm run test:e2e`.
-// Then unit-checks rules that had no direct test (C-10 beside/under, C-12, C-36) on recorded real OCR lines.
+// Then unit-checks rules that had no direct test (C-10 beside/under, C-12, C-18, C-36) on recorded real OCR lines.
 // Usage: node scripts/test-capture-rules.cjs
 const fs = require('node:fs');
 const path = require('node:path');
@@ -62,4 +62,23 @@ const q5Choices = ['การระเหย: ขั้นตอนที่ 1, 
 assert.equal(isChoiceTableFigure(q5Choices, regions(set2, 1), [679, 134, 822, 531]), true);
 const q8Choices = ['สาร A: ซูโครส; สาร B: น้ำปลา; สาร C: น้ำหมึก; สาร D: น้ำ', 'สาร A: กะทิ; สาร B: น้ำปลา; สาร C: น้ำเกลือ; สาร D: ซูโครส', 'สาร A: กะทิ; สาร B: น้ำเกลือ; สาร C: ซูโครส; สาร D: น้ำ', 'สาร A: น้ำเกลือ; สาร B: น้ำเกลือ; สาร C: น้ำเชื่อม; สาร D: ซูโครส'].map(text => ({ text }));
 assert.equal(isChoiceTableFigure(q8Choices, regions(set2, 2), [338, 220, 464, 776]), false);
-console.log(`Capture rules enforced: ${rules.length} rules mapped to code and wired tests; C-10 beside/under, C-12 and C-36 unit checks pass`);
+// C-18: pen ink in the padding outside the model box is whitened; print, the box itself and colour figures are kept.
+const { whitenPenInkOutsideBox } = require('../lib/ink-filter.ts');
+const canvas = (width, height) => new Uint8ClampedArray(width * height * 4).fill(255);
+const paint = (pixels, width, x0, y0, x1, y1, rgb) => { for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) pixels.set(rgb, (y * width + x) * 4); };
+const at = (pixels, width, x, y) => Array.from(pixels.slice((y * width + x) * 4, (y * width + x) * 4 + 3));
+const crop = canvas(60, 40), box = { x: 10, y: 10, w: 30, h: 20 };
+paint(crop, 60, 12, 12, 38, 28, [40, 40, 40]);          // printed figure inside the box
+paint(crop, 60, 44, 15, 47, 25, [210, 40, 50]);         // red pen circle in the right padding
+paint(crop, 60, 47, 15, 48, 25, [245, 200, 210]);       // its faint anti-aliased tint
+paint(crop, 60, 50, 30, 54, 34, [60, 60, 60]);          // printed ink in the padding
+paint(crop, 60, 20, 14, 23, 16, [30, 90, 220]);         // a blue tick inside the box
+assert.equal(whitenPenInkOutsideBox(crop, 60, 40, box), 40, 'C-18: pen ink and tint in the padding are whitened');
+assert.deepEqual(at(crop, 60, 45, 20), [255, 255, 255]);
+assert.deepEqual(at(crop, 60, 52, 32), [60, 60, 60], 'C-18: printed ink in the padding is kept');
+assert.deepEqual(at(crop, 60, 21, 15), [30, 90, 220], 'C-18: nothing inside the model box is changed');
+const colourFigure = canvas(60, 40);
+paint(colourFigure, 60, 12, 12, 38, 28, [200, 30, 30]); // a red-printed figure
+paint(colourFigure, 60, 40, 12, 46, 28, [200, 30, 30]); // that runs past the model box
+assert.equal(whitenPenInkOutsideBox(colourFigure, 60, 40, box), 0, 'C-18: a colour figure keeps its colour outside the box');
+console.log(`Capture rules enforced: ${rules.length} rules mapped to code and wired tests; C-10 beside/under, C-12, C-18 and C-36 unit checks pass`);

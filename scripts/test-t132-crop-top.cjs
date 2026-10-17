@@ -4,6 +4,7 @@
 // (850 vs cylinder top ~808), so the crop also walks up over the figure's ink (figureReach / extendCropUpAcrossInk).
 // Replays both real recordings (evidence/t121/t130-set2 and t132-set2-live) and saves every question crop to
 // evidence/t132/<T132_LABEL or "after">-<fixture>/ for visual comparison.
+// T-135: also checks that no teacher pen ink (red circle around choice ก.) enters the Q20 crop padding (rule C-18).
 // Usage: E2E_BASE_URL=http://localhost:3000 node scripts/test-t132-crop-top.cjs   (T132_REPORT_ONLY=1 skips asserts)
 const fs = require('node:fs');
 const path = require('node:path');
@@ -47,12 +48,17 @@ const run = async fixture => {
     const bytes = Buffer.from(src.split(',')[1], 'base64');
     fs.writeFileSync(path.join(out, `q${entry.key}.png`), bytes);
     const { data, info } = await sharp(bytes).removeAlpha().raw().toBuffer({ resolveWithObject: true });
-    let topInk = 0;
+    let topInk = 0, pen = 0;
     for (let i = 0; i < Math.min(3, info.height) * info.width * info.channels; i += info.channels) if (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114 < 150) topInk++;
-    crops[entry.key] = { width: info.width, height: info.height, bbox: entry.bbox, topInk };
+    // T-135 (C-18): pen ink = saturation > 60, or light pen tint (saturation > 25 and not dark). Printed ink is grey.
+    for (let i = 0; i < data.length; i += info.channels) {
+      const saturation = Math.max(data[i], data[i + 1], data[i + 2]) - Math.min(data[i], data[i + 1], data[i + 2]);
+      if (saturation > 60 || (saturation > 25 && data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114 >= 150)) pen++;
+    }
+    crops[entry.key] = { width: info.width, height: info.height, bbox: entry.bbox, topInk, pen };
   }
   fs.writeFileSync(path.join(out, 'crops.json'), JSON.stringify(crops, null, 1));
-  console.log(fixture, JSON.stringify(Object.fromEntries(Object.entries(crops).map(([n, c]) => [n, `${c.width}x${c.height} top=${c.bbox?.[0]?.toFixed(0)} topInk=${c.topInk}`]))));
+  console.log(fixture, JSON.stringify(Object.fromEntries(Object.entries(crops).map(([n, c]) => [n, `${c.width}x${c.height} top=${c.bbox?.[0]?.toFixed(0)} topInk=${c.topInk} pen=${c.pen}`]))));
   await browser.close();
   if (process.env.T132_REPORT_ONLY) return;
   // Q22 (funnel) and Q20 (cylinder) start beside their question line: nothing is cut at the top edge and the whole
@@ -60,6 +66,9 @@ const run = async fixture => {
   for (const number of ['20', '22']) assert.ok(crops[number].topInk <= 2, `${fixture}: Q${number} has no ink cut at the top edge (${crops[number].topInk})`);
   assert.ok(crops['20'].height >= 125, `${fixture}: Q20 keeps the whole cylinder (${crops['20'].height}px)`);
   assert.ok(crops['22'].height >= 130, `${fixture}: Q22 keeps funnel and beaker (${crops['22'].height}px)`);
+  // T-135 (C-18, I-062): the red circle around choice ก. right of the Q20 cylinder lies in the crop padding only;
+  // no pen ink may come in, while the cylinder itself is kept whole (checked above).
+  assert.equal(crops['20'].pen, 0, `${fixture}: Q20 crop has no teacher pen ink at its edge (${crops['20'].pen} pixels)`);
   if (fixture !== 't130-set2') return;
   assert.ok(crops['22'].bbox[0] <= 212, `Q22 crop starts at the figure top, not under the question line (top ${crops['22'].bbox[0]})`);
   // The beside case must not pull the question number or stem text in: the box stays right of "22." and left of the stem.

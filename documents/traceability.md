@@ -1,5 +1,11 @@
 # Traceability
 
+### T-135 Pen Ink Kept Out of Figure Crops
+Bug on capture (R-002, release_log I-062, capture-rules C-18) -> Task T-135 -> Feature Note r-002-feature -> lib/ink-filter.ts, lib/diagram-client.ts -> scripts/test-capture-rules.cjs, scripts/test-t132-crop-top.cjs -> evidence/t135/.
+
+### T-134 Build Stamps Do Not Fail the Drift Gate
+Bug on delivery tooling (release_log I-063) -> Task T-134 -> Feature Note r-001-browser (build isolation section) -> scripts/build-stamp-lines.mjs, scripts/check-knowledge-drift.mjs, scripts/finish-task.mjs, package.json -> scripts/test-drift-stamp.mjs (npm test), node scripts/finish-task.mjs T-134 -> evidence/t134/completion-gate.log.
+
 ### T-132 Crop Top and Enforced Capture Rules
 Bug on capture (R-002, capture-rules C-10) -> Task T-132 -> Feature Note r-002-feature -> lib/capture-geometry.ts, documents/capture-rules.md section ฉ. -> scripts/test-capture-rules.cjs, scripts/test-t132-crop-top.cjs, test-t123.cjs, test-t121-fidelity.cjs -> evidence/t132/.
 

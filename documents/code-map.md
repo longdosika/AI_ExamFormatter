@@ -9,6 +9,17 @@
 - `documents/conversion-review-guide.md`, `evidence/t123/verification.md`: manual Q15 split guide and actual verification ledger.
 - `scripts/verify-t123-live.cjs`, `scripts/audit-t123-live-marks.cjs`, `scripts/verify-t123-live-diagrams.cjs`: owner-opted-in sequential source-only/provider capture checks, manual-original ground truth and no-call replay of newly recorded provider results. `tableContinuationTop` can inspect up to the known following boundary before crop padding; known bare numbered stems anchor table refinement.
 
+### T-135 Pen Ink Outside the Figure Box (C-18)
+- `lib/ink-filter.ts` whitenPenInkOutsideBox(pixels, width, height, box, colourFigureShare = 0.25).
+- `lib/diagram-client.ts` cropBboxFromImage: calls it on the drawn crop with the model box in crop pixels, before trimIntruderTextAndMargin.
+- Verification: scripts/test-capture-rules.cjs (C-18 unit checks), scripts/test-t132-crop-top.cjs (Q20 pen = 0 on recorded and live set-2 boxes).
+
+### T-134 Build Stamp Lines in the Completion Gate
+- scripts/build-stamp-lines.mjs: BUILD_STAMP_LINES (file -> stamp line pattern), isStampOnlyDiff, snapshotStampLines, restoreStampLines.
+- scripts/check-knowledge-drift.mjs: withoutStampOnlyChanges filters stamp-only files for working tree, --staged, base range and HEAD~1 fallback.
+- scripts/finish-task.mjs: snapshot before the isolated build, restore after it (exit handler on failure).
+- Verification: scripts/test-drift-stamp.mjs (temp git repo; in npm test).
+
 ### T-132 Crop Top Beside the Question Line; Enforced Capture Rules
 - `lib/capture-geometry.ts` figureVerticalLimits: beside case (top = question line top, left = figure left). `scripts/test-capture-rules.cjs`: rule -> code -> test map check plus unit checks for C-10/C-12/C-36 on recorded OCR. `scripts/test-t132-crop-top.cjs`: set 2 replay, saves every crop to evidence/t132/<label>/ and checks Q20/Q22. package.json: test-capture-rules and test-t123 in npm test; test-t121-fidelity and test-t132-crop-top in test:e2e.
 

@@ -1,0 +1,11 @@
+const sharp=require(process.cwd()+'/node_modules/sharp');const path=require('path');
+const S=process.argv[2];
+const fixtures={1:['source80-live'],2:['t130-set2','t132-set2-live','t132-set2-live2'],3:['continuation-r2','audit-answers-fixed']};
+const sat=(d,i)=>Math.max(d[i],d[i+1],d[i+2])-Math.min(d[i],d[i+1],d[i+2]);
+const pages={};
+async function load(set,page){const k=set+'-'+page;if(pages[k])return pages[k];const fs=require('fs');const cands=[`s${set}-${page}.png`,`s${set}-${String(page).padStart(2,'0')}.png`];const f=cands.map(c=>path.join(S,'pages',c)).find(fs.existsSync);const {data,info}=await sharp(f).removeAlpha().raw().toBuffer({resolveWithObject:true});return pages[k]={data,w:info.width,h:info.height};}
+function count(p,x0,y0,x1,y1,th=60){let n=0;x0=Math.max(0,Math.round(x0));y0=Math.max(0,Math.round(y0));x1=Math.min(p.w,Math.round(x1));y1=Math.min(p.h,Math.round(y1));for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){if(sat(p.data,(y*p.w+x)*3)>th)n++;}return n;}
+(async()=>{const out=[];for(const [set,fx] of Object.entries(fixtures))for(const f of fx){const d=require(process.cwd()+`/evidence/t121/${f}/diagrams-response.json`);for(const pg of d)for(const g of pg.body.diagrams||[]){let b=g.bbox||g.box_2d;if(!b)continue;if(b.every(v=>v<=1))b=b.map(v=>v*1000);const p=await load(set,pg.page);const rx=b[1]/1000*p.w,ry=b[0]/1000*p.h,rw=(b[3]-b[1])/1000*p.w,rh=(b[2]-b[0])/1000*p.h;const pad=32;const padX=Math.max(pad,Math.min(36,Math.round(rw*.035))),padY=Math.max(pad,Math.min(32,Math.round(rh*.035)));const raw=count(p,rx,ry,rx+rw,ry+rh);const padded=count(p,rx-padX,ry-padY,rx+rw+padX,ry+rh+padY);const raw25=count(p,rx,ry,rx+rw,ry+rh,25);out.push({set,f,page:pg.page,q:g.questionNumber??g.question,role:g.role||g.type,b:b.map(Math.round),raw,raw25,padded});}}
+for(const o of out)if(o.raw||o.padded||o.raw25>50)console.log(JSON.stringify(o));console.log('boxes',out.length,'with coloured in raw',out.filter(o=>o.raw).length,'in padded',out.filter(o=>o.padded).length);
+for(const set of [1,2,3,4,5]){const fs=require('fs');for(const fn of fs.readdirSync(path.join(S,'pages')).filter(n=>n.startsWith('s'+set+'-'))){const {data,info}=await sharp(path.join(S,'pages',fn)).removeAlpha().raw().toBuffer({resolveWithObject:true});let n=0;for(let i=0;i<data.length;i+=3)if(sat(data,i)>60)n++;process.stdout.write(fn+':'+n+' ');}console.log();}
+})();
