@@ -1,5 +1,15 @@
 # ได้เอกสารในรูปแบบ google doc ไว้ใน dirve ที่กำหนด
 
+### T-121 / T-113 Export Continuity
+Actual Google25/80question exports were opened and read back as8/23page PDFs containing5/15images. T-104 Q66 final image retains X/Y/Z headers/values with no duplicated cells or bottom question text. T-103 confirmation found all4Q16 images rendering in the original unmodified Doc; historical warning cause is not asserted. evidence/t121/verification.md. These are unreviewed test exports, not certified answer keys or QuizFlow import results.
+Snapshot export remains available while review is incomplete; master template uses separate choice paragraphs and IMAGE_MAX. Patched Next/PDF/PostCSS dependencies require actual runtime and OAuth verification, not just audit. A cloud draft backup is not an exported artifact or proof of QuizFlow import.
+
+### T-119 Export Steps and Confirmation
+Export shows its current step with image progress and asks once when review items remain; Drive state is a dot pill beside export. Evidence: evidence/t119-verification.md.
+
+### T-118 Export and Connection Availability
+Drive status/action lives at export; disconnected button opens settings rather than being disabled. Google and DOCX have independent duplicate-request guards and remain available during AI/diagram work; genuine permission, image and size validation remains. Snapshot is taken before asynchronous processing. Existing master template and linked library versions are unchanged. Evidence: evidence/t118-verification.md; scripts/test-workspace-controls.cjs.
+
 ### T-110 One Export Control
 Export to Google Drive, export again and open the exported document all live in one toolbar control; the header link was removed. Evidence: evidence/t110-verification.md.
 
@@ -58,4 +68,4 @@ T-046 regression: wrong-origin auth redirects to configured canonical origin bef
 T-064: Normalized APP_URL origin (stripping trailing slashes gracefully) and added granular, non-sensitive `missingFields` diagnostic array to `lib/google-auth.ts` and `app/api/google/session/route.ts`. Updated `components/GoogleDriveStatus.tsx` to display exact missing configuration requirements directly in the UI.
 
 T-090: Vercel serverless cloud deployment readiness for Google Drive and AI features. Configured `vercel.json` with 60-second function timeout for `app/api/**/*.ts`, exported `maxDuration = 60` in `app/api/google/export/route.ts`, documented required cloud environment variables and OAuth redirect URI (`https://ai-exam-formatter.vercel.app/api/google/callback`).
-
+- T-130 (2026-10-17): one Drive control in the editor toolbar: lock (connect) -> ส่งออก -> เปิดใน Drive; menu holds ส่งออกใหม่, สำรองแบบร่างบน Drive, จัดการ Google Drive. Import-screen chip is the connect / choose-folder action itself.

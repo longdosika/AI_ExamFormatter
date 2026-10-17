@@ -1,0 +1,48 @@
+{
+  "task": "T-121",
+  "date": "2026-10-16",
+  "timezone": "Asia/Bangkok",
+  "mode": "assessment only; no implementation or provider requests",
+  "conclusion": "Development can continue from existing work, but the working tree is not build-ready and the full backlog is not verified.",
+  "checks": [
+    {
+      "command": "node scripts/check-environment.mjs",
+      "exitCode": 0,
+      "result": "WARN: dependencies, local configuration and provider key presence pass; Node24 parity warning and port3000 occupied. Key presence is not provider availability verification."
+    },
+    {
+      "command": "npm run typecheck -- --incremental false",
+      "exitCode": 1,
+      "result": "components/SplitDocumentEditor.tsx(1823,170): TS2304 Cannot find name 'Merge'."
+    },
+    {
+      "command": "node scripts/test-parser.cjs",
+      "exitCode": 0,
+      "result": "Existing parser regressions and T-121 captured-OCR repair fixtures passed; not a fresh live OCR or image-fidelity test."
+    },
+    {
+      "command": "node scripts/check-knowledge-vault.mjs",
+      "exitCode": 0,
+      "result": "Knowledge graph contract passes; semantic task/readme consistency still needs review."
+    }
+  ],
+  "observations": [
+    "documents/tasks.md already lists T-121 In Progress and all40 items, while README/release_log still describe it as waiting.",
+    "The supplied chapter7 set3 PDF exists locally (1172617 bytes); no reattachment is needed for local continuation.",
+    "evidence/t121/diagrams-response.json records Origin rejected on four pages; these responses do not verify figure extraction.",
+    "Current localhost:3000/api/diagrams POST with matching Origin and deliberately invalid empty image returned400, not403. This did not call a provider and does not prove successful extraction.",
+    "Two-column choice CSS and an E2E assertion expecting it remain; both must be synchronized with the one-choice-per-line requirement.",
+    "Backlog B-10 says26 questions while the captured-OCR parser fixture expects25. Verify against the original before declaring the correct count.",
+    "Working tree contains multiple uncommitted task changes; preserve existing work and review before any commit.",
+    "Full production build, browser flows, real provider calls, new Google export and QuizFlow import were not run in this assessment."
+  ],
+  "externalDependencies": [
+    "Real provider tests require valid quota/connectivity and authorization for the particular file transmission.",
+    "Real Google export requires an authenticated app session and target access.",
+    "Actual QuizFlow import requires owner access and explicit real import validation.",
+    "Commit/push remain separate authorization; T-113 publication security hold remains unresolved in project records."
+  ],
+  "sourceCodeChanged": false,
+  "knowledgeDocumentsChanged": false,
+  "completionClaimed": false
+}

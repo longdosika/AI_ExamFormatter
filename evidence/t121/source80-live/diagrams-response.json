@@ -1,0 +1,368 @@
+[
+ {
+  "page": 1,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [],
+   "model": "gemini-flash-lite-latest",
+   "keyIndex": 0,
+   "totalKeys": 3
+  }
+ },
+ {
+  "page": 2,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [],
+   "model": "gemini-flash-lite-latest",
+   "keyIndex": 0,
+   "totalKeys": 3
+  }
+ },
+ {
+  "page": 3,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [
+    {
+     "id": "diag-p3-1",
+     "type": "choice",
+     "questionNumber": 16,
+     "choiceKey": "ก",
+     "description": "Crystal shape choice 1 for question 16",
+     "bbox": [
+      161,
+      202,
+      214,
+      277
+     ],
+     "page": 3,
+     "confidence": 0.9
+    },
+    {
+     "id": "diag-p3-2",
+     "type": "choice",
+     "questionNumber": 16,
+     "choiceKey": "ข",
+     "description": "Crystal shape choice 2 for question 16",
+     "bbox": [
+      158,
+      584,
+      212,
+      680
+     ],
+     "page": 3,
+     "confidence": 0.9
+    },
+    {
+     "id": "diag-p3-3",
+     "type": "choice",
+     "questionNumber": 16,
+     "choiceKey": "ค",
+     "description": "Crystal shape choice 3 for question 16",
+     "bbox": [
+      239,
+      199,
+      310,
+      276
+     ],
+     "page": 3,
+     "confidence": 0.9
+    },
+    {
+     "id": "diag-p3-4",
+     "type": "choice",
+     "questionNumber": 16,
+     "choiceKey": "ง",
+     "description": "Crystal shape choice 4 for question 16",
+     "bbox": [
+      232,
+      595,
+      301,
+      654
+     ],
+     "page": 3,
+     "confidence": 0.9
+    },
+    {
+     "id": "diag-p3-5",
+     "type": "shared_context",
+     "questionNumber": 17,
+     "description": "Data table for experiment results of substances A, B, and C used for questions 17 and 18",
+     "bbox": [
+      419,
+      193,
+      519,
+      831
+     ],
+     "page": 3,
+     "confidence": 0.9
+    },
+    {
+     "id": "diag-p3-6",
+     "type": "shared_context",
+     "questionNumber": 19,
+     "description": "Data table showing solubility of salt and copper sulfate at different temperatures used for questions 19-21",
+     "bbox": [
+      749,
+      114,
+      873,
+      925
+     ],
+     "page": 3,
+     "confidence": 0.9
+    }
+   ],
+   "model": "gemini-flash-lite-latest",
+   "keyIndex": 0,
+   "totalKeys": 3
+  }
+ },
+ {
+  "page": 4,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [],
+   "model": "gemini-flash-lite-latest",
+   "keyIndex": 0,
+   "totalKeys": 3
+  }
+ },
+ {
+  "page": 5,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [
+    {
+     "id": "diag-p5-1",
+     "type": "shared_context",
+     "questionNumber": 28,
+     "description": "รูปภาพชุดอุปกรณ์การกลั่นด้วยไอน้ำ สำหรับใช้ตอบคำถามข้อ 28 และ 29",
+     "bbox": [
+      245,
+      332,
+      413,
+      696
+     ],
+     "page": 5,
+     "confidence": 0.9
+    }
+   ],
+   "model": "gemini-flash-lite-latest",
+   "keyIndex": 0,
+   "totalKeys": 3
+  }
+ },
+ {
+  "page": 6,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [
+    {
+     "id": "diag-p6-1",
+     "type": "question",
+     "questionNumber": 33,
+     "description": "ภาพการทดลองการกลั่นลำดับส่วน พร้อมป้ายชื่ออุปกรณ์และสารประกอบต่างๆ เช่น เทอร์มอมิเตอร์, คอลัมน์ที่ใช้แยก, ทางน้ำออก, ควบแน่น, ของเหลวที่นำมาแยก, อ่างน้ำมัน, ทางน้ำเข้า, ของเหลวที่แยกได้",
+     "bbox": [
+      79,
+      329,
+      396,
+      693
+     ],
+     "page": 6,
+     "confidence": 0.9
+    }
+   ],
+   "model": "gemini-flash-lite-latest",
+   "keyIndex": 0,
+   "totalKeys": 3
+  }
+ },
+ {
+  "page": 7,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [
+    {
+     "id": "diag-p7-1",
+     "type": "question",
+     "questionNumber": 43,
+     "description": "รูปภาพชุดอุปกรณ์การกลั่นด้วยไอน้ำ พร้อมป้ายกำกับส่วนต่างๆ เช่น ผิวมะกรูด, ผ้าโปร่ง, น้ำ, ผ้าขาวบางชุบน้ำ, น้ำมัน, บีกเกอร์ใส่น้ำแข็ง",
+     "bbox": [
+      576,
+      280,
+      811,
+      749
+     ],
+     "page": 7,
+     "confidence": 0.9
+    }
+   ],
+   "model": "gemini-flash-lite-latest",
+   "keyIndex": 0,
+   "totalKeys": 3
+  }
+ },
+ {
+  "page": 8,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [],
+   "model": "gemini-flash-lite-latest",
+   "keyIndex": 0,
+   "totalKeys": 3
+  }
+ },
+ {
+  "page": 9,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [
+    {
+     "id": "diag-p9-1",
+     "type": "shared_context",
+     "questionNumber": 56,
+     "description": "โครมาโทแกรมแสดงผลการทดลองการแยกสารผสมด้วยกระดาษกรอง มีจุด A, B, C และเส้นขีด baseline พร้อมเครื่องหมาย X",
+     "bbox": [
+      700,
+      499,
+      834,
+      542
+     ],
+     "page": 9,
+     "confidence": 0.9
+    }
+   ],
+   "model": "gemini-flash-lite-latest",
+   "keyIndex": 0,
+   "totalKeys": 3
+  }
+ },
+ {
+  "page": 10,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [
+    {
+     "id": "diag-p10-1",
+     "type": "shared_context",
+     "questionNumber": 58,
+     "description": "ตารางแสดงผลการทดลองการโครมาโทกราฟีของสีตัวอย่าง สี A และสี B",
+     "bbox": [
+      271,
+      74,
+      474,
+      881
+     ],
+     "page": 10,
+     "confidence": 0.9
+    }
+   ],
+   "model": "gemini-flash-lite-latest",
+   "keyIndex": 0,
+   "totalKeys": 3
+  }
+ },
+ {
+  "page": 11,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [
+    {
+     "id": "diag-p11-1",
+     "type": "shared_context",
+     "questionNumber": 62,
+     "description": "ตารางแสดงผลการทดลองโครมาโทกราฟีกระดาษของน้ำหมึกชนิดหนึ่ง ประกอบด้วย สีที่แยกได้ ระยะทางที่สารเคลื่อนที่ (cm) และค่า Rf",
+     "bbox": [
+      194,
+      270,
+      329,
+      765
+     ],
+     "page": 11,
+     "confidence": 0.9
+    },
+    {
+     "id": "diag-p11-2",
+     "type": "shared_context",
+     "questionNumber": 66,
+     "description": "ตารางแสดงลำดับความสามารถในการละลายในตัวทำละลายและการถูกดูดซับด้วยตัวดูดซับของสาร X, Y และ Z",
+     "bbox": [
+      696,
+      211,
+      863,
+      818
+     ],
+     "page": 11,
+     "confidence": 0.9
+    }
+   ],
+   "model": "gemini-flash-lite-latest",
+   "keyIndex": 0,
+   "totalKeys": 3
+  }
+ },
+ {
+  "page": 12,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [
+    {
+     "id": "diag-p12-1",
+     "type": "shared_context",
+     "questionNumber": 68,
+     "description": "ตารางแสดงค่า Rf ของสารองค์ประกอบของสีม่วงจากดอกอัญชัน",
+     "bbox": [
+      271,
+      237,
+      335,
+      750
+     ],
+     "page": 12,
+     "confidence": 0.9
+    }
+   ],
+   "model": "gemini-flash-lite-latest",
+   "keyIndex": 0,
+   "totalKeys": 3
+  }
+ },
+ {
+  "page": 13,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [
+    {
+     "id": "diag-p13-1",
+     "type": "question",
+     "questionNumber": 80,
+     "description": "รูปกรวยแยกสาร พร้อมป้ายข้อความ สารละลายส่วนบน และ สารละลายส่วนล่าง",
+     "bbox": [
+      693,
+      382,
+      874,
+      679
+     ],
+     "page": 13,
+     "confidence": 0.9
+    }
+   ],
+   "model": "gemini-flash-lite-latest",
+   "keyIndex": 0,
+   "totalKeys": 3
+  }
+ }
+]

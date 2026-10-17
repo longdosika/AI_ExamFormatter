@@ -11,7 +11,9 @@ function copy(source, target) {
   fs.copyFileSync(source, target);
 }
 
-copy(path.join(packageRoot, "build", "pdf.worker.min.js"), path.join(publicRoot, "pdf.worker.min.js"));
+copy(path.join(packageRoot, "build", "pdf.worker.min.mjs"), path.join(publicRoot, "pdf.worker.min.mjs"));
+// The old pre-fix worker is generated output and must not remain publicly served.
+fs.rmSync(path.join(publicRoot, "pdf.worker.min.js"), { force: true });
 for (const folder of ["cmaps", "standard_fonts"]) {
   const source = path.join(packageRoot, folder);
   const target = path.join(publicRoot, "pdf-assets", folder);

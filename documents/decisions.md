@@ -1,5 +1,87 @@
 # Decisions
 
+### D-079 Capture Rules Are Enforced by a Rule -> Code -> Test Map; C-10 Beside Case (T-132, 2026-10-17)
+- Decision: documents/capture-rules.md gains section ฉ., one row per rule naming the code (file#name) and the tests. scripts/test-capture-rules.cjs runs in npm test (so in the completion gate) and fails when a rule has no row, the code no longer contains the name, or a listed test is missing or not run by npm test / test:e2e. C-10 now has a beside case: a figure whose top is above its question line's bottom uses that line's top as the limit and the figure's left edge as the left limit.
+- Why: owner asked whether the crop rules are really recorded, used and learned from after Q20/Q22 (set 2) were cut. The audit found that every rule had code, but C-10 encoded only the "figure under the stem" case, and two rule tests (test-t123, test-t121-fidelity) were never run by any test chain.
+- Tradeoff: the map is maintained by hand, but drift fails the gate instead of going unnoticed. The beside threshold comes from real data (under-stem figures start at least 1.25 line heights below the line top; beside figures at 0.34-0.81).
+
+### D-078 Several Question Figures per Question Under One "รูปคำถาม:" (T-131, 2026-10-17)
+- Decision: an item keeps every question figure (ExamItem.questionImages, imageUrl/imageBbox stay the first one) ordered as printed: rows top to bottom (two boxes share a row when they overlap by at least half of the shorter height), left to right inside a row. The editor shows one รูปโจทย์ block with one [data-question-figure] wrapper per figure; DOCX and Google Doc export one "รูปคำถาม:" label followed by one image paragraph per figure (same figure style, ≤661 px). A re-harvest replaces the item's harvested figures; hand-captured figures (crop version manual) are kept after them. Deleting one figure in the editor removes only that figure.
+- Template check: the master QuizFlow template (1uA8A1Q1..., local evidence/t109-master-template.docx) shows exactly one image under every รูปคำถาม: and does not say whether several are allowed. Not a conflict, but an assumption to confirm with the owner and in a real QuizFlow import: if QuizFlow accepts only one image per question, the alternative is to merge the figures into one image at export.
+- Why: chapter 7 set 2 Q25 prints รูปที่ 1-4 and its choices refer to each; keeping one image lost three of them (I-059 / H-13).
+- Tradeoff: older single-image readers (review validation, statistics) still see the first figure through imageUrl. Manual "จับภาพ" for a question still replaces the whole block, as before.
+
+### D-077 Choice Tables Are Not Question Figures; One Drive Control; No Header Status Text (T-130, 2026-10-17)
+- Decision: (1) a detected "question" figure that is the table the choices were rebuilt from is skipped at harvest and removed from older drafts on reopen (capture rule C-36, isChoiceTableFigure). (2) The workspace header shows no status text; progress messages stay in an sr-only live region. (3) The editor toolbar has one Drive control: lock (not connected, opens Drive setup) -> ส่งออก (ready) -> เปิดใน Drive (exported). Its small menu holds ส่งออกใหม่, สำรองแบบร่างบน Drive and จัดการ Google Drive; the separate Drive status pill and backup icon are gone. The import-screen Drive chip is itself the connect / choose-folder action.
+- Why: owner screenshot on 261017-1543 (set 2 Q5) and request to merge controls that belong to one flow.
+- Tradeoff: re-export and Drive backup need one extra click; step chips, question strip and answer summary carry the on-screen state instead of the header text. Evidence for C-36 is text-based and tolerant of noisy OCR (labels plus a third of values, or all labels plus one row per choice), so a real figure is only dropped when its OCR lines repeat the choice table.
+
+### D-076 One Drafts/History List and One Tools Menu in the Header (T-129, 2026-10-17)
+- Decision: the header rail keeps four entries: คลังไฟล์, แบบร่าง/ประวัติ, เครื่องมือ, แม่แบบ. Import history (file name + time, local only) is shown inside the drafts dialog: each draft shows how many times it was imported, and imports without a draft are listed under ประวัติไฟล์นำเข้า. สถิติ, ดาวน์โหลดสถิติ and บันทึกปัญหา move into a เครื่องมือ disclosure menu.
+- Why: owner request after the T-128 header review; both old lists answered "which files did I open in this browser", and the three tools are rarely used.
+- Tradeoff: the tools need one extra click. Accessible names of the moved buttons are unchanged so tests and keyboard users find them; the menu stays in the DOM (hidden) so the case-log button keeps its focus-return ref. The rail no longer scrolls horizontally (overflow visible) so the menu is not clipped; it is short enough on 390px screens.
+
+### D-075 Flat Drive Folder and Hash-First Duplicate Check (T-128, 2026-10-17)
+- Decision: new Drive files go directly into the AI_ExamFormatter folder: the original keeps its name, each export is "[original]_[yymmdd-hhmm]" (DOCX and Google Doc), draft backups "[original]_แบบร่าง_[stamp].json", confirmed QuizFlow imports "[original]_QuizFlow_[stamp]". Files of one document are tied by the SHA-256 property, not by folders; pre-T-128 per-document folders stay readable, are listed, and are reused for the same bytes (never moved or deleted). Importing a file whose bytes match a local draft or a Drive original asks before any OCR/AI work: continue the draft, import anew, cancel (or open from the Drive library).
+- Why: owner request — one place sorted by name is easier to browse, and renamed copies must not slip through.
+- Tradeoff: one folder grows long; names keep each document's files adjacent when sorted by name. Legacy documents get their new exports in the flat folder, so one document can have files in both places (the library view merges them).
+
+### D-074 Multiple Correct Answers and Editable Choices (T-126, 2026-10-17)
+- Decision: a question has one answer by default (radio buttons, unchanged contracts); "ตอบได้หลายข้อ" switches it to checkboxes and toggles keys. Source vision returns one entry per clearly circled key, so several circles mean several correct answers (X/tick and the same key twice still rejected); such questions open in multi mode. Each choice row has a delete control and each question an add control (max five, ก-จ); keys re-letter in row order and answers stay on their rows. Export stars every correct choice.
+- Why: owner screenshot (Q9 circles ก and ง) and the master template, which marks several correct choices with "*" (template Q3/Q4).
+- Tradeoff: confirming AI answers in multi mode confirms all of them; switching back to single mode keeps only the first.
+
+### D-073 Capture Requires OCR Geometry (T-125, 2026-10-17)
+- Decision: OCR text saved with a draft is reused only together with its line geometry; harvesting without geometry first reads OCR geometry (Vision OCR, same ink-filter setting) and stores it with the draft. Capture rules live in documents/capture-rules.md and every capture fix adds a learning-log row.
+- Why: geometry is what bounds crops by stem/choice lines and proves which stem lines duplicate a figure; reusing text alone silently produced over-crops and duplicated table text only on machines that already had a draft.
+- Tradeoff: re-converting a file whose old draft lacks geometry costs one more OCR pass.
+
+### D-072 Stale Drafts: Clean Text Automatically, Re-crop on Request (T-124, 2026-10-17)
+- Decision: when a draft opens, stem text that duplicates a captured figure is removed using the stored OCR line geometry and the figure's source page/box (whole lines, runs of two or more rows, short labels at the stem end only). Figures cropped by older versions are listed in the review bar and re-cropped from the original only when the user presses "ตัดใหม่จากต้นฉบับ"; new crops carry data-crop-version, manual captures are marked "manual".
+- Why: owner screenshots on 261017-1101 showed problems that a fresh run no longer has; they lived in drafts saved earlier. Text cleanup is geometry-proven and reversible by editing; re-cropping replaces images and old drafts cannot tell harvested from manually captured figures, so it stays an explicit action. A choice line directly under a figure now bounds the crop (I-050).
+
+### D-071 T-123 Source-Preserving Four/Five-Choice Repair (2026-10-17)
+- Owner explicitly approves four and five choices. Keep complete ordered ก ข ค ง or ก ข ค ง จ; never truncate the fifth choice or infer a correct answer from its position.
+- Reproduce each H-xx issue against saved actual OCR/source before changes. Contextual key recovery is labelled for review; unknown words/meanings require explicit confirmation. Raw OCR/original and existing manual drafts stay intact.
+- Existing no-stage/no-commit/no-push rule and quota/billing ownership remain. A passing replay is not a live provider quota result or successful QuizFlow database import.
+- Owner subsequently authorizes existing quota only, no package purchase. Two live source-only rounds returned11 then1 correct circles; stop the three-consecutive-round benchmark after this failure. A fallback model is observed, not proof of a specific quota HTTP code. Preserve actual responses and original-page ground truth; do not substitute AI solutions or replay counts. Live diagram sets4/5 are separate from post-fix response replay.
+
+### D-070 Template Order Enforced at Harvest, Restore and Export (T-121, 2026-10-17)
+- Decision: question figures and the missing-figure placeholder always sit before the choices section; image-only choices get rows; drafts saved with the old order are repaired automatically when opened and before export. Numbered stem lines ("1. ...") stay as they are until a real QuizFlow import shows how they are read (H-01).
+- Why: the owner's supreme template orders stem, รูปคำถาม, ตัวเลือก; the export reproduces the editor DOM order, so a wrong DOM order leaks into DOCX and Google Docs.
+
+### D-069 Model Before Key in Provider Fallback (T-121 audit, 2026-10-17)
+- Decision: Gemini source answers, AI answers and diagram detection try the preferred model on every configured key before stepping down to the next model (executeAcrossModelsAndKeys). Source-answer evidence must describe a circle or written answer key; X/tick evidence is rejected on the server. Diagram boxes on a 0..1 scale are rescaled to 0..1000.
+- Why: key 1 had no gemini-3.8-flash quota, so every request silently used flash-lite, which returned no circled answers (source 0) and once reported an X as the answer. Keys 2-3 had quota and read 11 circles on the real chapter-7 file.
+- Tradeoff: when the preferred model is out of quota on all keys, requests make up to keys x models calls before lite answers; recall still depends on quota. The OCR ink filter stays opt-in (Codex decision; Claude's ink-on comparison removed half the key repairs but altered figure text "สี C").
+
+### D-068 Patched Runtime Without Publication (T-113, 2026-10-16)
+- Decision: use Next15.5.27 with React18, PDF.js4.10.38 module worker and PostCSS8.5.30; no audit fix --force, OAuth scope or ACL change. Production audit is zero and isolated clean npm ci succeeds. Full runtime gate is still required.
+- Tradeoff: Node24 local execution is not Node22 Ubuntu CI. Existing no-stage/no-commit/no-push instruction remains in force; credential history and document privacy review remain release prerequisites.
+
+### D-067 Source-Safe Repairs and Cloud Identity (T-121, 2026-10-16)
+- Decision: only contextual key repair is automatic. Missing punctuation/key needs explicit split confirmation; missing image geometry never implies CLEAN. Refine tables only with unique ruled-grid evidence and OCR ownership limits.
+- Decision: Drive draft versions preserve the original SHA-256 identity and edited HTML/model. Hash-check original and draft bytes, sanitize executable/remote markup before restore, and cancel stale autosave. Export and user-confirmed QuizFlow import stay separate.
+- Tradeoff: uncertain ink/geometry/answer marks remain review items. Never erase an original or infer a correct answer from a rejected X.
+
+### D-066 Thirty-Point Pass Within Earlier Owner Decisions (T-119, 2026-10-16)
+All 30 proposals were implemented except where an earlier owner decision governs: the source count stays plain text (T-118); question jumps do not move the original unless the user turns on "ซิงก์ต้นฉบับ" (T-050); library and drafts stay separate controls but are grouped (T-116); Drive state stays at the export control, now as a dot pill (T-118, its text remains in the toolbar). Merged choices are fixed at the parser for new conversions and offered as an explicit split in existing drafts, never silently rewritten. Bulk AI confirmation and export confirmation are two-step and non-blocking. Long-document rendering uses content-visibility with a jump lock and landing correction instead of virtualization, so the live DOM (export snapshot) stays complete; Copy temporarily disables it so innerText includes every question.
+
+### D-040 Restore Inline Labels and User-Controlled Save/Export (T-118, 2026-10-16)
+- Status: Verified
+Owner explicitly chose inline label expansion in the original rail, not a flyout. T-117's removed expansion was an unrequested behavior change; restore it rather than treating stable geometry as authority to remove a feature. Reserve the compact rail footprint and expand over the same header row without moving the whole header to another row; do not animate widths/stagger hit targets. Inline expansion necessarily changes individual icon positions, so regression checks assert expansion and intended clicks after entry, not unchanged all-tool rectangles. Keep genuine authorization/privacy/image validation and duplicate-submit guards, but remove connection-as-disabled-UI and avoid shared Google/DOCX busy state. Explicit save must be truthful: full DOM/raw readback succeeds or reports failure while preserving the previous draft. Never apply these changes to the separate QuizFlow application pictured in the reference attachment.
+
+### D-039 Stable Header Hit Targets (T-117, 2026-10-16)
+- Status: Verified
+Real browser testing exposed hover expansion moving the intended library button and opening history instead. Fix the header rail only: fixed icon bounds with individual floating tooltips. Preserve accessible names, keyboard focus and other toolbar behavior. Pointer-target stability takes priority over expanding every label in place.
+
+### D-038 Drive Primary, Snapshot Identity, Explicit QuizFlow Confirmation (T-116, 2026-10-16)
+- Status: Verified
+Owner selected Google Drive as primary storage and QuizFlow as downstream destination. Group by verified original SHA-256 rather than filename; keep original bytes unchanged and version each output with UUID and hash. Native Docs can be edited externally, so the exact import file is a separate immutable DOCX snapshot copied only after explicit user confirmation. Do not imply a QuizFlow API checked success. Preserve current folder organization and sharing; reject public/domain source destinations rather than silently changing ACLs. Use existing drive.file consent, no token transfer between browsers, and no historical same-name file migration without source evidence. Retain failed archives in browser IndexedDB; browser quota/clearing and multi-instance creation races remain documented limits.
+
+### D-037 Preserve Figure Bounds and Styled Narrative (T-114, 2026-10-16)
+Whitespace gaps and isolated bands are insufficient evidence to delete image content: chromatography solvent fronts/baselines and labels are detached by design. Protect the original detection box and retain thin guide lines; trim only supported padding intrusion. This may retain contamination already inside a bad AI box rather than silently destroy a valid label; source recapture remains the correction path. Text cleanup requires table-shaped context and recognized cell/header lines, preserves narrative DOM formatting and never edits the left original/OCR. Existing truncated PNGs cannot regain missing pixels without reharvest/recapture. Contextual target suggestions are defaults, not forced choices; shared-range ownership is explicit. No provider accuracy or exact original-document acceptance is claimed from synthetic fixtures.
+
 ### D-036 Prepare Source and CI, Do Not Publish (T-112, 2026-10-16)
 Production audit reports two critical and three high dependency entries. Block high/critical findings in CI and register T-113 rather than silently accepting or forcing major upgrades. Completing local preparation is separate from passing this security gate or authorizing publication.
 Owner explicitly chose preparation without push. Keep existing local/remote commits, do not stage/commit/amend, change repository visibility, rotate credentials or rewrite history. Add a no-production-secrets, read-only GitHub build/test workflow with pinned major official actions, Node 22 and Chromium while retaining governance. GitHub receives source/lockfiles, not local Windows dependencies or .next output. Replace a key-shaped masking fixture with an obvious synthetic value, but record its historical presence and require owner confirmation/rotation if real. Existing binary exam evidence needs owner privacy/copyright review; a current text-pattern scan is not publication clearance. Verification records local runtime/build separately from unexecuted cloud CI.

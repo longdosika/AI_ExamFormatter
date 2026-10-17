@@ -1,4 +1,5 @@
 import JSZip from "jszip";
+import { exportName } from "./export-naming";
 import { ExportDocument, PARAGRAPH_ROLES } from "./export-document";
 import { EXPORT_PAGE, IMAGE_MAX, LaidOutParagraph, LaidOutRun, TEMPLATE_COLORS, FOOTER_TABS, layoutExamDocument } from "./export-layout";
 
@@ -86,11 +87,12 @@ export async function checkTargetFolder(token: string, request = fetch): Promise
   return folder.id === TARGET_FOLDER && folder.mimeType === "application/vnd.google-apps.folder" && folder.capabilities?.canAddChildren === true;
 }
 
-export async function uploadGoogleDocument(doc: ExportDocument, token: string, request = fetch): Promise<{ id: string; url: string }> {
+export async function uploadGoogleDocument(doc: ExportDocument, token: string, request = fetch, archived?: { bytes: Buffer; folder: string; properties: Record<string, string>; name: string }): Promise<{ id: string; url: string }> {
   if (!await checkTargetFolder(token, request)) throw new Error("ยังเข้าโฟลเดอร์ปลายทางไม่ได้ กรุณาเลือกโฟลเดอร์ AI_ExamFormatter และตรวจสิทธิ์บัญชี");
-  const bytes = await createExportDocx(doc);
+  const bytes = archived?.bytes || await createExportDocx(doc);
+  const parent = archived?.folder || TARGET_FOLDER;
   const boundary = `quizflow_${crypto.randomUUID().replace(/-/g, '')}`;
-  const metadata = JSON.stringify({ name: doc.title, mimeType: "application/vnd.google-apps.document", parents: [TARGET_FOLDER] });
+  const metadata = JSON.stringify({ name: archived?.name || exportName(doc.title), mimeType: "application/vnd.google-apps.document", parents: [parent], ...(archived ? { properties: archived.properties } : {}) });
   const body = Buffer.concat([Buffer.from(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n--${boundary}\r\nContent-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document\r\n\r\n`), bytes, Buffer.from(`\r\n--${boundary}--\r\n`)]);
   const response = await request("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id&supportsAllDrives=true", { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": `multipart/related; boundary=${boundary}` }, body, signal: AbortSignal.timeout(60000) });
   if (!response.ok) throw new Error("Google Drive ส่งออกไม่สำเร็จ กรุณาตรวจสิทธิ์หรือเชื่อมต่อใหม่");
@@ -98,6 +100,6 @@ export async function uploadGoogleDocument(doc: ExportDocument, token: string, r
   if (typeof created.id !== "string" || !/^[\w-]+$/.test(created.id)) throw new Error("Google ไม่คืนรหัสเอกสารที่ตรวจสอบได้");
   const readback = await request(`https://www.googleapis.com/drive/v3/files/${created.id}?fields=id,mimeType,parents,webViewLink&supportsAllDrives=true`, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store", signal: AbortSignal.timeout(15000) });
   const file = readback.ok ? await readback.json() : null;
-  if (!file || file.mimeType !== "application/vnd.google-apps.document" || !file.parents?.includes(TARGET_FOLDER) || typeof file.webViewLink !== "string" || !/^https:\/\/docs\.google\.com\/document\//.test(file.webViewLink)) throw new Error("อาจสร้างเอกสารแล้ว แต่ยืนยันผลปลายทางไม่ได้ กรุณาตรวจ Drive ก่อนลองส่งซ้ำ");
+  if (!file || file.mimeType !== "application/vnd.google-apps.document" || !file.parents?.includes(parent) || typeof file.webViewLink !== "string" || !/^https:\/\/docs\.google\.com\/document\//.test(file.webViewLink)) throw new Error("อาจสร้างเอกสารแล้ว แต่ยืนยันผลปลายทางไม่ได้ กรุณาตรวจ Drive ก่อนลองส่งซ้ำ");
   return { id: file.id, url: file.webViewLink };
 }

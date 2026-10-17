@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { 
   Sparkles, 
   BookOpen, 
@@ -9,15 +10,17 @@ import {
   CheckCircle2,
   ExternalLink,
   BarChart3,
-  Files,
+  Wrench,
   X,
   FileText, 
   Download,
   Bookmark,
-  Trash2
+  Trash2,
+  FolderArchive
 } from "lucide-react";
 import { FileUploader } from "@/components/FileUploader";
 import { ParsedFileResult, parseUploadedFile, revokeParsedFileUrls } from "@/lib/file-parser";
+import { mergeHarvestedEditor } from "@/lib/harvest-editor";
 import { saveOriginalSource, loadOriginalSource, deleteOriginalSource, sourceMatchesDraft } from "@/lib/original-source-store";
 import { parseExamText } from "@/lib/exam-parser";
 import { validateExamItems } from "@/lib/exam-validation";
@@ -27,18 +30,27 @@ import { ExamItem, FORMATTER_CONSTANTS } from "@/lib/formatter-rules";
 import { CaseDecisionManager } from "@/components/CaseDecisionManager";
 import { SplitDocumentEditor } from "@/components/SplitDocumentEditor";
 import { StatisticsModal } from "@/components/StatisticsModal";
-import { GoogleDriveStatus } from "@/components/GoogleDriveStatus";
+import { GoogleDriveStatus, type DriveStatus } from "@/components/GoogleDriveStatus";
+import { DocumentLibrary } from "@/components/DocumentLibrary";
+import { DraftProgress } from "@/components/DraftProgress";
+import { saveLibrarySource, saveLibraryOutput, libraryRequest } from "@/lib/document-library-client";
+import { draftBackup, sanitizeDraftHtml } from "@/lib/draft-backup";
+import { PendingLibraryOutput, readPendingOutputs, putPendingOutput, removePendingOutput } from "@/lib/library-pending-store";
 import { generateFallbackExamItems } from "@/lib/exam-fallback";
 import { prepareExportDocument, snapshotDocument } from "@/lib/export-document";
 import { answerItemsFromEditor } from "@/lib/answer-editor";
 import { appendExperiment, experimentReport, readExperiments, ImportExperiment } from "@/lib/experiment-stats";
 import { readOcrDocument } from "@/lib/ocr-client";
+import { exportName } from "@/lib/export-naming";
+import { OCR_INK_FILTER_STORAGE_KEY, ocrInkFilterEnabled, removeColouredInk } from "@/lib/ink-filter";
 import { readSourceAnswers, solveUnresolvedAnswers } from "@/lib/source-answer-client";
 import { harvestExamDiagrams } from "@/lib/diagram-client";
 import { readImportHistory, recordImport, ImportHistoryEntry } from "@/lib/import-history";
 import { 
   loadAllDrafts, 
-  findDraftByDoc, 
+  findDraftByDoc,
+  draftsForSource,
+  markDraftExported,
   saveDocumentDraft, 
   deleteDocumentDraft, 
   clearAllDocumentDrafts, 
@@ -46,6 +58,8 @@ import {
 } from "@/lib/document-draft-store";
 
 export default function Home() {
+  const [filterOcrInk,setFilterOcrInk]=useState(false);
+  useEffect(()=>{setFilterOcrInk(ocrInkFilterEnabled());},[]);
   const [parsedFile, setParsedFile] = useState<ParsedFileResult | null>(null);
   const [formattedItems, setFormattedItems] = useState<ExamItem[] | null>(null);
   const [ocrText, setOcrText] = useState<string | null>(null);
@@ -55,6 +69,16 @@ export default function Home() {
   const [showCaseLog, setShowCaseLog] = useState(false);
   const [documentVersion, setDocumentVersion] = useState(0);
   const [driveReady, setDriveReady] = useState(false);
+  const [driveStatus, setDriveStatus] = useState<DriveStatus | null>(null);
+  const [showDriveSettings, setShowDriveSettings] = useState(false);
+  const [driveSlot, setDriveSlot] = useState<HTMLDivElement | null>(null);
+  const driveSettingsClose = useRef<HTMLButtonElement>(null);
+  const [showLibrary, setShowLibrary] = useState(false);
+  const [libraryError, setLibraryError] = useState<string | null>(null);
+  const [pendingOutputs, setPendingOutputs] = useState<PendingLibraryOutput[]>([]);
+  useEffect(() => {
+    void readPendingOutputs().then(entries => setPendingOutputs(previous => [...previous, ...entries.filter(entry => !previous.some(item => item.version === entry.version))])).catch(() => setLibraryError("อ่านคิว output ในเครื่องไม่ได้ กรุณาตรวจพื้นที่เบราว์เซอร์"));
+  }, []);
   const [exportLink, setExportLink] = useState<string | null>(null);
   const [statisticsError, setStatisticsError] = useState<string | null>(null);
   const [ocrProgress, setOcrProgress] = useState<{completed:number;total:number} | null>(null);
@@ -62,48 +86,53 @@ export default function Home() {
   const [diagramBusy, setDiagramBusy] = useState(false);
   const [diagramsHarvested, setDiagramsHarvested] = useState(false);
   const answerEpoch = useRef(0);
-  const [importHistory, setImportHistory] = useState<ImportHistoryEntry[] | null>(null);
+  // T-129: import history is shown inside the drafts list (one list) instead of its own dialog.
+  const [historyEntries, setHistoryEntries] = useState<ImportHistoryEntry[]>([]);
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const toolsRef = useRef<HTMLDivElement>(null);
   const [showStatisticsModal, setShowStatisticsModal] = useState(false);
   const [experimentRuns, setExperimentRuns] = useState<ImportExperiment[]>([]);
   const parserImages = (file: ParsedFileResult) => [
     ...file.extractedImages,
     ...(file.pageImages || []).map((dataUrl, index) => ({ id: `page-${index + 1}`, dataUrl })),
   ];
-  const historyButton = useRef<HTMLButtonElement>(null);
-  const historyCloseButton = useRef<HTMLButtonElement>(null);
-  const openImportHistory = () => {
-    try { setImportHistory(readImportHistory(window.localStorage)); }
-    catch { setStatisticsError("อ่านประวัติไฟล์ไม่ได้ ข้อมูลเดิมยังไม่ถูกลบ กรุณาตรวจพื้นที่จัดเก็บของเบราว์เซอร์"); }
-  };
   const [availableDraft, setAvailableDraft] = useState<DocumentDraft | null>(null);
+  // T-128: a file imported before (same SHA-256, any name) asks before any OCR/AI work.
+  type DuplicateChoice = "new" | "resume" | "library" | "cancel";
+  const [duplicatePrompt, setDuplicatePrompt] = useState<{ fileName: string; drafts: DocumentDraft[]; driveName: string | null } | null>(null);
+  const duplicateResolver = useRef<((choice: DuplicateChoice) => void) | null>(null);
+  const answerDuplicate = (choice: DuplicateChoice) => { const resolve = duplicateResolver.current; duplicateResolver.current = null; setDuplicatePrompt(null); resolve?.(choice); };
   const [showDraftsModal, setShowDraftsModal] = useState(false);
   const [savedDrafts, setSavedDrafts] = useState<DocumentDraft[]>([]);
-  // T-111: the header notice folds to a dot after a moment; hover/focus shows it again.
-  const [noticeFolded, setNoticeFolded] = useState(false);
   // T-111: the upload screen offers the latest drafts so work can resume in one click.
   const [recentDrafts, setRecentDrafts] = useState<DocumentDraft[]>([]);
+  // T-119: number of saved drafts shown on the drafts button.
+  const [draftCount, setDraftCount] = useState(0);
   const [sourceError, setSourceError] = useState<string | null>(null);
   const [draftOpening, setDraftOpening] = useState(false);
   const sourceDraftKey = useRef<string | undefined>(undefined);
   const restoredEditorHtml = useRef<string | null>(null);
   const autosaveTimer = useRef<number | null>(null);
 
+  useEffect(() => {
+    if (!toolsOpen) return;
+    const close = (event: Event) => {
+      if (event instanceof KeyboardEvent ? event.key === "Escape" : !toolsRef.current?.contains(event.target as Node)) setToolsOpen(false);
+    };
+    document.addEventListener("pointerdown", close);
+    document.addEventListener("keydown", close);
+    return () => { document.removeEventListener("pointerdown", close); document.removeEventListener("keydown", close); };
+  }, [toolsOpen]);
   const openDraftsModal = () => {
     try {
       const drafts = loadAllDrafts(window.localStorage);
       setSavedDrafts(drafts);
+      try { setHistoryEntries(readImportHistory(window.localStorage)); } catch { setHistoryEntries([]); }
       setShowDraftsModal(true);
     } catch {
       setStatisticsError("อ่านแบบร่างไม่ได้");
     }
   };
-
-  useEffect(() => {
-    setNoticeFolded(false);
-    if (!infoNotice) return;
-    const timer = window.setTimeout(() => setNoticeFolded(true), 6000);
-    return () => window.clearTimeout(timer);
-  }, [infoNotice]);
 
   const parsedFileFromDraft = (draft: DocumentDraft): ParsedFileResult => ({
     fileName: draft.fileName,
@@ -112,12 +141,14 @@ export default function Home() {
     fileType: "application/pdf",
     extension: draft.fileName.includes(".") ? `.${draft.fileName.split(".").pop()?.toLowerCase() || "pdf"}` : ".pdf",
     rawContent: "",
+    ocrTextRegions: draft.ocrTextRegions,
     extractedImages: [],
     isClean: true,
     statusMessage: "โหลดจากแบบร่างที่บันทึกไว้ในเครื่อง",
   });
 
   const handleApplyDraft = async (draft: DocumentDraft) => {
+    sourceItemCount.current = draft.sourceItemCount;
     const epoch = ++uploadEpoch.current;
     setDraftOpening(true);
     setSourceError(null);
@@ -134,6 +165,7 @@ export default function Home() {
     if (epoch !== uploadEpoch.current) { if (currentFile && currentFile !== activeFile.current) revokeParsedFileUrls(currentFile); setDraftOpening(false); return; }
     if (activeFile.current && activeFile.current !== currentFile) revokeParsedFileUrls(activeFile.current);
     currentFile ||= parsedFileFromDraft(draft);
+    currentFile.ocrTextRegions ||= draft.ocrTextRegions;
     sourceDraftKey.current = draft.docKey;
     activeFile.current = currentFile;
     setParsedFile(currentFile);
@@ -193,12 +225,6 @@ export default function Home() {
       setStatisticsError("อ่านสถิติไม่ได้ ข้อมูลเดิมยังไม่ถูกลบ กรุณาตรวจพื้นที่จัดเก็บของเบราว์เซอร์");
     }
   };
-  useEffect(() => {
-    if (!importHistory) return;
-    const trigger = historyButton.current;
-    historyCloseButton.current?.focus();
-    return () => { trigger?.focus(); };
-  }, [importHistory]);
 
   const downloadStatistics = () => {
     try {
@@ -215,14 +241,28 @@ export default function Home() {
     }
   };
 
+  const [exportPhase, setExportPhase] = useState<string | null>(null);
   const exportDocument = async (editor: HTMLElement) => {
-    if (!parsedFile) throw new Error("ไม่พบเอกสารที่จะส่งออก");
-    setExportLink(null);
-    const document = await prepareExportDocument(editor, parsedFile.fileName);
-    const response = await fetch("/api/google/export", { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(document) });
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.error || "ส่งออกไม่สำเร็จ");
-    setExportLink(result.url);
+    try {
+      if (!parsedFile) throw new Error("ไม่พบเอกสารที่จะส่งออก");
+      setExportLink(null);
+      setExportPhase("เตรียมเอกสาร…");
+      const document = await prepareExportDocument(editor, parsedFile.fileName, (done, total) => setExportPhase(total ? `เตรียมรูป ${done}/${total}` : "เตรียมเอกสาร…"));
+      setExportPhase("อัปโหลดและแปลงเป็น Google Docs…");
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (parsedFile.sourceBlob && parsedFile.sourceHash) {
+        const { collection } = await saveLibrarySource(parsedFile);
+        headers["X-Collection-Id"] = collection.id;
+        headers["X-Version-Id"] = crypto.randomUUID();
+      } else setLibraryError("ส่งออกได้ แต่ยังผูกคลังไม่ได้ กรุณาแนบต้นฉบับเดิม");
+      const response = await fetch("/api/google/export", { method: "POST", headers, body: JSON.stringify(document) });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "ส่งออกไม่สำเร็จ");
+      setExportLink(result.url);
+      try { markDraftExported(window.localStorage, parsedFile.sourceHash, parsedFile.fileName, parsedFile.fileSize); } catch {}
+    } finally {
+      setExportPhase(null);
+    }
   };
 
   const downloadDocument = async (editor: HTMLElement) => {
@@ -233,13 +273,50 @@ export default function Home() {
       const result = await response.json();
       throw new Error(result.error || "ดาวน์โหลดไม่สำเร็จ");
     }
-    const url = URL.createObjectURL(await response.blob());
+    const bytes = await response.blob();
+    const url = URL.createObjectURL(bytes);
     const link = document.createElement("a");
     link.href = url;
-    link.download = parsedFile.fileName.replace(/\.[^.]+$/, "") + ".docx";
+    // T-128: "[original filename]_[yymmdd-hhmm].docx", the same name the export gets on Drive.
+    link.download = `${exportName(parsedFile.fileName)}.docx`;
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
+    try { markDraftExported(window.localStorage, parsedFile.sourceHash, parsedFile.fileName, parsedFile.fileSize); } catch {}
+    if (!parsedFile.sourceBlob || !parsedFile.sourceHash) {
+      setLibraryError("ดาวน์โหลดแล้ว แต่ยังผูกคลังไม่ได้: กรุณาแนบต้นฉบับเดิมแล้วส่งออกใหม่ ไม่ได้เพิ่มรายการนี้เข้าคิว Drive");
+      return;
+    }
+    const pending = { file: { fileName: parsedFile.fileName, sourceBlob: parsedFile.sourceBlob, sourceHash: parsedFile.sourceHash }, bytes, name: link.download, version: crypto.randomUUID() };
+    setPendingOutputs(previous => [...previous, pending]);
+    try { await putPendingOutput(pending); }
+    catch { setLibraryError("ดาวน์โหลดแล้ว แต่เก็บคิวในเครื่องไม่ได้ อย่าปิดหน้านี้ก่อนส่งคลังสำเร็จ"); }
+    if (driveReady) {
+      try {
+        const { collection } = await saveLibrarySource(pending.file);
+        await saveLibraryOutput(collection.id, bytes, pending.name, pending.version);
+        await removePendingOutput(pending.version);
+        setPendingOutputs(previous => previous.filter(item => item.version !== pending.version));
+        setLibraryError(null);
+      } catch (error) { setLibraryError(`ดาวน์โหลดแล้ว แต่เก็บคลังยังไม่สำเร็จ: ${error instanceof Error ? error.message : "ลองใหม่ในคลังไฟล์"}`); }
+    } else setLibraryError("ดาวน์โหลดแล้ว · output ยังรอเก็บ Drive กรุณาเชื่อม Google และส่งรายการค้างก่อนปิดหน้านี้");
   };
+
+  const retryLibraryOutputs = async () => {
+    for (const pending of pendingOutputs) {
+      const { collection } = await saveLibrarySource(pending.file);
+      await saveLibraryOutput(collection.id, pending.bytes, pending.name, pending.version);
+      await removePendingOutput(pending.version);
+      setPendingOutputs(previous => previous.filter(item => item.version !== pending.version));
+    }
+    setLibraryError(null);
+  };
+
+  useEffect(() => {
+    if (!driveReady || !parsedFile?.sourceBlob || !parsedFile.sourceHash) return;
+    let current = true;
+    void saveLibrarySource(parsedFile).then(() => { if (current) setLibraryError(null); }).catch(error => { if (current) setLibraryError(`ยังเก็บต้นฉบับใน Drive ไม่สำเร็จ: ${error instanceof Error ? error.message : "ลองใหม่ในคลังไฟล์"}`); });
+    return () => { current = false; };
+  }, [driveReady, parsedFile]);
 
   const workingAnswerItems = () => {
     const editor = document.querySelector<HTMLElement>('[role="textbox"][aria-label="ข้อสอบที่จัดรูปแบบแล้ว"]');
@@ -248,6 +325,7 @@ export default function Home() {
 
   const activeFile = useRef<ParsedFileResult | null>(null);
   const sourceQuestionNumbers = useRef<number[]>([]);
+  const sourceItemCount = useRef<number | undefined>(undefined);
   const sourcePagesComplete = useRef(true);
   const uploadEpoch = useRef(0);
   const caseButton = useRef<HTMLButtonElement>(null);
@@ -257,6 +335,7 @@ export default function Home() {
   }, []);
 
   const handleReset = () => {
+    sourceItemCount.current = undefined;
     sourceDraftKey.current = undefined;
     setSourceError(null);
     answerEpoch.current++;
@@ -329,6 +408,26 @@ export default function Home() {
   };
 
   const handleFileParsed = async (result: ParsedFileResult) => {
+    // T-128: warn before importing a file that was imported before, recognised by its bytes (renamed copies too).
+    const previousDrafts = draftsForSource(window.localStorage, result.fileName, result.fileSize, result.sourceHash);
+    let driveName: string | null = null;
+    if (result.sourceHash && driveReady) {
+      try {
+        const response = await fetch(`/api/google/library?hash=${result.sourceHash}`, { cache: "no-store", signal: AbortSignal.timeout(8000) });
+        const found = response.ok ? await response.json() : null;
+        if (found?.collection?.name) driveName = String(found.collection.name);
+      } catch { /* Drive is optional for this check; local drafts still decide. */ }
+    }
+    if (previousDrafts.length || driveName) {
+      const choice = await new Promise<DuplicateChoice>(resolve => {
+        duplicateResolver.current = resolve;
+        setDuplicatePrompt({ fileName: result.fileName, drafts: previousDrafts, driveName });
+      });
+      if (choice === "cancel") { revokeParsedFileUrls(result); return false; }
+      if (choice === "library") { revokeParsedFileUrls(result); setShowLibrary(true); return false; }
+      if (choice === "resume" && previousDrafts[0]) { revokeParsedFileUrls(result); await handleApplyDraft(previousDrafts[0]); return false; }
+    }
+    sourceItemCount.current = undefined;
     const startedAt = performance.now();
     const observation = {
       mode: "file-text" as ImportExperiment["mode"], status: "needs-review" as ImportExperiment["status"],
@@ -364,8 +463,11 @@ export default function Home() {
       const cachedDraft = findDraftByDoc(window.localStorage, result.fileName, result.fileSize, result.sourceHash);
       if (cachedDraft && (cachedDraft.ocrText || (cachedDraft.formattedItems && cachedDraft.formattedItems.length > 0))) {
         setAvailableDraft(cachedDraft);
-        if (cachedDraft.ocrText && !result.rawContent.trim()) {
+        // T-125: reuse saved OCR text only together with its line geometry. Without geometry the figure crops lose
+        // their stem/choice limits and duplicated table text cannot be removed, so such drafts are OCR'd again.
+        if (cachedDraft.ocrText && cachedDraft.ocrTextRegions?.some(page => page.length) && !result.rawContent.trim()) {
           result.rawContent = cachedDraft.ocrText;
+          result.ocrTextRegions = cachedDraft.ocrTextRegions;
           setOcrText(cachedDraft.ocrText);
         }
       }
@@ -421,7 +523,9 @@ export default function Home() {
         if (imagesToOcr.length > 0) {
           setOcrProgress({completed:0,total:imagesToOcr.length});
           try {
-            const ocrData = await readOcrDocument(imagesToOcr, {
+            // T-121 (B-26): OCR reads a copy without coloured pen marks; the source pane keeps the original.
+            const ocrImages = ocrInkFilterEnabled() ? await Promise.all(imagesToOcr.map(removeColouredInk)) : imagesToOcr;
+            const ocrData = await readOcrDocument(ocrImages, {
               isCurrent: () => epoch === uploadEpoch.current,
               onProgress: (completed, total) => {
                 if (epoch === uploadEpoch.current) {
@@ -431,6 +535,7 @@ export default function Home() {
               },
             });
             ocrFailure = ocrData.error;
+            result.ocrTextRegions = ocrData.pageResults.map(page => page.textRegions || []);
             if (!ocrData.success) observation.status = "failed";
             observation.models = Array.from(new Set(ocrData.pageResults.map(page => page.modelUsed).filter((model): model is string => typeof model === "string" && Boolean(model))));
             if (activeFile.current !== result) return true;
@@ -451,6 +556,7 @@ export default function Home() {
                   fileBytes: result.fileSize,
                   sourceHash: result.sourceHash,
                   ocrText: ocrData.text,
+                  ocrTextRegions: result.ocrTextRegions,
                   itemCount: observedItems.length,
                 });
               } catch {}
@@ -592,26 +698,44 @@ export default function Home() {
         : parsedFile.fileType.startsWith("image/")
         ? parsedFile.extractedImages.map(img => img.dataUrl)
         : [];
+      // T-125: capture limits and duplicate-text removal need OCR line geometry; fetch it first when this session has none.
+      let textRegions = parsedFile.ocrTextRegions;
+      if (!textRegions?.some(page => page.length) && images.length) {
+        setInfoNotice("กำลังอ่านตำแหน่งข้อความในต้นฉบับก่อนสกัดรูป...");
+        const ocrImages = ocrInkFilterEnabled() ? await Promise.all(images.map(removeColouredInk)) : images;
+        const geometry = await readOcrDocument(ocrImages, { isCurrent: current });
+        if (!current()) return;
+        if (geometry.pageResults.some(page => page.textRegions?.length)) {
+          textRegions = geometry.pageResults.map(page => page.textRegions || []);
+          parsedFile.ocrTextRegions = textRegions;
+        }
+      }
       const res = await harvestExamDiagrams(
         workingAnswerItems(),
         images,
         current,
-        (done, total, msg) => setInfoNotice(msg)
+        (done, total, msg) => setInfoNotice(msg),
+        textRegions
       );
       if (!current()) return;
       if (res.items) {
+        const editor=document.querySelector<HTMLElement>('[data-workspace="conversion"] [contenteditable="true"]');
+        if(editor) restoredEditorHtml.current=mergeHarvestedEditor(editor,formattedItems,res.items);
         setFormattedItems(res.items);
       }
-      setDiagramsHarvested(true);
-      setInfoNotice(`สกัดรูปประกอบสำเร็จ ${res.count} รูป (รูปโจทย์, ตาราง, ตัวเลือก) ตรวจทานฝั่งขวาหรือกด 'ตรวจเฉลยจากภาพ'`);
+      setDiagramsHarvested(!res.error);
+      setReviewIssues(validateExamItems(res.items));
+      setInfoNotice(res.error ? `สกัดได้ ${res.count} รูป แต่ยังไม่ครบ: ${res.error}` : `สกัดรูปประกอบสำเร็จ ${res.count} รูป (รูปโจทย์, ตาราง, ตัวเลือก) ตรวจทานฝั่งขวาหรือกด 'ตรวจเฉลยจากภาพ'`);
       try {
         saveDocumentDraft(window.localStorage, {
           fileName: parsedFile.fileName,
           fileBytes: parsedFile.fileSize,
           sourceHash: parsedFile.sourceHash,
           ocrText: ocrText || "",
+          ocrTextRegions: textRegions,
           formattedItems: res.items || formattedItems,
-          diagramsHarvested: true,
+          editorHtml: restoredEditorHtml.current || "",
+          diagramsHarvested: !res.error,
           itemCount: (res.items || formattedItems).length,
         });
       } catch {}
@@ -713,9 +837,13 @@ export default function Home() {
     items.forEach((item, index) => {
       const liveNode = liveItemNodes[index];
       const previous = formattedItems[index];
-      const image = liveNode?.querySelector<HTMLImageElement>("[data-question-image] img");
-      if (image) item.imageUrl = image.src;
-      else if (previous?.imageUrl) item.imageUrl = previous.imageUrl;
+      // T-131: keep every question figure (source order as shown in the editor), not only the first.
+      const images = Array.from(liveNode?.querySelectorAll<HTMLImageElement>("[data-question-image] img") || []);
+      if (images.length) {
+        item.questionImages = images.map(image => { try { const bbox = JSON.parse(image.dataset.sourceBbox || "null"); return { url: image.src, bbox: Array.isArray(bbox) && bbox.length === 4 ? bbox as [number, number, number, number] : undefined }; } catch { return { url: image.src }; } });
+        item.imageUrl = images[0].src;
+        item.imageBbox = item.questionImages[0].bbox;
+      } else if (previous?.imageUrl) { item.imageUrl = previous.imageUrl; item.questionImages = previous.questionImages; }
       const sharedImage = liveNode?.querySelector<HTMLImageElement>("[data-shared-image='true'] img");
       if (sharedImage) item.sharedContextImageUrl = sharedImage.src;
       else if (previous?.sharedContextImageUrl) item.sharedContextImageUrl = previous.sharedContextImageUrl;
@@ -754,6 +882,47 @@ export default function Home() {
     }
   };
 
+  const saveCurrentDraft = async (editor: HTMLElement, rawText?: string) => {
+    if (!parsedFile) throw new Error("ไม่มีเอกสารให้บันทึก");
+    if (autosaveTimer.current) { window.clearTimeout(autosaveTimer.current); autosaveTimer.current = null; }
+    saveDocumentDraft(window.localStorage, {
+      docKey: sourceDraftKey.current,
+      fileName: parsedFile.fileName, fileBytes: parsedFile.fileSize, sourceHash: parsedFile.sourceHash,
+      ocrText: rawText ?? ocrText ?? parsedFile.rawContent,
+      formattedItems: rawText === undefined ? answerItemsFromEditor(formattedItems || [], editor) : [],
+      editorHtml: rawText === undefined ? editor.innerHTML : "",
+      diagramsHarvested: rawText === undefined && diagramsHarvested,
+      itemCount: rawText === undefined ? formattedItems?.length || 0 : parseExamText(rawText).length,
+      sourceItemCount: sourceItemCount.current ?? sourceQuestionNumbers.current.length,
+    }, { requireFullSnapshot: true });
+    setAvailableDraft(null);
+  };
+  const backupCurrentDraft = async (editor: HTMLElement,rawText?:string) => {
+    if(!parsedFile) throw new Error("ไม่มีเอกสารให้สำรอง");
+    await saveCurrentDraft(editor,rawText);
+    const draft=loadAllDrafts(window.localStorage).find(entry=>entry.docKey===sourceDraftKey.current || (entry.sourceHash===parsedFile.sourceHash&&entry.fileName===parsedFile.fileName));
+    if(!draft) throw new Error("อ่านแบบร่างที่บันทึกไว้ไม่ได้");
+    const {collection}=await saveLibrarySource(parsedFile);
+    await libraryRequest("",{method:"POST",headers:{"X-Library-Action":"draft","X-Collection-Id":collection.id,"X-Version-Id":crypto.randomUUID(),"Content-Type":"application/json"},body:JSON.stringify(draftBackup(draft))});
+  };
+  const restoreDriveDraft = async (draft:DocumentDraft,collectionId:string) => {
+    const response=await fetch(`/api/google/library?collection=${encodeURIComponent(collectionId)}&source=1`,{cache:"no-store"});
+    if(!response.ok) throw new Error("อ่านต้นฉบับจาก Drive ไม่ได้ ยังไม่เปลี่ยนเอกสารปัจจุบัน");
+    const blob=await response.blob();
+    const hash=Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",await blob.arrayBuffer())),byte=>byte.toString(16).padStart(2,"0")).join("");
+    if(hash!==draft.sourceHash) throw new Error("ต้นฉบับจาก Drive ไม่ตรงกับแบบร่าง");
+    const original=await parseUploadedFile(new File([blob],draft.fileName,{type:blob.type}));
+    original.sourceHash=hash;
+    original.sourceBlob=blob;
+    if(!sourceMatchesDraft(original,draft) || original.sourceHash!==draft.sourceHash) {revokeParsedFileUrls(original);throw new Error("ต้นฉบับจาก Drive ไม่ตรงกับแบบร่าง");}
+    try {await saveOriginalSource(original,draft.docKey);} finally {revokeParsedFileUrls(original);}
+    if(autosaveTimer.current) {window.clearTimeout(autosaveTimer.current);autosaveTimer.current=null;}
+    const clean={...draft,editorHtml:draft.editorHtml ? sanitizeDraftHtml(draft.editorHtml) : ""};
+    const saved=saveDocumentDraft(window.localStorage,clean,{requireFullSnapshot:true});
+    setShowLibrary(false);
+    await handleApplyDraft(saved);
+  };
+
   const handleEditorDraftChange = (editor: HTMLElement) => {
     if (!parsedFile || !formattedItems?.length) return;
     if (autosaveTimer.current) window.clearTimeout(autosaveTimer.current);
@@ -776,11 +945,24 @@ export default function Home() {
   };
 
   const isDocumentActive = Boolean(parsedFile && formattedItems);
+  useEffect(() => {
+    if (!isDocumentActive || !showDriveSettings) return;
+    const trigger = document.activeElement as HTMLElement | null;
+    driveSettingsClose.current?.focus();
+    return () => trigger?.focus();
+  }, [isDocumentActive, showDriveSettings]);
+  useEffect(() => {
+    const refresh = () => { try { setDraftCount(loadAllDrafts(window.localStorage).length); } catch { setDraftCount(0); } };
+    refresh();
+    window.addEventListener("storage", refresh);
+    const timer = window.setInterval(refresh, 15000);
+    return () => { window.removeEventListener("storage", refresh); window.clearInterval(timer); };
+  }, [isDocumentActive, showDraftsModal, savedDrafts, availableDraft]);
   // T-111: refresh the recent-draft cards whenever the upload screen is shown.
   useEffect(() => {
     if (isDocumentActive) return;
     try {
-      setRecentDrafts([...loadAllDrafts(window.localStorage)].sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt)).slice(0, 3));
+      setRecentDrafts([...loadAllDrafts(window.localStorage)].sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt)).slice(0, 4));
     } catch {
       setRecentDrafts([]);
     }
@@ -799,70 +981,58 @@ export default function Home() {
             <h1 className="text-[15px] font-semibold text-[var(--ui-ink)] tracking-tight whitespace-nowrap">AI Exam Formatter</h1>
             <span className="flex items-center gap-1.5 text-[11px] text-[var(--ui-ink-3)]">
               <span className="font-mono">{APP_VERSION}</span>
-              {driveReady && (
-                <span className="inline-flex items-center gap-1 text-[var(--ui-olive)]" title="เชื่อมต่อ Google Drive แล้ว">
-                  <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-[var(--ui-olive)]" />
-                  Drive พร้อม
-                </span>
-              )}
             </span>
           </div>
-          {!isDocumentActive && (
-            <p className="hidden md:block text-[13px] text-[var(--ui-ink-3)] ml-3 pl-3 border-l border-[var(--ui-line)]">จัดรูปแบบข้อสอบ ตรวจทาน และแก้ไขก่อนนำไปใช้งาน</p>
-          )}
+          {/* T-128: the Google Drive connection sits here on the import screen (replaces the tagline). */}
+          {!isDocumentActive && <div ref={setDriveSlot} className="ml-3 min-w-0 border-l border-[var(--ui-line)] pl-3" />}
         </div>
 
-        <div className="flex min-w-0 flex-1 items-center justify-center gap-2">
+        <div className={`flex min-w-0 flex-1 items-center gap-2 ${isDocumentActive && !availableDraft ? "justify-start" : "justify-center"}`}>
           {isDocumentActive && availableDraft && (
-            <div role="group" aria-label="แบบร่างเดิมของไฟล์นี้" className="ui-status-in flex shrink-0 items-center gap-1 rounded-full border border-[#cfe0d4] bg-[#eef5f0] py-0.5 pl-3 pr-0.5 text-[12px] text-[var(--ui-olive-dark)]" title={`บันทึกเมื่อ ${new Date(availableDraft.updatedAt).toLocaleString("th-TH")}`}>
+            <div role="group" aria-label="แบบร่างเดิมของไฟล์นี้" className="ui-status-in flex shrink-0 items-center gap-1 text-[12px] text-[var(--ui-olive-dark)]" title={`บันทึกเมื่อ ${new Date(availableDraft.updatedAt).toLocaleString("th-TH")}`}>
               <Bookmark aria-hidden="true" className="h-3.5 w-3.5" />
-              <span className="hidden whitespace-nowrap lg:inline">มีแบบร่างเดิม {availableDraft.itemCount} ข้อ</span>
               <button type="button" onClick={() => handleApplyDraft(availableDraft)} aria-label="โหลดแบบร่างเดิม (ประหยัดค่าใช้จ่าย)" className="ml-1 h-6 rounded-full bg-[var(--ui-olive)] px-2.5 text-[12px] font-medium text-white hover:bg-[var(--ui-olive-dark)]">โหลด</button>
               <button type="button" onClick={() => setAvailableDraft(null)} aria-label="ไม่ใช้แบบร่างเดิม" className="ui-icon-btn h-6 w-6 rounded-full"><X className="h-3.5 w-3.5" /></button>
             </div>
           )}
-          {isDocumentActive && infoNotice && (
-            <div key={infoNotice} role="status" data-layout="compact-status" data-folded={noticeFolded ? "true" : undefined} tabIndex={0} aria-label={infoNotice} title={infoNotice} className="ui-notice ui-status-in hidden min-w-0 max-w-[36rem] items-center gap-2 rounded-full border border-[var(--ui-line)] bg-white py-1 pl-3 pr-1 text-[12px] text-[var(--ui-ink-2)] md:flex">
-              <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--ui-teal)]" />
-              <span className="ui-notice-text truncate">{infoNotice}</span>
-              <button
-                type="button"
-                aria-label="ปิดข้อความสถานะ"
-                onClick={() => setInfoNotice(null)}
-                className="ui-icon-btn h-6 w-6 rounded-full"
-                title="ปิดข้อความแจ้งเตือน"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
+          {/* T-130: owner asked to remove the header status text; progress stays readable for assistive tech only.
+              Step chips, the question strip and the answer summary already show the state on screen. */}
+          {isDocumentActive && <div role="status" data-layout="compact-status" aria-label={infoNotice || undefined} className="sr-only">{infoNotice}</div>}
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <div className="ui-group ui-rail" role="group" aria-label="เครื่องมือเสริม">
+          <div className="ui-inline-rail-anchor">
+          <div className="ui-group ui-rail ui-inline-rail" role="group" aria-label="เครื่องมือเสริม">
+            <button type="button" onClick={() => setShowLibrary(true)} aria-label="คลังไฟล์บน Drive" title="คลังไฟล์บน Drive" className="ui-rail-btn"><FolderArchive className="w-4 h-4" /><span aria-hidden="true" className="ui-rail-label">คลังไฟล์</span></button>
             <button type="button" onClick={openDraftsModal} aria-label="แบบร่างและแคช OCR" className="ui-rail-btn">
-              <Bookmark className="w-4 h-4" /><span aria-hidden="true" className="ui-rail-label">แบบร่าง</span>
+              <Bookmark className="w-4 h-4" />{draftCount > 0 && <span aria-hidden="true" className="ui-rail-badge">{draftCount > 99 ? "99+" : draftCount}</span>}<span aria-hidden="true" className="ui-rail-label">แบบร่าง/ประวัติ</span>
             </button>
-            <button ref={historyButton} type="button" onClick={openImportHistory} aria-label="ประวัติไฟล์นำเข้า" className="ui-rail-btn">
-              <Files className="w-4 h-4" /><span aria-hidden="true" className="ui-rail-label">ประวัติไฟล์</span>
-            </button>
-            <button type="button" onClick={openStatisticsModal} aria-label="สถิติ 10 รอบล่าสุด" className="ui-rail-btn">
-              <BarChart3 className="w-4 h-4" /><span aria-hidden="true" className="ui-rail-label">สถิติ</span>
-            </button>
-            <button type="button" onClick={downloadStatistics} aria-label="ดาวน์โหลดสถิติการทดลอง" className="ui-rail-btn">
-              <Download className="w-4 h-4" /><span aria-hidden="true" className="ui-rail-label">ดาวน์โหลดสถิติ</span>
-            </button>
-            <button
-              ref={caseButton}
-              type="button"
-              aria-expanded={showCaseLog}
-              aria-controls="case-log-panel"
-              aria-label="บันทึกปัญหาและวิธีแก้"
-              onClick={() => setShowCaseLog(!showCaseLog)}
-              className="ui-rail-btn"
-            >
-              <History className="w-4 h-4" /><span aria-hidden="true" className="ui-rail-label">บันทึกปัญหา</span>
-            </button>
+            <span aria-hidden="true" className="ui-rail-divider" />
+            {/* T-129: statistics, statistics download and the case log share one tools menu. */}
+            <div ref={toolsRef} className="tools-anchor">
+              <button type="button" onClick={() => setToolsOpen(open => !open)} aria-expanded={toolsOpen} aria-controls="tools-menu" aria-label="เครื่องมือ: สถิติ ดาวน์โหลดสถิติ บันทึกปัญหา" className="ui-rail-btn">
+                <Wrench className="w-4 h-4" /><span aria-hidden="true" className="ui-rail-label">เครื่องมือ</span>
+              </button>
+              <div id="tools-menu" role="group" aria-label="เมนูเครื่องมือ" hidden={!toolsOpen} className="tools-menu">
+                <button type="button" onClick={() => { setToolsOpen(false); openStatisticsModal(); }} aria-label="สถิติ 10 รอบล่าสุด" className="tools-item">
+                  <BarChart3 className="w-4 h-4" /><span aria-hidden="true">สถิติ</span>
+                </button>
+                <button type="button" onClick={() => { setToolsOpen(false); downloadStatistics(); }} aria-label="ดาวน์โหลดสถิติการทดลอง" className="tools-item">
+                  <Download className="w-4 h-4" /><span aria-hidden="true">ดาวน์โหลดสถิติ</span>
+                </button>
+                <button
+                  ref={caseButton}
+                  type="button"
+                  aria-expanded={showCaseLog}
+                  aria-controls="case-log-panel"
+                  aria-label="บันทึกปัญหาและวิธีแก้"
+                  onClick={() => { setToolsOpen(false); setShowCaseLog(!showCaseLog); }}
+                  className="tools-item"
+                >
+                  <History className="w-4 h-4" /><span aria-hidden="true">บันทึกปัญหา</span>
+                </button>
+              </div>
+            </div>
             <a
               href={FORMATTER_CONSTANTS.TEMPLATE_URL}
               target="_blank"
@@ -873,6 +1043,7 @@ export default function Home() {
               <BookOpen className="w-4 h-4" /><span aria-hidden="true" className="ui-rail-label">แม่แบบ ↗</span>
             </a>
           </div>
+          </div>
           {parsedFile && (
             <button type="button" onClick={handleReset} title="เลือกไฟล์ใหม่" aria-label="เลือกไฟล์ใหม่" className="ui-btn ui-btn-quiet">
               <ArrowLeft className="w-4 h-4" />
@@ -882,27 +1053,51 @@ export default function Home() {
         </div>
       </header>
 
+      {libraryError && <div role="alert" className="mb-2 flex flex-wrap items-center gap-2 rounded border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900"><span>{libraryError}</span><button type="button" className="ui-btn ui-btn-quiet" onClick={() => setShowLibrary(true)}>เปิดคลังไฟล์</button></div>}
+      {duplicatePrompt && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/30 p-4" role="presentation">
+          <div role="alertdialog" aria-modal="true" aria-labelledby="duplicate-title" aria-describedby="duplicate-body" className="duplicate-dialog">
+            <h2 id="duplicate-title">ไฟล์นี้เคยนำเข้าแล้ว</h2>
+            <p id="duplicate-body">
+              <strong>{duplicatePrompt.fileName}</strong> มีเนื้อหาตรงกับไฟล์ที่เคยนำเข้า (ตรวจจากเนื้อไฟล์ จึงจับได้แม้เปลี่ยนชื่อ)
+              {duplicatePrompt.driveName && <> และมีต้นฉบับในคลัง Drive ชื่อ <strong>{duplicatePrompt.driveName}</strong></>}
+            </p>
+            {duplicatePrompt.drafts[0] && (
+              <div className="duplicate-draft">
+                <div><strong>แบบร่างล่าสุด</strong> {duplicatePrompt.drafts[0].fileName} · {new Date(duplicatePrompt.drafts[0].updatedAt).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Bangkok" })}{duplicatePrompt.drafts.length > 1 ? ` · มีแบบร่างของไฟล์นี้ ${duplicatePrompt.drafts.length} ชุด` : ""}</div>
+                <DraftProgress draft={duplicatePrompt.drafts[0]} />
+              </div>
+            )}
+            <div className="duplicate-actions">
+              {duplicatePrompt.drafts[0] && <button type="button" autoFocus className="ui-btn ui-btn-primary" onClick={() => answerDuplicate("resume")}>ทำต่อจากแบบร่างเดิม</button>}
+              {!duplicatePrompt.drafts[0] && duplicatePrompt.driveName && <button type="button" autoFocus className="ui-btn ui-btn-primary" onClick={() => answerDuplicate("library")}>เปิดจากคลัง Drive</button>}
+              <button type="button" className="ui-btn ui-btn-quiet" onClick={() => answerDuplicate("new")}>นำเข้าใหม่</button>
+              <button type="button" className="ui-btn ui-btn-quiet" onClick={() => answerDuplicate("cancel")}>ยกเลิก</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showLibrary && <DocumentLibrary onClose={() => setShowLibrary(false)} pendingCount={pendingOutputs.length} onRetry={retryLibraryOutputs} onRestoreDraft={restoreDriveDraft} onSaveCurrent={parsedFile?.sourceBlob ? async () => { await saveLibrarySource(parsedFile); setLibraryError(null); } : undefined} />}
+
       {/* Google Drive Status: Full Card on upload screen, background-active in document view */}
-      <div className={isDocumentActive ? "hidden" : "mb-4"}>
-        <GoogleDriveStatus onReady={setDriveReady} />
+      <div className={isDocumentActive ? showDriveSettings ? "fixed inset-0 z-[80] flex items-start justify-center bg-black/30 px-3 pt-24" : "hidden" : "hidden"}>
+        <section role={isDocumentActive && showDriveSettings ? "dialog" : undefined} aria-modal={isDocumentActive && showDriveSettings ? true : undefined} aria-label={isDocumentActive && showDriveSettings ? "จัดการ Google Drive" : undefined} className={isDocumentActive ? "w-full max-w-lg rounded-lg bg-white p-4 shadow-xl" : undefined} onKeyDown={event => {
+          if (event.key === "Escape") setShowDriveSettings(false);
+          if (event.key === "Tab" && isDocumentActive && showDriveSettings) {
+            const controls = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled),a[href]'));
+            const first = controls[0], last = controls[controls.length - 1];
+            if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+            if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+          }
+        }}>
+          {isDocumentActive && <div className="flex items-center justify-between"><h2 className="text-sm font-semibold">Google Drive</h2><button ref={driveSettingsClose} type="button" aria-label="ปิดการจัดการ Google Drive" className="ui-icon-btn" onClick={() => setShowDriveSettings(false)}><X className="h-4 w-4" /></button></div>}
+          {isDocumentActive && <GoogleDriveStatus onReady={setDriveReady} onStatus={setDriveStatus} active={showDriveSettings} />}
+        </section>
       </div>
 
+      {!isDocumentActive && driveSlot && createPortal(<GoogleDriveStatus variant="compact" onReady={setDriveReady} onStatus={setDriveStatus} active />, driveSlot)}
+
       {/* Case Decision Manager Overlay */}
-      {importHistory && (
-        <section role="dialog" aria-modal="true" aria-labelledby="import-history-title" onKeyDown={event => {
-          if (event.key === "Escape") setImportHistory(null);
-          if (event.key === "Tab") {
- const controls = event.currentTarget.querySelectorAll<HTMLElement>('button, [tabindex="0"]');
- const first = controls[0]; const last = controls[controls.length - 1];
- if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
- if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
- }
-        }} className="fixed inset-4 z-50 mx-auto flex max-w-2xl flex-col rounded-xl border border-[#dedad0] bg-white p-4 shadow-xl">
-          <div className="flex items-center justify-between gap-2"><h2 id="import-history-title" className="text-sm font-semibold text-[#28332d]">ประวัติไฟล์นำเข้า</h2><button ref={historyCloseButton} type="button" aria-label="ปิดประวัติไฟล์" onClick={() => setImportHistory(null)} className="rounded bg-[#f7f6f2] p-2 hover:bg-[#eae8e1]"><X className="h-4 w-4 text-[#28332d]" /></button></div>
-          <p className="my-3 text-xs text-stone-600">ล่าสุด 100 ครั้งในเบราว์เซอร์นี้ เก็บเฉพาะชื่อและเวลานำเข้า ไม่เก็บเนื้อไฟล์สำหรับเปิดซ้ำ</p>
-          <div tabIndex={0} aria-label="รายการไฟล์ที่เคยนำเข้า" className="overflow-y-auto text-xs">{importHistory.length ? <ol className="divide-y divide-[#eae8e1]">{importHistory.map(entry => <li key={entry.id} className="py-3"><div className="break-all font-medium text-[#28332d]">{entry.fileName}</div><div className="mt-1 text-stone-500">{new Date(entry.importedAt).toLocaleString("th-TH",{timeZone:"Asia/Bangkok"})} · {(entry.fileBytes/1024).toFixed(1)} KB</div></li>)}</ol> : <p>ยังไม่มีประวัติไฟล์นำเข้า</p>}</div>
-        </section>
-      )}
 
       {/* Document Drafts & OCR Cache Modal */}
       {showDraftsModal && (
@@ -920,7 +1115,7 @@ export default function Home() {
             <div className="flex items-center gap-2">
               <Bookmark className="h-4 w-4 text-[#496053]" />
               <h2 id="drafts-history-title" className="text-sm font-semibold text-[#28332d]">
-                แบบร่าง & ประวัติการถอดข้อความ OCR
+                แบบร่างและประวัติไฟล์นำเข้า
               </h2>
             </div>
             <div className="flex items-center gap-2">
@@ -964,12 +1159,9 @@ export default function Home() {
                         <span className="font-medium text-[#496053]">
                           {draft.itemCount ? `${draft.itemCount} ข้อ` : draft.ocrText ? "มีข้อความ OCR" : "แบบร่าง"}
                         </span>
-                        {draft.diagramsHarvested && (
-                          <span className="bg-[#eef5f2] text-[#496053] px-1.5 py-0.2 rounded text-[10px] border border-[#496053]/25">
-                            สกัดรูปแล้ว
-                          </span>
-                        )}
                       </div>
+                      <DraftProgress draft={draft} />
+                      {(() => { const imports = historyEntries.filter(entry => entry.fileName === draft.fileName); return imports.length ? <div className="mt-0.5 text-[11px] text-stone-500">นำเข้า {imports.length} ครั้ง · ล่าสุด {new Date(imports[0].importedAt).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Bangkok" })}</div> : null; })()}
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
                       <button
@@ -996,6 +1188,20 @@ export default function Home() {
             ) : (
               <p className="text-stone-500 py-6 text-center">ยังไม่มีแบบร่างหรือประวัติ OCR ที่บันทึกไว้</p>
             )}
+            {(() => {
+              const withoutDraft = historyEntries.filter(entry => !savedDrafts.some(draft => draft.fileName === entry.fileName));
+              return (
+                <section aria-labelledby="import-history-title" className="mt-4 border-t border-[#eae8e1] pt-3">
+                  <h3 id="import-history-title" className="text-[12px] font-semibold text-[#28332d]">ประวัติไฟล์นำเข้า</h3>
+                  <p className="mt-0.5 text-[11px] text-stone-500">ไฟล์ที่เคยนำเข้าแต่ไม่มีแบบร่างแล้ว (เก็บเฉพาะชื่อและเวลา {historyEntries.length} ครั้งล่าสุดในเบราว์เซอร์นี้)</p>
+                  {withoutDraft.length ? (
+                    <ol aria-label="รายการไฟล์ที่เคยนำเข้า" className="mt-2 divide-y divide-[#eae8e1] text-xs">
+                      {withoutDraft.map(entry => <li key={entry.id} className="flex items-center justify-between gap-3 py-1.5"><span className="break-all text-[#28332d]">{entry.fileName}</span><span className="shrink-0 text-stone-500">{new Date(entry.importedAt).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Bangkok" })}</span></li>)}
+                    </ol>
+                  ) : <p className="mt-2 text-[11px] text-stone-500">{historyEntries.length ? "ทุกไฟล์ที่เคยนำเข้ามีแบบร่างอยู่ด้านบนแล้ว" : "ยังไม่มีประวัติการนำเข้าในเบราว์เซอร์นี้"}</p>}
+                </section>
+              );
+            })()}
           </div>
         </section>
       )}
@@ -1096,6 +1302,7 @@ export default function Home() {
             rawOcrText={ocrText}
             ocrProgress={ocrProgress}
             sourcePagesComplete={sourcePagesComplete.current}
+            sourceQuestionCount={sourceItemCount.current ?? sourceQuestionNumbers.current.length}
             reviewIssues={reviewIssues}
             restoredEditorHtml={restoredEditorHtml.current}
             onConvertReviewedText={convertReviewedText}
@@ -1109,8 +1316,13 @@ export default function Home() {
             onReset={handleReset}
             onExportDrive={exportDocument}
             onDownloadDocx={downloadDocument}
+            onSaveDraft={saveCurrentDraft}
+            onBackupDraft={backupCurrentDraft}
+            onDriveAction={() => setShowDriveSettings(true)}
+            driveState={!driveStatus ? "checking" : !driveStatus.configured || driveStatus.error ? "error" : !driveStatus.connected ? "disconnected" : driveReady ? "ready" : "needs-folder"}
             exportAvailable={driveReady}
             exportedUrl={exportLink}
+            exportPhase={exportPhase}
             onCreateStarterDraft={handleCreateStarterDraft}
           />
         </div>
@@ -1125,6 +1337,12 @@ export default function Home() {
               </p>
             </div>
 
+            <label className="mb-3 flex items-center gap-2 text-sm text-[var(--ui-ink-2)]">
+              <input type="checkbox" checked={filterOcrInk} onChange={event=>{
+                setFilterOcrInk(event.target.checked);
+                try {window.localStorage.setItem(OCR_INK_FILTER_STORAGE_KEY,event.target.checked ? "on" : "off");} catch {}
+              }} />กรองรอยปากกาสีก่อน OCR
+            </label>
             <FileUploader 
               onFileParsed={handleFileParsed} 
               onError={handleUploadError} 
@@ -1140,6 +1358,7 @@ export default function Home() {
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-[13px] font-medium text-[var(--ui-ink)]" title={draft.fileName}>{draft.fileName}</div>
                         <div className="text-[11px] text-[var(--ui-ink-3)]">{draft.itemCount ? `${draft.itemCount} ข้อ` : "ข้อความ OCR"}, {new Date(draft.updatedAt).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" })}</div>
+                        <DraftProgress draft={draft} />
                       </div>
                       <button type="button" disabled={draftOpening} onClick={() => handleApplyDraft(draft)} aria-label={`ทำต่อจากแบบร่าง ${draft.fileName}`} className="ui-btn ui-btn-quiet h-8 shrink-0">ทำต่อ</button>
                     </li>
@@ -1154,4 +1373,4 @@ export default function Home() {
   );
 }
 
-/* BUILD_STAMP: 261016-1034 */
+/* BUILD_STAMP: 261017-2046 */

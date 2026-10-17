@@ -1,0 +1,27 @@
+{
+  "task": "T-118",
+  "date": "2026-10-16",
+  "timezone": "Asia/Bangkok",
+  "machine": "DESKTOP-FNVSAKS",
+  "build": "261016-2013",
+  "url": "http://localhost:3000/",
+  "dist": ".next-production-t118",
+  "pid": 24280,
+  "browser": "Codex IAB tab1",
+  "badgeMatchesSource": true,
+  "liveFlows": [
+    "resume existing synthetic two-question draft",
+    "explicit Save then reload/resume preserves image/manual answer/source count",
+    "disconnected enabled export opens Google settings",
+    "Escape returns focus to export"
+  ],
+  "completionGateExit": 0,
+  "deployedBrowserSuiteExit": 0,
+  "deployedRealSourceSuiteExit": 0,
+  "css": { "httpStatus": 200, "bytes": 57031 },
+  "cloudConcurrency": "mocked Google/providers; real local DOCX",
+  "newRealGoogleExportClaimed": false,
+  "actualQuizFlowImportClaimed": false,
+  "publicationHold": "T-113",
+  "stagedCommittedPushed": false
+}

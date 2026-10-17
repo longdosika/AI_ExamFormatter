@@ -1,5 +1,17 @@
 # ปรับแต่ง ตัวหนา ตัวเอียง ขีดเส้นใต้ได้ (อนาคตอยากให้รองรับ สูตรเลข สูตรเคมี เลขยกกำลัง)
 
+### T-123 Fifth-Choice Editing
+The existing radio/manual-origin, Save/resume and capture controls support จ when that source choice exists. Four-choice questions do not gain a fifth answer on keyboard5. One-choice-per-line template, source comparison and existing theme remain unchanged. [[../evidence/t123/verification]].
+
+### T-118 Explicit Live Save
+Toolbar Save captures live DOM, styles, images and manual answers immediately; raw stage captures current textarea. Strict storage readback reports failures and never falls back to a truncated snapshot while claiming success. Existing automatic saves continue. Regression: scripts/test-document-drafts.cjs and scripts/test-workspace-controls.cjs; evidence/t118-verification.md.
+
+### T-115 Exact Original Resume
+Actual PDF source-only reattachment renders all13 pages, survives reload, preserves the isolated edited fixture and enables magnification without OCR/AI calls. Four exact-source crops retain their protected pixels and detached guides. Private rendered artifacts remain under ignored tmp/pdfs/t115; evidence/t115-verification.md records the result and detection limits.
+
+### T-114 Capture Editing Integrity
+Preserve styled manual narrative during duplicate-table cleanup. Suggest the current question/role, retain the native-picker replacement target and reveal modified images. Automatic crops protect detached figure guides within their original bounds; saved truncated crops still need source recapture. Regression: parser/diagram unit checks, test-e2e and test-capture-editor; evidence/t114-verification.md.
+
 ### T-105 Continuous Original Reference and Expandable Question Ranges
 Stored originals survive draft reopen, enabling magnifier/capture. Legacy source-only attachment keeps the live edited DOM/answers intact and verifies known identity. Circular gap controls expose hidden questions explicitly, support keyboard/aria/reduced motion and mobile wrapping. Completed workflow icons share subdued styling, with repeat actions still enabled. Evidence: evidence/t105-verification.md.
 

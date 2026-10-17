@@ -1,0 +1,38 @@
+const fs=require('fs');const f='scripts/test-drive-library.cjs';let s=fs.readFileSync(f,'utf8');const crlf=s.includes('\r\n');s=s.replace(/\r\n/g,'\n');
+const rep=(a,b)=>{if(!s.includes(a))throw new Error('missing '+a.slice(0,60));s=s.replace(a,()=>b);};
+rep("const { driveLibrary } = require('../lib/drive-library.ts');","const { driveLibrary, exportStamp } = require('../lib/drive-library.ts');");
+rep(`  const originals = [...fake.files.values()].find(file => file.properties?.aefRole === 'originals' && file.parents.includes(saved.collection.id));
+  originals.permissions = [{ type: 'anyone' }];
+  await assert.rejects(library.saveSource(bytes, 'source.pdf', 'application/pdf', hash), /สาธารณะ/);
+  originals.permissions = [{ type: 'user' }];`,`  const target = fake.files.get(TARGET_FOLDER);
+  target.permissions = [{ type: 'anyone' }];
+  await assert.rejects(library.saveSource(bytes, 'source.pdf', 'application/pdf', hash), /สาธารณะ/);
+  target.permissions = [{ type: 'user' }];`);
+rep("  console.log('Drive library: hash identity",`  // T-128: flat layout and names; every file of a document sits in the AI_ExamFormatter folder.
+  const stamp = /_\d{6}-\d{4}/;
+  assert.match(exportStamp(new Date('2026-10-17T07:30:00Z')), /^261017-1430$/, 'Thai-time yymmdd-hhmm');
+  const mine = [...fake.files.values()].filter(file => file.properties?.aefHash === hash);
+  assert.ok(mine.every(file => file.parents?.includes(TARGET_FOLDER) && file.mimeType !== 'application/vnd.google-apps.folder'), 'no per-document folders');
+  assert.equal(mine.find(file => file.properties.aefRole === 'source').name, 'source.pdf', 'original keeps its file name');
+  assert.ok(mine.filter(file => file.properties.aefRole === 'output').every(file => /^source_\d{6}-\d{4}\.docx$/.test(file.name)), 'export is [original]_[yymmdd-hhmm].docx');
+  assert.ok(mine.filter(file => file.properties.aefRole === 'draft').every(file => /^source_แบบร่าง_\d{6}-\d{4}\.json$/.test(file.name)));
+  assert.ok(mine.filter(file => file.properties.aefRole === 'quizflow-import').every(file => /^source_QuizFlow_\d{6}-\d{4}$/.test(file.name)));
+  void stamp;
+  assert.equal((await library.findByHash(hash)).collection.id, saved.collection.id, 'renamed copies are found by hash');
+  assert.equal((await library.findByHash(digest(Buffer.from('never stored')))).collection, null);
+  // A collection created before T-128 (folder per document) stays readable and is reused, never duplicated.
+  const old = fakeDrive(), oldLibrary = driveLibrary('fixture-token', old.request), oldBytes = Buffer.from('%PDF-legacy'), oldHash = digest(oldBytes);
+  const make = data => { const id = \`legacy_\${old.files.size}\`; old.files.set(id, { id, permissions: [{ type: 'user' }], capabilities: { canAddChildren: true }, createdTime: new Date().toISOString(), ...data }); return old.files.get(id); };
+  const libraryRoot = make({ name: 'คลังชุดเอกสาร', mimeType: 'application/vnd.google-apps.folder', parents: [TARGET_FOLDER], properties: { aefApp: 'exam-library-v1', aefRole: 'library' } });
+  const group = make({ name: 'legacy [abc]', mimeType: 'application/vnd.google-apps.folder', parents: [libraryRoot.id], properties: { aefApp: 'exam-library-v1', aefRole: 'collection', aefHash: oldHash } });
+  const folder = make({ name: '01 ต้นฉบับ', mimeType: 'application/vnd.google-apps.folder', parents: [group.id], properties: { aefApp: 'exam-library-v1', aefRole: 'originals', aefHash: oldHash } });
+  make({ name: 'legacy.pdf', mimeType: 'application/pdf', parents: [folder.id], size: String(oldBytes.length), md5Checksum: digest(oldBytes, 'md5'), properties: { aefApp: 'exam-library-v1', aefRole: 'source', aefHash: oldHash } });
+  assert.equal((await oldLibrary.listCollections()).collections[0].id, group.id, 'legacy collections are still listed');
+  assert.equal((await oldLibrary.saveSource(oldBytes, 'renamed-legacy.pdf', 'application/pdf', oldHash)).collection.id, group.id, 'same bytes reuse the legacy collection');
+  assert.equal([...old.files.values()].filter(file => file.properties?.aefRole === 'source').length, 1, 'no duplicate original uploaded');
+  const legacyOutput = await oldLibrary.saveOutput(group.id, docx, 'x.docx', crypto.randomUUID(), 'test');
+  assert.ok(legacyOutput.output.parents.includes(TARGET_FOLDER) && /^legacy_\d{6}-\d{4}\.docx$/.test(legacyOutput.output.name), 'new exports of legacy documents also go flat');
+  assert.ok((await oldLibrary.details(group.id)).files.some(file => file.id === legacyOutput.output.id), 'details merge flat files into the legacy document');
+  console.log('T-128 flat Drive layout, names, hash lookup and legacy collections passed');
+  console.log('Drive library: hash identity`);
+fs.writeFileSync(f,crlf?s.replace(/\n/g,'\r\n'):s);console.log('ok');

@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-17",
+  "timezone": "Asia/Bangkok",
+  "machine": "DESKTOP-FNVSAKS",
+  "build": "261017-0014",
+  "url": "http://localhost:3000/",
+  "dist": ".next-production-t121-release",
+  "pidAtVerification": 17800,
+  "sourceAndIabBadgeMatch": true,
+  "css": {"http": 200, "bytes": 63734},
+  "actualIabResume": {"questions":80,"sourcePages":13,"images":15,"q66CropBottom":846.406528189911},
+  "actualDriveRestore": {"questions":80,"sourcePages":13,"images":15,"ocrRerun":false},
+  "actualDocxDownload": {"bytes":993088,"mediaFiles":15,"questionNumberCoverage":80,"syntheticMarkerPresent":false},
+  "actualGoogleFinal": {"id":"1bNXWPjeghVo_CZ_opqDEdSPyKCvIzQz23ZSOuG-T1Tc","pdfPages":23,"images":15,"questionNumberCoverage":80,"q66EditorAndPdfVisuallyChecked":true},
+  "deployedRegressions": {"legacyAndCloudControls":"PASS","resumed80Fidelity":"PASS"},
+  "publication": "No stage, commit or push",
+  "notVerified": ["actual QuizFlow database import","all source-answer marks","generic uncaptured-table reconstruction","Node22 GitHub CI","historical credentials and source-document privacy"]
+}

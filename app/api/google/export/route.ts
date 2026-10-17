@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { assertSameOrigin, getGoogleSession, SESSION_COOKIE } from "@/lib/google-auth";
-import { EXPORT_LIMIT, uploadGoogleDocument, validateExportDocument } from "@/lib/google-export";
+import { EXPORT_LIMIT, createExportDocx, uploadGoogleDocument, validateExportDocument } from "@/lib/google-export";
+import { driveLibrary } from "@/lib/drive-library";
+import { APP_VERSION } from "@/lib/version";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -23,7 +25,16 @@ export async function POST(request: NextRequest) {
     }
     const document: unknown = JSON.parse(Buffer.concat(chunks).toString("utf8"));
     validateExportDocument(document);
-    const result = await uploadGoogleDocument(document, session.token);
+    const collectionId = request.headers.get("x-collection-id");
+    let archived;
+    if (collectionId) {
+      const library = driveLibrary(session.token);
+      const bytes = await createExportDocx(document);
+      const { output } = await library.saveOutput(collectionId, bytes, document.title, request.headers.get("x-version-id") || "", APP_VERSION);
+      const { folder } = await library.outputTarget(collectionId, output.id);
+      archived = { bytes, folder, name: output.name.replace(/\.docx$/i, ""), properties: { ...output.properties, aefRole: "view", aefOutputId: output.id } };
+    }
+    const result = await uploadGoogleDocument(document, session.token, fetch, archived);
     return json(result, 200);
   } catch (error) { return json({error: error instanceof Error ? error.message : "ส่งออกไม่สำเร็จ กรุณาตรวจ Drive ก่อนลองใหม่"}, 400); }
   finally { reader.releaseLock(); }

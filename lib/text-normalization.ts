@@ -38,6 +38,9 @@ export function normalizeThaiOcrText(text: string): string {
     normalized = normalized.split(broken).join(repaired);
   }
 
+  // OCR may decompose sara-am around its tone mark; never join across lines.
+  normalized = normalized.replace(/([ก-ฮ][่-๋]?)ํ([่-๋]?)า/g, "$1$2ำ");
+
   // Repair detached punctuation for enumeration numbers and choice letters:
   // e.g. "1 . " -> "1. ", "ข้อ 1 . " -> "ข้อ 1. ", "ก . " -> "ก. ", "1 ) " -> "1) "
   normalized = normalized.replace(/(^|[\s\n(])(\d+|[ก-จA-Ea-e])\s+([.)])(?=\s|$)/gm, "$1$2$3");

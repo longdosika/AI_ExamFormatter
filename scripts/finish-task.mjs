@@ -4,6 +4,18 @@ import { spawnSync } from "node:child_process";
 
 const root = process.cwd();
 const isWindows = process.platform === "win32";
+const taskIds = process.argv.slice(2).filter(value => /^T-\d+$/.test(value));
+if (taskIds.length) {
+  const logPath = path.join(root, "release_log.md");
+  const history = fs.existsSync(logPath) ? fs.readFileSync(logPath, "utf8").split("## ประวัติ build")[1]?.split("## เอกสารที่เกี่ยวข้อง")[0] || "" : "";
+  const taskCells = history.split(/\r?\n/).filter(line => line.trim().startsWith("|")).map(line => line.split("|")[2] || "");
+  for (const id of taskIds) {
+    if (!taskCells.some(cell => new RegExp(`\\b${id}\\b`).test(cell))) {
+      console.error(`[completion-gate] Missing ${id} build-history row in release_log.md. Record this verification attempt before closing the task.`);
+      process.exit(1);
+    }
+  }
+}
 
 function run(command, args, label, extraEnv = {}) {
   console.log(`\n[completion-gate] ${label}: ${command} ${args.join(" ")}`);

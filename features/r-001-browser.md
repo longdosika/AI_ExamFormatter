@@ -1,6 +1,21 @@
 # ลาก / browser ไฟล์ต้นฉบับ
 
+### T-121 Source and Review Controls
+The original stays read-only. OCR geometry survives draft restore; colour-ink removal is opt-in on an OCR copy. Explicit split/merge/spelling repair persists across Save/reload. Figure overview and recapture retain source page/bounds; source-answer previews use actual mark evidence. Regression: scripts/test-t121-controls.cjs and scripts/test-t121-fidelity.cjs.
+
+### T-118 Owner Restoration
+Original question count is plain source-header text, not a framed draft chip. Explicit save resumes live edited HTML/media/answers or reviewed raw text; original count remains independent. Header labels again expand inline on hover/focus per owner choice, superseding T-117 floating labels. Evidence: evidence/t118-verification.md; regression scripts/test-workspace-controls.cjs.
+
+### T-117 Stable Header Targets
+Header utilities use fixed32px hit targets and per-control floating labels rather than expanding the whole rail. This prevents the live hover-reflow misclick observed while opening the new library. Regression: repeated pointer entries/clicks and geometry assertions in scripts/test-library-ui.cjs; evidence/t117-verification.md.
+
+### T-114 Capture Context and Review
+Capture/upload suggests the clicked/keyboard-edited question and role, with explicit override. Insert/replace/resize reveal the affected right-side figure without moving the original; narrow-image tools remain in the editor and file-picker replacement retains its target. Regression: scripts/test-e2e.cjs, scripts/test-capture-editor.cjs; evidence/t114-verification.md.
+
 Status: `In Progress`
+
+### T-119 Thirty-Point Pass
+Duplicate/merged-choice/source-mismatch checks with links and split action, one-row rail, denser questions with two-column short choices, grouped header with draft count, page dots, opt-in original sync, ink reduction view, strip legend and arrow keys, keys 1-4, two-step AI confirmation and long-document rendering. Evidence: evidence/t119-verification.md.
 
 ### T-111 Workspace Conveniences
 Header draft chip and folding notice, recent drafts on the upload screen, clickable next step, J/K question keys, answered chip jump, answer pop, current-question pill and dimmed crop surround. Evidence: evidence/t111-verification.md.
@@ -121,3 +136,9 @@ The document workspace uses a centered compact status pill and a floating editor
 
 ### T-100 Review/export media preservation
 ขั้นตอนตรวจสอบฉบับแก้ไขตรวจ DOM ที่ผู้ใช้กำลังแก้จริง โดยไม่สร้าง editor ใหม่จากผล parser แบบข้อความล้วนอีกครั้ง เพราะ parser ไม่ได้ถือครองรูปตัวเลือก/รูปโจทย์ร่วม/รูปคำอธิบายเป็นข้อความ การตรวจจะ clone DOM แล้วตัด media block และป้ายจัดการออกเฉพาะ clone เพื่อวิเคราะห์โครงสร้าง จากนั้น normalize ป้าย `รูปโจทย์:`, `รูปโจทย์ร่วม:` และ `รูปคำอธิบาย:` ให้เหลืออย่างละหนึ่งป้ายใน DOM จริง รูปทุกบทบาทจึงคงอยู่สำหรับ snapshot/export และ draft จะเก็บ `editorHtml` คู่กับ structured model เดิมเพื่อไม่ทำให้ metadata รูปหายเมื่อเปิดใหม่ หลักฐาน regression อยู่ใน `scripts/test-e2e.cjs`, `scripts/test-google.cjs` และ `evidence/t100-verification.md`.
+
+- T-124 (2026-10-17): reopening a draft cleans stem text duplicated by captured figures (stored OCR geometry) and offers "ตัดใหม่จากต้นฉบับ" for figures cropped by older versions; regression scripts/test-t124-stale-draft.cjs.
+- T-125 (2026-10-17): figure capture always uses OCR line geometry (cached OCR text without geometry is not reused; geometry is read before harvesting); rules in documents/capture-rules.md; regression scripts/test-t125-cached-ocr.cjs.
+- T-128 (2026-10-17): importing a file seen before (same SHA-256, any name) asks: continue the draft / import anew / cancel; drafts show their progress; the landing page lists 4 drafts; the Drive connection sits in the header. Regression scripts/test-t128-duplicate-import.cjs.
+- T-129 (2026-10-17): header rail merged to four entries. แบบร่าง/ประวัติ opens one list (drafts with progress and import count, then imports without a draft); สถิติ / ดาวน์โหลดสถิติ / บันทึกปัญหา are in the เครื่องมือ menu (closes on choice, Escape or outside click).
+- T-130 (2026-10-17): workspace header has no visible status text (sr-only live region keeps progress for assistive tech).

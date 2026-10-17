@@ -1,5 +1,63 @@
 # Traceability
 
+### T-132 Crop Top and Enforced Capture Rules
+Bug on capture (R-002, capture-rules C-10) -> Task T-132 -> Feature Note r-002-feature -> lib/capture-geometry.ts, documents/capture-rules.md section ฉ. -> scripts/test-capture-rules.cjs, scripts/test-t132-crop-top.cjs, test-t123.cjs, test-t121-fidelity.cjs -> evidence/t132/.
+
+### T-131 Several Question Figures
+Bug on capture (R-002 / capture-rules C-37, release_log I-059 / H-13) -> Task T-131 -> Feature Note r-002-feature (existing) -> lib/formatter-rules.ts, lib/diagram-client.ts, lib/harvest-editor.ts, lib/figure-text-cleanup.ts, components/SplitDocumentEditor.tsx, app/page.tsx -> scripts/test-t131-multi-figure.cjs (regression), test-t130-choice-table.cjs, test-t121-order-dom.cjs, full test:e2e -> evidence/t131/.
+
+### T-130 Choice Tables, Header Notice, Drive Control
+Bug on capture (R-002 / capture-rules C-36) and Feature on R-001 workspace and R-003 Google Drive -> Task T-130 -> Feature Notes r-002-feature, r-001-browser, r-003-google-doc-dirve -> lib/capture-geometry.ts, lib/diagram-client.ts, lib/harvest-editor.ts, lib/figure-text-cleanup.ts, app/page.tsx, components/RichTextToolbar.tsx, components/GoogleDriveStatus.tsx -> scripts/test-t130-choice-table.cjs, test-e2e.cjs, test-workspace-controls.cjs, test-t121-controls.cjs -> evidence/t130/.
+
+### T-129 Header Merge
+Feature on R-001 browser workspace -> Task T-129 -> Feature Note r-001-browser -> app/page.tsx, app/globals.css -> scripts/test-e2e.cjs, test-library-ui.cjs, test-workspace-controls.cjs -> evidence/t129/.
+
+### T-128 Imports and Drive Layout
+Feature on R-001 import and R-003 Google Drive -> Task T-128 -> Feature Notes r-001-browser, r-003-google-doc-dirve, r-006-document-library -> app/page.tsx, lib/document-draft-store.ts, lib/drive-library.ts, lib/export-naming.ts, components/DraftProgress.tsx, components/GoogleDriveStatus.tsx -> scripts/test-t128-duplicate-import.cjs, test-drive-library.cjs, test-document-drafts.cjs -> evidence/t128/.
+
+### T-127 Answer Star Integrity
+Bug on T-126 feature (R-002) -> Task T-127 -> Feature Note r-002-feature -> components/SplitDocumentEditor.tsx, lib/answer-editor.ts -> scripts/test-t127-answer-star.cjs -> evidence/t127/.
+
+### T-126 Answers and Choices
+Feature on R-002 answer handling -> Task T-126 -> Feature Note r-002-feature -> lib/answer-editor.ts, lib/source-answer-service.ts, lib/source-answer-client.ts, lib/harvest-editor.ts, components/SplitDocumentEditor.tsx -> scripts/test-t126-answers-choices.cjs, scripts/test-source-answers.cjs -> evidence/t126/.
+
+### T-125 Capture Geometry Guarantee
+Bug on existing R-001/R-003 behaviour -> Task T-125 -> existing Feature Note r-001-browser -> app/page.tsx, documents/capture-rules.md -> scripts/test-t125-cached-ocr.cjs -> evidence/t125/.
+
+### T-124 Stale Draft Repair
+Bug on existing R-001/R-003 behaviour (no new requirement) -> Task T-124 -> existing Feature Notes r-001-browser, r-003-google-doc-dirve -> lib/figure-text-cleanup.ts, lib/diagram-client.ts, lib/capture-geometry.ts, lib/harvest-editor.ts, components/SplitDocumentEditor.tsx -> scripts/test-t124-stale-draft.cjs, regression test-t121-fidelity (25/80), test-t121-order-dom -> evidence/t124/.
+
+### T-123 Four/Five-Choice And Source-Geometry Repairs
+Existing R-002/R-004 (owner-confirmed fifth choice) -> T-123 H-02..H-09/H-11 -> existing [[features/r-002-feature]], [[features/r-004-feature]] -> D-071 -> Code Map T-123 -> `scripts/test-t123.cjs`, `scripts/test-t123-browser.cjs`, existing parser/diagram/source80 regressions and [[../evidence/t123/verification]]. H-01 persistent QuizFlow import, H-07 full live/unruled coverage, H-10 quota/billing and H-12 publication are not certified by replay.
+Live continuation: H-07 -> recorded18 real diagram page calls -> actual Q4/Q9 crop defects -> two failing geometry checks -> `lib/capture-geometry.ts`/`lib/diagram-client.ts` correction -> zero-call recorded-provider replay. H-10 -> eight source-only page calls -> manual12-circle truth ->11/1 correct in rounds1/2 -> threshold not met, round3 not spent. See `evidence/t123/live/source-mark-audit.json` and verification ledger; no purchase.
+
+T-122 Proposed confirmation -> existing R-001 browser Feature Note -> owner-approved inline hover/observed quick IAB misclick -> future pointer regression and evidence; no code change or Done claim. T-121 verification records this residual boundary alongside the individually dispositioned backlog.
+
+### T-121 Fidelity / T-113 Runtime
+Template order 2026-10-17: I-037..I-041 -> lib/harvest-editor.ts, lib/export-document.ts, components/SplitDocumentEditor.tsx, lib/capture-geometry.ts, lib/diagram-client.ts -> scripts/test-t121-order-dom.cjs, scripts/test-t121-fidelity.cjs (order/rows/Q8/Q16) -> evidence/t121/order-*. Handoff T-123 <- release_log H-01..H-11 <- evidence/t121/set2, set4, set5.
+Audit 2026-10-17: I-033..I-036 -> lib/diagram-client.ts (extendCropAcrossInk), lib/api-key-manager.ts (executeAcrossModelsAndKeys), lib/source-answer-service.ts (isSelectionEvidence), lib/ai-answer-service.ts, lib/diagram-service.ts (0..1 bbox), lib/capture-geometry.ts (hasCellRowEvidence, line-preserving removeCapturedGridText), lib/exam-parser.ts (isStemTableRow, splitInlineEnumerations) -> scripts/test-diagram-contract.cjs, test-provider-keys.cjs, test-source-answers.cjs, test-parser.cjs, test-t121-source-marks-ui.cjs, test-t121-fidelity.cjs -> evidence/t121/audit-*.
+Existing R-001/R-002/R-003/R-004/R-006 -> Tasks T-121/T-113 -> existing Feature Notes r-001-browser, r-002-feature, r-003-google-doc-dirve, r-006-document-library -> D-067/D-068 -> T-121 Code Map -> parser/diagram/library units, legacy restore/sanitization E2E, real PDF live provider fixture and replay, clean install, audit and completion gate. B-01..B-40 have distinct dispositions in release_log.md; unexecuted external acceptance and Git publication are not Done.
+
+### T-120 Release Log
+Requirement R-002/R-003 (governance) -> Task T-120 -> release_log.md, README.md -> no code change -> evidence/t120-verification.md. Backlog B-01..B-40 feeds Proposed task T-121.
+
+### T-119 Thirty-Point Pass
+Requirement R-001/R-002/R-003/R-004 -> Task T-119 -> [[features/r-001-browser]], [[features/r-003-google-doc-dirve]] -> lib/exam-parser.ts, lib/exam-validation.ts, lib/export-document.ts, components/SplitDocumentEditor.tsx, components/RichTextToolbar.tsx, app/page.tsx, app/globals.css -> scripts/test-parser.cjs, scripts/test-e2e.cjs, scripts/capture-t119.cjs, evidence/t119-verification.md.
+
+### T-118 Restore Working Controls
+Verified -> Done on production261016-2013: final completion gate and deployed browser/real-source checks exit0, source/badge match and actual IAB Save/reload/resume/disconnected settings exercised. [[evidence/t118-verification]], [live build record](../evidence/t118-live-build.json). No new real Google/QuizFlow acceptance claim.
+Existing R-001/R-003/R-004 -> Bug T-118 -> D-040 -> [[features/r-001-browser]], [[features/r-003-google-doc-dirve]], [[features/r-004-feature]] -> [[documents/code-map]] T-118 -> scripts/test-workspace-controls.cjs, scripts/test-document-drafts.cjs, updated library/E2E checks and evidence/t118-verification.md. Owner-confirmed inline expansion supersedes T-117 floating labels; no new product requirement or change to master export layout.
+
+### T-117 Header Hover Regression
+Existing R-001 -> Bug T-117 -> D-039 -> [[features/r-001-browser]] -> app/page.tsx, app/globals.css -> scripts/test-library-ui.cjs rectangle/repeated-pointer checks and evidence/t117-verification.md. No new product requirement.
+
+### T-115 Exact Source Verification / T-116 Library
+Existing R-002/R-004 -> Verification T-115 -> [[features/r-002-feature]], [[features/r-004-feature]] -> production lib/diagram-client.ts and scripts/verify-t115-source.cjs -> evidence/t115-verification.md. Hand-verified boxes test crop retention, not provider detection accuracy.
+R-006 -> T-116 -> D-038 -> [[features/r-006-document-library]] -> [[documents/code-map]] (T-116 section) -> server hash/privacy/idempotency tests, browser library/queue checks and actual OAuth/Drive evidence/t116-verification.md.
+
+### T-114 Capture and Duplicate Table Regression
+Existing R-001/R-002/R-004 -> Bug Task T-114 -> [[features/r-001-browser]], [[features/r-002-feature]], [[features/r-004-feature]] -> lib/exam-parser.ts, lib/captured-table-editor.ts, lib/diagram-client.ts, lib/diagram-service.ts, components/SplitDocumentEditor.tsx -> parser/diagram contract tests and production browser capture/DOCX/Canvas checks, evidence/t114-verification.md. No new product requirement or export-template change; old cropped images require recapture from the stored original.
+
 ### T-112 GitHub Build Preparation
 Security follow-up T-113 -> existing delivery/provider/PDF feature boundaries -> evidence/t112-npm-audit.json -> planned dependency-path review, approved migration and production audit/regression. No new product requirement or completed remediation is implied.
 Existing delivery requirements and R-001/R-003 -> Task T-112 -> [[features/r-001-browser]], [[features/r-003-google-doc-dirve]] -> .github/workflows/build-test.yml, scripts/check-release-readiness.mjs, scripts/test-release-readiness.cjs, package scripts -> workflow YAML assertions, safety/unit checks, finish-task and isolated production evidence/t112-verification.md. Publication/deployment is expressly excluded. Checklist: [[release-checklist]].
@@ -42,6 +100,7 @@ Trace each requirement through task, decision, feature knowledge, code, and veri
 ## Traceability Matrix
 | Requirement | Task | Decision | Feature Note | Code | Verification |
 |---|---|---|---|---|---|
+| R-006 Related Drive Document Library | T-116 | D-038 | [[features/r-006-document-library]] | lib/drive-library.ts, app/api/google/library/route.ts, components/DocumentLibrary.tsx, lib/library-pending-store.ts | Verified: scripts/test-drive-library.cjs, scripts/test-library-ui.cjs; evidence/t116-verification.md, evidence/t116-t117-completion-gate-final.log exit 0 |
 | R-001 ลาก / browser ไฟล์ต้นฉบับ | T-004, T-008, T-018 | - | [[features/r-001-browser]] | `components/FileUploader.tsx`, `lib/file-parser.ts`, `lib/pdf-renderer.ts` | Pending complete input/browser acceptance; targeted parser tests in `scripts/test-parser.cjs`; audit `evidence/project-audit.md` |
 | R-002 แปลงเอกสารให้เข้ารูปแบบที่กำหนด | T-005, T-010, T-012, T-013 | - | [[features/r-002-feature]] | `lib/exam-parser.ts`, `lib/formatter-rules.ts`, `components/ExamFormatterPreview.tsx` | Pending full template/image acceptance; targeted regression `scripts/test-parser.cjs`; audit `evidence/project-audit.md` |
 | R-003 ได้เอกสารในรูปแบบ google doc ไว้ใน dirve ที่กำหนด | T-017, T-003 | - | [[features/r-003-google-doc-dirve]] | `components/SplitDocumentEditor.tsx` (unavailable export indication only) | Pending app OAuth/export and real Google Doc output; folder metadata in `evidence/project-audit.md` |

@@ -1,0 +1,11 @@
+{
+  "experiment": "B-38 OCR text/figure protection mask; dark pixels outside mask whitened on a copy",
+  "removed": 488,
+  "protectedDark": 84657,
+  "protectedRegions": 33,
+  "width": 1061,
+  "height": 1500,
+  "deployed": false,
+  "providerCalled": false,
+  "decision": "Do not deploy: OCR boxes may contain the handwritten marks themselves and miss printed glyphs, so the mask cannot reliably separate dark ink from print. Original unchanged; explicit review remains required."
+}

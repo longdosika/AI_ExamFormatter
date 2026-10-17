@@ -1,3 +1,4 @@
+require('./e2e-import-helper.cjs'); // T-128: answer the duplicate-import dialog with "นำเข้าใหม่"
 const assert = require('node:assert/strict');
 const JSZip = require('jszip');
 const fs = require('node:fs');
@@ -133,7 +134,8 @@ async function ready() {
     await page.getByRole('navigation',{name:'เลือกข้อสอบ'}).getByRole('button',{name:'ไปข้อ 1',exact:true}).click();
   } else {
     await exportButton.click();
-    assert.match(await page.locator('body').innerText(),/ยังส่งออก Google Docs ไม่ได้|ยังไม่ได้เชื่อมต่อ|เชื่อมต่อ Google/);
+    await page.getByRole('dialog',{name:'จัดการ Google Drive',exact:true}).waitFor();
+    await page.getByRole('button',{name:'ปิดการจัดการ Google Drive',exact:true}).click();
   }
   assert.match(await editor.innerText(),/EDIT_PRESERVED/);
   mark('Editor edit survives action; unavailable export reports failure honestly');
@@ -144,7 +146,7 @@ async function ready() {
   assert.doesNotMatch(await editor.innerText(),/EDIT_PRESERVED/);
   assert.equal(await editor.locator('[data-item-id]').count(),2);
   mark('Reset and same-file reupload clear prior editor content');
-  await page.getByRole('button',{name:/Case Decision Engine|บันทึกปัญหาและวิธีแก้/}).click();
+  await page.getByRole('button',{name:/^เครื่องมือ/}).click(); await page.getByRole('button',{name:/Case Decision Engine|บันทึกปัญหาและวิธีแก้/}).click();
   await page.getByRole('button',{name:/บันทึกการตัดสินใจเคสใหม่|เพิ่มบันทึกปัญหา/}).click();
   const form=page.locator('form');
   await form.locator('input').nth(0).fill('QA reload case');
@@ -153,17 +155,26 @@ async function ready() {
   await form.getByRole('button',{name:/^(บันทึกการตัดสินใจ|บันทึก)$/}).click();
   await page.getByRole('heading',{name:'QA reload case',exact:true}).waitFor();
   await page.reload();
-  await page.getByRole('button',{name:/Case Decision Engine|บันทึกปัญหาและวิธีแก้/}).click();
+  await page.getByRole('button',{name:/^เครื่องมือ/}).click(); await page.getByRole('button',{name:/Case Decision Engine|บันทึกปัญหาและวิธีแก้/}).click();
   await page.getByRole('heading',{name:'QA reload case',exact:true}).waitFor();
   mark('Local case persists after reload');
-  await page.getByRole('button',{name:/Case Decision Engine|บันทึกปัญหาและวิธีแก้/}).click();
-  await page.getByRole('button',{name:'ประวัติไฟล์นำเข้า',exact:true}).click();
-  const history=page.getByRole('dialog',{name:'ประวัติไฟล์นำเข้า',exact:true});
+  await page.getByRole('button',{name:/^เครื่องมือ/}).click(); await page.getByRole('button',{name:/Case Decision Engine|บันทึกปัญหาและวิธีแก้/}).click();
+  // T-129: import history is part of the one drafts list (no separate dialog).
+  assert.equal(await page.getByRole('button',{name:'ประวัติไฟล์นำเข้า',exact:true}).count(),0);
+  await page.getByRole('button',{name:'แบบร่างและแคช OCR',exact:true}).click();
+  const history=page.getByRole('dialog',{name:'แบบร่างและประวัติไฟล์นำเข้า',exact:true});
   await history.waitFor();
-  assert.ok(await history.getByText('source.md',{exact:true}).count()>=2);
-  await page.keyboard.press('Escape');
+  await history.getByRole('heading',{name:'ประวัติไฟล์นำเข้า',exact:true}).waitFor();
+  const historyText=await history.innerText();
+  const importCount=Number((historyText.match(/นำเข้า (\d+) ครั้ง/)||[])[1]||0);
+  assert.ok(importCount>=2 || await history.getByRole('list',{name:'รายการไฟล์ที่เคยนำเข้า'}).getByText('source.md',{exact:true}).count()>=2,'source.md imports are listed in the drafts list');
+  await page.getByRole('button',{name:'ปิดหน้าต่างแบบร่าง',exact:true}).click();
   assert.equal(await history.count(),0);
-  mark('Filename import history persists across reload and Escape closes panel');
+  await page.getByRole('button',{name:/^เครื่องมือ/}).click();
+  await page.getByRole('group',{name:'เมนูเครื่องมือ'}).waitFor();
+  await page.keyboard.press('Escape');
+  await page.getByRole('group',{name:'เมนูเครื่องมือ'}).waitFor({state:'hidden'});
+  mark('Filename import history persists in the drafts list; tools menu closes on Escape');
   await page.setViewportSize({width:390,height:844});
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth <= window.innerWidth+1),'Mobile import page must not overflow horizontally');
   await page.locator('input[type=file]').setInputFiles({name:'source.md',mimeType:'text/markdown',buffer:fixture});
@@ -272,7 +283,7 @@ async function ready() {
   assert.ok(await page.getByRole('button',{name:'จัดรูปแบบแล้ว',exact:true}).isDisabled());
   fs.writeFileSync(path.join(root,'evidence','t049-result.json'),JSON.stringify({status:'passed',pendingScan:true,noPrematureWarning:true,pendingActionDisabled:true,reducedMotion:true,sourceActionUsesEditedText:true,formattedActionDisabled:true},null,2));
   const downloaded = page.waitForEvent('download');
-  await page.getByRole('button',{name:'ดาวน์โหลดสถิติการทดลอง',exact:true}).click();
+  await page.getByRole('button',{name:/^เครื่องมือ/}).click(); await page.getByRole('button',{name:'ดาวน์โหลดสถิติการทดลอง',exact:true}).click();
   const download = await downloaded;
   const reportPath = path.join(root,'evidence','t045-experiments.json');
   await download.saveAs(reportPath);
@@ -337,6 +348,15 @@ async function ready() {
   await assertSingleAnswers();
   mark('Asynchronous and repeated AI answer updates render exactly one star and origin badge');
   mark('Compact icon rail reads source marks then solves unresolved questions with visible AI provenance');
+  // T-119: two-step "confirm all AI answers" turns AI answers into user-confirmed ones.
+  const aiChip=page.locator('.nav-summary-ai');
+  assert.equal(await aiChip.count(),1,'AI answers offer a bulk confirmation chip');
+  await aiChip.click();
+  assert.match(await aiChip.innerText(),/กดอีกครั้งเพื่อยืนยัน/,'First click only arms the confirmation');
+  await aiChip.click();
+  await page.waitForFunction(()=>!document.querySelector('[data-answer-origin="auto_solved"]'));
+  assert.ok(await editor.locator('[data-answer-origin="manual"]').count()>0,'Confirmed answers become user answers');
+  mark('AI answers can be confirmed in bulk with a two-step chip');
   assert.equal(await editor.locator('[data-item-id]').count(),12);
   assert.deepEqual(batchSizes,[10,2]);
   const mappedPages=await editor.locator('[data-source-page]').evaluateAll(buttons=>buttons.map(button=>Number(button.dataset.sourcePage)));
@@ -416,6 +436,9 @@ async function ready() {
   assert.equal(await page.locator('[data-source-page-target]').count(),12,'Reattached source survives a second reload');
   await editor.locator('[data-source-page="2"]').click();
   await page.waitForFunction(()=>document.querySelector('[data-workspace="source"]')?.textContent.includes('ต้นฉบับหน้า 2/12'));
+  await page.getByRole('navigation',{name:'เลือกข้อสอบ'}).getByRole('button',{name:'ไปข้อ 12',exact:true}).click();
+  await editor.locator('[data-item-id="2"] [data-question-text]').click();
+  await editor.evaluate(node => node.dispatchEvent(new Event('scroll')));
   await page.getByRole('button',{name:'แคปภาพเฉพาะจุด',exact:true}).click();
   const restoredSourceImage=await page.locator('[data-source-page-target="2"] img').boundingBox();
   await page.mouse.move(restoredSourceImage.x+30,restoredSourceImage.y+30);await page.mouse.down();await page.mouse.move(restoredSourceImage.x+100,restoredSourceImage.y+100,{steps:6});await page.mouse.up();
@@ -423,7 +446,13 @@ async function ready() {
   assert.match(await page.getByAltText('ภาพที่ตัดจากต้นฉบับ').getAttribute('src'),/^data:image\/png;base64,/);
   const capturedInk=await page.getByAltText('ภาพที่ตัดจากต้นฉบับ').evaluate(async image=>{await image.decode();const canvas=document.createElement('canvas');canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;const ctx=canvas.getContext('2d');ctx.drawImage(image,0,0);return Array.from(ctx.getImageData(0,0,canvas.width,canvas.height).data).some((value,index)=>index%4!==3&&value<250);});
   assert.ok(capturedInk,'Capture from restored original contains actual nonwhite source pixels');
-  await page.getByRole('button',{name:'ปิดหน้าต่างแทรกภาพ',exact:true}).click();
+  assert.equal(await page.locator('#crop-target').inputValue(),'2','Capture suggests the clicked question, not the previous nav target');
+  await page.locator('#crop-target').selectOption('3');
+  await editor.evaluate(node=>{node.scrollTop=node.scrollHeight;});
+  await page.getByRole('dialog',{name:'แทรกภาพที่ตัดจากต้นฉบับ'}).getByRole('button',{name:/^แทรกภาพ/}).click();
+  await page.waitForFunction(()=>{const pane=document.querySelector('[contenteditable=true]'),img=pane?.querySelector('[data-item-id="3"] [data-question-image] img');if(!img)return false;const p=pane.getBoundingClientRect(),r=img.getBoundingClientRect();return r.top>=p.top&&r.top<p.bottom;});
+  await page.screenshot({path:path.join(root,'evidence','t114-capture-target.png'),fullPage:true});
+  mark('Capture suggests the clicked question, accepts explicit override and reveals the inserted image');
   mark('Original pages persist, isolate across drafts and reattach legacy sources without rerunning OCR/AI or changing edits');
   // Long mixed-layout regression: numeric choice blocks must not be counted as
   // new questions. This mirrors the reported 80-question scan while keeping
@@ -497,11 +526,14 @@ async function ready() {
   // T-107 image management: add from file via the insert dialog, resize (honored in DOCX), delete and undo.
   const figurePng = Buffer.from((await page.evaluate(()=>{const canvas=document.createElement('canvas');canvas.width=240;canvas.height=120;const ctx=canvas.getContext('2d');ctx.fillStyle='#006D77';ctx.fillRect(0,0,240,120);ctx.fillStyle='#F2604D';ctx.fillRect(20,20,80,80);return canvas.toDataURL('image/png');})).split(',')[1],'base64');
   await longNavigation.getByRole('button',{name:'ไปข้อ 1',exact:true}).click();
+  await editor.locator('[data-item-id="2"] [data-question-text]').click();
   const chooser=page.waitForEvent('filechooser');
   await page.getByRole('button',{name:'แทรกรูป',exact:true}).click();
   await (await chooser).setFiles({name:'figure.png',mimeType:'image/png',buffer:figurePng});
   const uploadDialog=page.getByRole('dialog',{name:'แทรกรูปจากไฟล์'});
   await uploadDialog.waitFor();
+  assert.equal(await page.locator('#crop-target').inputValue(),'2','File insert suggests the question being edited');
+  await page.locator('#crop-target').selectOption('1');
   await uploadDialog.getByRole('button',{name:/^แทรกภาพ/}).click();
   const addedImage=editor.locator('[data-item-id="1"] [data-question-image] img');
   assert.equal(await addedImage.count(),1,'Uploaded image is inserted into the selected question');
@@ -533,6 +565,40 @@ async function ready() {
   await page.getByRole('heading',{name:'ทำต่อจากแบบร่างล่าสุด',exact:true}).waitFor();
   assert.ok(await page.getByRole('button',{name:/^ทำต่อจากแบบร่าง /}).count()>0,'Recent drafts can be resumed from the upload screen');
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Recent drafts fit the viewport');
+  // T-119: duplicate numbers, a merged choice row, number-key answers, compact choices and clear-answer visibility.
+  const checkFixture=Buffer.from(['1. First question\nก. one\nข. two\nค. three\nง. four','2. Second question\nก. one\nข. two\nค. three\nง. four','2. Duplicate number\nก. one\nข. two\nค. three\nง. four','3. Third question\nก. alpha\nข. beta\nค. hexane\nง. alcohol'].join('\n\n'));
+  await page.locator('input[type=file]').setInputFiles({name:'t119-checks.md',mimeType:'text/markdown',buffer:checkFixture});
+  await formatRaw();
+  const checkNav=page.getByRole('navigation',{name:'เลือกข้อสอบ'});
+  assert.equal(await checkNav.locator('[data-duplicate="true"]').count(),2,'Both chips of a duplicated number are flagged');
+  const firstChoiceBounds=await editor.locator('[data-item-id="1"] [data-choice-key]').evaluateAll(rows=>rows.map(row=>{const r=row.getBoundingClientRect();return {top:r.top,bottom:r.bottom};}));
+  assert.equal(firstChoiceBounds.length,4);
+  assert.ok(firstChoiceBounds.every((r,i)=>i===0||r.top>=firstChoiceBounds[i-1].bottom),'Every choice occupies its own line per master template');
+  await editor.locator('[data-item-id]').last().evaluate(item=>{
+    const rows=item.querySelectorAll('[data-choice-key]');
+    const third=rows[2]; const fourth=rows[3];
+    const walker=document.createTreeWalker(third,NodeFilter.SHOW_TEXT); let node; let host=null;
+    while((node=walker.nextNode())){ if(node.textContent.includes('hexane')) host=node; }
+    host.textContent='hexane. ง alcohol'; fourth.remove();
+  });
+  const splitButton=page.getByRole('button',{name:/^แยกตัวเลือก ค และ ง ข้อ 3$/});
+  await splitButton.waitFor();
+  await splitButton.click();
+  await page.waitForFunction(()=>document.querySelectorAll('[data-item-id]:last-child [data-choice-key], [data-item-id]:nth-last-child(1) [data-choice-key]').length>=4);
+  const lastRows=await editor.locator('[data-item-id]').last().locator('[data-choice-key]').evaluateAll(rows=>rows.map(row=>[row.dataset.choiceKey,row.textContent]));
+  assert.deepEqual(lastRows.map(row=>row[0]),['ก','ข','ค','ง'],'Split restores the missing key');
+  assert.ok(lastRows[3][1].includes('alcohol') && !lastRows[2][1].includes('alcohol'),'Text moves to the new row');
+  await checkNav.getByRole('button',{name:'ไปข้อ 1',exact:true}).click();
+  const firstClear=editor.locator('[data-item-id="1"] [data-clear-answer]');
+  assert.equal(await firstClear.evaluate(node=>getComputedStyle(node).display),'none','Clear answer is hidden while no answer is chosen');
+  await page.keyboard.press('2');
+  await page.waitForFunction(()=>document.querySelector('[data-item-id="1"] [data-choice-key="ข"]')?.dataset.answerOrigin==='manual',undefined,{timeout:5000}).catch(async error=>{
+    console.error('number-key diagnostic:',await page.evaluate(()=>({active:document.activeElement?.tagName+' '+document.activeElement?.getAttribute('aria-label'),current:document.querySelector('nav[aria-label="เลือกข้อสอบ"] [aria-current="true"]')?.textContent,rows:[...document.querySelectorAll('[data-item-id="1"] [data-choice-key]')].map(row=>row.dataset.choiceKey+':'+row.dataset.answerOrigin),items:[...document.querySelectorAll('[data-item-id]')].map(item=>item.dataset.itemId)})));
+    throw error;
+  });
+  assert.notEqual(await firstClear.evaluate(node=>getComputedStyle(node).display),'none','Clear answer appears once answered');
+  mark('Duplicate numbers, merged-choice split, number-key answers, single-column choices and clear-answer visibility');
+  await page.getByRole('button',{name:'เลือกไฟล์ใหม่',exact:true}).click();
   const offsetFixture = Buffer.from(Array.from({length:25},(_,index)=>{
     const q=index+21;
     return `${q}. แบบทดสอบข้อ ${q}\nก. ตัวเลือก ก\nข. ตัวเลือก ข\nค. ตัวเลือก ค\nง. ตัวเลือก ง`;
@@ -563,6 +629,9 @@ async function ready() {
   // T-101: export the current raw text, then resume an old mixed-origin draft.
   await page.getByRole('button',{name:'เลือกไฟล์ใหม่',exact:true}).click();
   await page.route('**/api/google/session',route=>route.fulfill({json:{configured:true,connected:true,folderReady:true,folderId:'fixture'}}));
+  // T-116: the existing export fixture also needs its newly linked archive boundary.
+  // Actual Drive behavior is covered separately; this flow still asserts live editor payload.
+  await page.route('**/api/google/library*',route=>route.fulfill({json:{collection:{id:'fixture_collection_t101'},source:{id:'fixture_source_t101'},output:{id:'fixture_output_t101'},collections:[],files:[]}}));
   await page.reload();
   let exportedPayload;
   await page.route('**/api/google/export',route=>{exportedPayload=route.request().postDataJSON();return route.fulfill({json:{url:'https://docs.google.com/document/d/fixture-t101'}});});
@@ -634,6 +703,11 @@ async function ready() {
   exportedPayload=null;
   const googleExportResponse=page.waitForResponse('**/api/google/export');
   await page.getByRole('button',{name:'ส่งออกเข้า Google Drive',exact:true}).click();
+  // T-119: open review findings make export ask once; the user may still send.
+  const exportConfirm=page.getByRole('dialog',{name:'ยืนยันการส่งออก'});
+  await exportConfirm.waitFor();
+  assert.match(await exportConfirm.innerText(),/ยังต้องตรวจ/);
+  await exportConfirm.getByRole('button',{name:'ส่งออกเลย',exact:true}).click();
   await googleExportResponse;
   assert.ok(exportedPayload.paragraphs.some(p=>p.background==='E3EFFA'));
   assert.equal((exportedPayload.paragraphs.flatMap(p=>p.runs).map(r=>r.text||'').join('').match(/\*/g)||[]).length,3);
@@ -642,7 +716,11 @@ async function ready() {
   await openExported.waitFor();
   assert.equal(await openExported.getAttribute('href'),'https://docs.google.com/document/d/fixture-t101');
   assert.equal(await page.locator('header').getByRole('link',{name:/เปิด Google Doc|ส่งออกและยืนยัน/}).count(),0,'Header has no second export link');
-  assert.equal(await page.locator('[data-export-control]').getByRole('button',{name:'ส่งออกเข้า Google Drive',exact:true}).getAttribute('title'),'ส่งออกฉบับปัจจุบันเป็นเอกสารใหม่อีกครั้ง','Same button now exports again');
+  // T-130: after export the one Drive control opens the document; export again is in its menu.
+  assert.equal(await page.locator('[data-export-control]').getByRole('button',{name:'ส่งออกเข้า Google Drive',exact:true}).count(),0,'Exported control shows the Drive link only');
+  await page.getByRole('button',{name:'ตัวเลือก Google Drive',exact:true}).click();
+  assert.equal(await page.getByRole('group',{name:'เมนู Google Drive'}).getByRole('button',{name:'ส่งออกเข้า Google Drive',exact:true}).getAttribute('title'),'ส่งออกฉบับปัจจุบันเป็นเอกสารใหม่อีกครั้ง','Menu exports again');
+  await page.keyboard.press('Escape');
   // T-110: question strip shows answer-origin dots and a summary of answered questions.
   const originNav=page.getByRole('navigation',{name:'เลือกข้อสอบ'});
   assert.equal(await originNav.locator('[data-answer="manual"]').count()>0,true,'Manual answer origin is marked on its question chip');

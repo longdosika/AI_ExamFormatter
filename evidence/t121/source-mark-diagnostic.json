@@ -1,0 +1,53 @@
+{
+  "http": 200,
+  "source": "Owner set3 page1; original coloured circle/X marks; no solver",
+  "expectedUniqueCircles": {
+    "1": "ค",
+    "2": "ค",
+    "4": "ง",
+    "6": "ค"
+  },
+  "raw": {
+    "answers": [
+      {
+        "id": 2,
+        "key": "ค",
+        "confidence": 0.95,
+        "evidence": "วงกลมรอบข้อ ค.",
+        "bbox": [
+          264,
+          138,
+          286,
+          155
+        ],
+        "page": 1
+      },
+      {
+        "id": 4,
+        "key": "ง",
+        "confidence": 0.95,
+        "evidence": "วงกลมรอบข้อ ง.",
+        "bbox": [
+          513,
+          140,
+          531,
+          155
+        ],
+        "page": 1
+      }
+    ],
+    "model": "gemini-flash-lite-latest",
+    "keyIndex": 0,
+    "totalKeys": 3
+  },
+  "matched": [
+    2,
+    4
+  ],
+  "wrongOrUnsupported": [],
+  "unresolved": [
+    "1",
+    "6"
+  ],
+  "note": "One-page diagnostic only, not corpus-wide answer accuracy. X marks are rejection; no circle is unresolved."
+}

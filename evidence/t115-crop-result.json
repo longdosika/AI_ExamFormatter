@@ -1,0 +1,71 @@
+{
+  "hash": "4d46497721a7fd8e3edc0242e7b3cbb35ac08609b6ad46b7626d9ce80279a018",
+  "bytes": 3149425,
+  "providerCalled": false,
+  "bounds": "manually verified; not AI detection",
+  "results": [
+    {
+      "name": "q56-57-guides",
+      "page": 9,
+      "bbox": [
+        680,
+        465,
+        820,
+        550
+      ],
+      "matched": true,
+      "offset": 4,
+      "width": 113,
+      "height": 204
+    },
+    {
+      "name": "q58-61-table",
+      "page": 10,
+      "bbox": [
+        266,
+        66,
+        478,
+        890
+      ],
+      "matched": true,
+      "offset": 4,
+      "width": 876,
+      "height": 305
+    },
+    {
+      "name": "q62-64-table",
+      "page": 11,
+      "bbox": [
+        192,
+        264,
+        330,
+        775
+      ],
+      "matched": true,
+      "offset": 4,
+      "width": 544,
+      "height": 201
+    },
+    {
+      "name": "q66-table",
+      "page": 11,
+      "bbox": [
+        694,
+        205,
+        845,
+        830
+      ],
+      "matched": true,
+      "offset": 4,
+      "width": 665,
+      "height": 219
+    }
+  ],
+  "browser": {
+    "originalPages": 13,
+    "retainedAfterReload": true,
+    "editedTextPreserved": true,
+    "magnifierEnabled": true,
+    "providerCalls": 0
+  }
+}

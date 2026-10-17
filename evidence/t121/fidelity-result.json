@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "questions": 25,
+  "visibleFigures": [
+    6,
+    8,
+    10,
+    20,
+    21
+  ],
+  "cloud": "replayed real provider responses; no new provider or Google call",
+  "localDocx": true,
+  "errors": []
+}

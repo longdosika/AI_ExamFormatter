@@ -1,10 +1,12 @@
-import { ExamItem } from "./formatter-rules";
+import { ExamItem, QuestionFigure, questionFigures, sortFiguresBySource } from "./formatter-rules";
 import { DetectedDiagram } from "./diagram-service";
 import { parseSharedContextHeader, stripCapturedTableText } from "./exam-parser";
+import { figureReach, isChoiceTableFigure, choiceBelowFigureTop, constrainFigure, figureVerticalLimits, hasCellRowEvidence, stripTrailingFigureLabels, hasTabularTextEvidence, removeCapturedGridText, removeCapturedFigureEnumerations, tableContinuationTop, type OcrTextRegion } from "./capture-geometry";
+import { detectRuledTable } from "./table-bounds";
 
 type EdgeTrimMode = boolean | "all" | "top" | "bottom" | "none";
 
-type EdgeTrimOptions = { top?: boolean; bottom?: boolean };
+type EdgeTrimOptions = { top?: boolean; bottom?: boolean; contentTop?: number; contentBottom?: number };
 
 /**
  * Find edge cuts from a row-density projection. Keeping this independent from
@@ -53,7 +55,7 @@ export function detectIntruderCuts(
     const runs = collectRuns(0, maxSearchTop, 1);
     const first = runs[0];
     const second = runs.find(run => first && run.start > first.end);
-    if (first && second && first.end - first.start + 1 <= maxBandHeight && second.start - first.end - 1 >= minGap) {
+    if (first && second && first.end - first.start + 1 > 3 && first.end - first.start + 1 <= maxBandHeight && second.start - first.end - 1 >= minGap) {
       topCut = Math.max(0, second.start - targetMargin);
     } else if (!first) {
       let firstY = 0;
@@ -69,7 +71,7 @@ export function detectIntruderCuts(
     const runs = collectRuns(h - 1, minSearchBottom - 1, -1);
     const first = runs[0];
     const second = runs.find(run => first && run.end < first.start);
-    if (first && second && first.end - first.start + 1 <= maxBandHeight && first.start - second.end - 1 >= minGap) {
+    if (first && second && first.end - first.start + 1 > 3 && first.end - first.start + 1 <= maxBandHeight && first.start - second.end - 1 >= minGap) {
       bottomCut = Math.min(h, second.end + 1 + targetMargin);
     } else if (!first) {
       let lastY = h - 1;
@@ -80,6 +82,10 @@ export function detectIntruderCuts(
     }
   }
 
+  // A whitespace gap is not proof of contamination inside the detector's figure.
+  // Only remove padding outside that protected region; keep detached guide lines.
+  if (options.contentTop !== undefined) topCut = Math.min(topCut, Math.max(0, Math.floor(options.contentTop) - targetMargin));
+  if (options.contentBottom !== undefined) bottomCut = Math.max(bottomCut, Math.min(h, Math.ceil(options.contentBottom) + targetMargin));
   return { topCut, bottomCut };
 }
 
@@ -152,12 +158,100 @@ export function trimIntruderTextAndMargin(
 /**
  * Crop normalized bounding box [ymin, xmin, ymax, xmax] (0..1000) from image data URL using Canvas.
  */
+/**
+ * T-121 (audit): a provider box can end inside a figure label ("เวลา (น|าที)"). When printed ink touches
+ * the left/right edge of the padded crop, widen that side until a clear whitespace gap, within a small
+ * budget. Coloured pen marks are ignored; if no gap appears in budget the side is left unchanged.
+ */
+export function extendCropAcrossInk(
+  pixels: Uint8ClampedArray, width: number, height: number,
+  crop: { x: number; y: number; w: number; h: number },
+  allowed: { left: number; right: number } = { left: 0, right: width },
+  band: { top: number; bottom: number } = { top: crop.y, bottom: crop.y + crop.h },
+): { x: number; w: number } {
+  const top = Math.max(0, band.top), bottom = Math.min(height, band.bottom);
+  const hasInk = (column: number) => {
+    let dark = 0;
+    for (let row = top; row < bottom; row++) {
+      const index = (row * width + column) * 4;
+      const red = pixels[index], green = pixels[index + 1], blue = pixels[index + 2];
+      const coloured = Math.max(red, green, blue) - Math.min(red, green, blue) > 60;
+      if (!coloured && red * 0.299 + green * 0.587 + blue * 0.114 < 150 && ++dark >= 2) return true;
+    }
+    return false;
+  };
+  const gap = Math.max(10, Math.round(width * 0.012));
+  const budget = Math.round(width * 0.08);
+  const walk = (edge: number, step: 1 | -1, limit: number) => {
+    // Padding is 14-36px, so ink within 6px of the padded edge means the figure continues past it
+    // (glyphs have 2-3px internal gaps, so a single edge column is not enough).
+    if (![0, 1, 2, 3, 4, 5].some(offset => hasInk(edge - step * offset))) return edge;
+    let blank = 0;
+    for (let column = edge + step; step > 0 ? column < limit : column >= limit; column += step) {
+      blank = hasInk(column) ? 0 : blank + 1;
+      if (blank >= gap) return column - step * (blank - 4);
+    }
+    return edge;
+  };
+  const right = walk(crop.x + crop.w - 1, 1, Math.min(width, allowed.right, crop.x + crop.w + budget)) + 1;
+  const left = walk(crop.x, -1, Math.max(0, allowed.left, crop.x - budget));
+  return { x: left, w: right - left };
+}
+
+/**
+ * T-132 (C-14 upward): when printed ink touches the top rows of the crop, walk upward over the figure's ink until a
+ * clear gap (blank rows), never above `topLimit`. Only columns right of `leftLimit` count, so a question number
+ * printed left of the figure does not pull the crop up. Returns the new top row (or the old one).
+ */
+export function extendCropUpAcrossInk(pixels: Uint8ClampedArray, width: number, height: number, crop: { x: number; y: number; w: number; h: number }, topLimit: number, leftLimit = 0): number {
+  const from = Math.max(crop.x, leftLimit), to = Math.min(width, crop.x + crop.w);
+  if (to - from < 4 || topLimit >= crop.y) return crop.y;
+  const rowInk = (row: number) => {
+    let dark = 0;
+    for (let column = from; column < to; column++) {
+      const index = (row * width + column) * 4;
+      const red = pixels[index], green = pixels[index + 1], blue = pixels[index + 2];
+      if (Math.max(red, green, blue) - Math.min(red, green, blue) > 60) continue;
+      if (red * 0.299 + green * 0.587 + blue * 0.114 < 150 && ++dark >= 2) return true;
+    }
+    return false;
+  };
+  if (![0, 1, 2].some(offset => crop.y + offset < height && rowInk(crop.y + offset))) return crop.y;
+  const gap = Math.max(6, Math.round(height * 0.004));
+  let lastInk = crop.y, blank = 0;
+  for (let row = crop.y - 1; row >= Math.max(0, topLimit); row--) {
+    if (rowInk(row)) { lastInk = row; blank = 0; } else if (++blank >= gap) break;
+  }
+  return Math.max(Math.max(0, topLimit), lastInk - 3);
+}
+
+/**
+ * T-124: re-crop a figure that was cropped by an older version, from its original page and stored source box,
+ * with the current limits (stem lines, a choice line directly below, table continuation, edge widening).
+ */
+export async function recropFigure(pageImage: string, bbox: [number, number, number, number], role: "question" | "shared", question: number,
+  pageQuestions: { questionNumber: number; stem: string }[], regions: OcrTextRegion[], isTable: boolean): Promise<{ url: string; bbox: [number, number, number, number] } | null> {
+  const limits: [number, number, number, number] = role === "question"
+    ? figureVerticalLimits(question, pageQuestions.map(entry => entry.questionNumber), regions, isTable, bbox, pageQuestions)
+    : [0, 0, 1000, 1000];
+  const choiceTop = role === "question" ? choiceBelowFigureTop(regions, bbox) : undefined;
+  if (choiceTop !== undefined) limits[2] = Math.min(limits[2], choiceTop - 3);
+  let safe = constrainFigure(bbox, limits);
+  const continuation = safe && isTable ? tableContinuationTop(regions, safe, limits[2]) : undefined;
+  if (continuation !== undefined) { limits[2] = Math.min(limits[2], continuation - 3); safe = safe && constrainFigure(safe, limits); }
+  if (!safe) return null;
+  const url = await cropBboxFromImage(pageImage, safe, role === "question" ? 32 : 16, 3, "all", limits, role === "question" ? figureReach(question, pageQuestions, regions, bbox) : undefined);
+  return { url, bbox: safe };
+}
+
 export async function cropBboxFromImage(
   imageSrc: string,
   rawBbox: [number, number, number, number] | any,
   paddingPx = 14,
   targetMargin = 3,
-  trimEdges: EdgeTrimMode = true
+  trimEdges: EdgeTrimMode = true,
+  allowedBbox: [number, number, number, number] = [0, 0, 1000, 1000],
+  reach?: { top: number; left: number; lineBottom: number }
 ): Promise<string> {
   const bbox: [number, number, number, number] = Array.isArray(rawBbox) && Array.isArray(rawBbox[0])
     ? (rawBbox[0] as [number, number, number, number])
@@ -182,10 +276,39 @@ export async function cropBboxFromImage(
       const padTop = Math.max(padY, Math.min(36, Math.round(padY * 1.15)));
 
       // Add border padding without going out of bounds
-      const x = Math.max(0, Math.round(rawX - padX));
-      const y = Math.max(0, Math.round(rawY - padTop));
-      const w = Math.min(naturalWidth - x, Math.round(rawW + padX * 2));
-      const h = Math.min(naturalHeight - y, Math.round(rawH + padTop + padY));
+      let x = Math.max(0, Math.round(rawX - padX), Math.ceil(allowedBbox[1] / 1000 * naturalWidth));
+      let y = Math.max(0, Math.round(rawY - padTop), Math.ceil(allowedBbox[0] / 1000 * naturalHeight));
+      let w = Math.min(naturalWidth, Math.ceil(rawX + rawW + padX), Math.floor(allowedBbox[3] / 1000 * naturalWidth)) - x;
+      let h = Math.min(naturalHeight, Math.ceil(rawY + rawH + padY), Math.floor(allowedBbox[2] / 1000 * naturalHeight)) - y;
+      let contentTop = rawY;
+      if (w > 0 && h > 0) {
+        const page = document.createElement("canvas");
+        page.width = naturalWidth;
+        page.height = naturalHeight;
+        const pageContext = page.getContext("2d", { willReadFrequently: true });
+        if (pageContext) {
+          pageContext.drawImage(img, 0, 0);
+          const pixels = pageContext.getImageData(0, 0, naturalWidth, naturalHeight).data;
+          if (reach) {
+            // T-132: the figure's own ink touches the crop top -> walk up to the first clear gap, not above the question line.
+            const raised = extendCropUpAcrossInk(pixels, naturalWidth, naturalHeight, { x, y, w, h },
+              Math.round(reach.top / 1000 * naturalHeight), Math.ceil(reach.left / 1000 * naturalWidth));
+            if (raised < y) {
+              h += y - raised; y = raised; contentTop = Math.min(contentTop, raised);
+              if (raised < reach.lineBottom / 1000 * naturalHeight) {
+                const left = Math.max(x, Math.ceil(reach.left / 1000 * naturalWidth));
+                w -= left - x; x = left;
+              }
+            }
+          }
+          const widened = extendCropAcrossInk(pixels, naturalWidth, naturalHeight, { x, y, w, h },
+            { left: Math.ceil(allowedBbox[1] / 1000 * naturalWidth), right: Math.floor(allowedBbox[3] / 1000 * naturalWidth) },
+            // Only the figure's own rows decide: stem and choice lines above/below span the whole width.
+            { top: Math.max(y, Math.round(rawY)), bottom: Math.min(y + h, Math.round(rawY + rawH)) });
+          x = widened.x;
+          w = widened.w;
+        }
+      }
 
       if (w <= 0 || h <= 0) {
         resolve(imageSrc);
@@ -211,7 +334,9 @@ export async function cropBboxFromImage(
           trimEdges === "top" ? { top: true, bottom: false } :
             trimEdges === true || trimEdges === "all" ? { top: true, bottom: true } :
               null;
-      const finalCanvas = trimOptions ? trimIntruderTextAndMargin(canvas, targetMargin, trimOptions) : canvas;
+      const finalCanvas = trimOptions ? trimIntruderTextAndMargin(canvas, targetMargin, {
+        ...trimOptions, contentTop: contentTop - y, contentBottom: rawY + rawH - y,
+      }) : canvas;
       resolve(finalCanvas.toDataURL("image/png"));
     };
     img.onerror = () => reject(new Error("FAILED_TO_LOAD_IMAGE_FOR_CROP"));
@@ -228,12 +353,17 @@ export async function harvestExamDiagrams(
   items: ExamItem[],
   pageImages: string[],
   current: () => boolean,
-  onProgress?: (completed: number, total: number, message: string) => void
+  onProgress?: (completed: number, total: number, message: string) => void,
+  textRegions: OcrTextRegion[][] = []
 ): Promise<{ items: ExamItem[]; count: number; error?: string }> {
-  const resultItems = items.map(item => ({
+  const resultItems: ExamItem[] = items.map(item => ({
     ...item,
-    choices: item.choices.map(c => ({ ...c }))
+    choices: item.choices.map(c => ({ ...c })),
+    questionImages: questionFigures(item).map(figure => ({ ...figure })),
   }));
+  // T-131: question figures found by this harvest, per item; they replace the item's figures at the end
+  // (a re-harvest must not append duplicates), and items without new figures keep theirs.
+  const harvestedFigures = new Map<ExamItem, QuestionFigure[]>();
 
   if (!pageImages || pageImages.length === 0) {
     return { items: resultItems, count: 0, error: "ไม่พบรูปหน้าต้นฉบับสำหรับสกัดรูปภาพ" };
@@ -276,20 +406,71 @@ export async function harvestExamDiagrams(
         }),
       });
 
+      let diagrams: DetectedDiagram[] = [];
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
         if (!firstError) firstError = err.error || `HTTP ${response.status}`;
-        continue;
+      } else {
+        const data = await response.json();
+        diagrams = Array.isArray(data.diagrams) ? data.diagrams : [];
       }
-
-      const data = await response.json();
-      const diagrams: DetectedDiagram[] = Array.isArray(data.diagrams) ? data.diagrams : [];
+      const tableReference = /ตาราง|\[ตาราง\]|<table|สาร\s+จุดเดือด.*การละลาย/i;
+      const missingTables = pageQuestions.filter(q => tableReference.test(q.stem) && !diagrams.some(diag => diag.questionNumber === q.questionNumber));
+      if (response.ok && missingTables.length && current()) {
+        const retry = await fetch("/api/diagrams", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ image: pageImage, page: pageNumber, questions: missingTables }) });
+        const body = await retry.json().catch(() => ({}));
+        if (retry.ok && Array.isArray(body.diagrams)) diagrams.push(...body.diagrams.filter((diag: DetectedDiagram) => missingTables.some(q => q.questionNumber === diag.questionNumber)));
+        else if (!retry.ok && !firstError) firstError = body.error || `HTTP ${retry.status}`;
+      }
+      for(const question of missingTables.filter(q=>!diagrams.some(diag=>diag.questionNumber===q.questionNumber))) {
+        const limits=figureVerticalLimits(question.questionNumber,pageQuestions.map(q=>q.questionNumber),textRegions[pageIndex] || [],true,undefined,pageQuestions);
+        if(limits[0]===0) continue;
+        const image=new Image();image.src=pageImage;await image.decode();
+        const canvas=document.createElement("canvas");canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;
+        const context=canvas.getContext("2d",{willReadFrequently:true});
+        if(!context) continue;
+        context.drawImage(image,0,0);
+        const bbox=detectRuledTable(context.getImageData(0,0,canvas.width,canvas.height).data,canvas.width,canvas.height,limits);
+        if(bbox) diagrams.push({id:`local-grid-${pageNumber}-${question.questionNumber}`,type:"question",questionNumber:question.questionNumber,description:"ตารางจากเส้นกริดในต้นฉบับ",bbox,page:pageNumber,confidence:0});
+      }
 
       for (const diag of diagrams) {
         if (!current()) break;
+        const declaredTarget = resultItems.find(item => item.questionNumber === diag.questionNumber && (!item.sourcePage || item.sourcePage === pageNumber));
+        if (!declaredTarget) { if (!firstError) firstError = `จับคู่รูปหน้า ${pageNumber} กับหมายเลขข้อไม่ได้ กรุณาตรวจต้นฉบับ`; continue; }
+        if (diag.type === "shared_context" && !declaredTarget.sharedContextRange) diag.type = "question";
+        // T-130: a table that only repeats the choices (already rebuilt as choice text) is not a question figure.
+        if (diag.type === "question" && isChoiceTableFigure(declaredTarget.choices, textRegions[pageIndex] || [], diag.bbox, diag.description)) {
+          const covered = (old?: [number, number, number, number]) => Boolean(old && Math.max(0, Math.min(old[2], diag.bbox[2]) - Math.max(old[0], diag.bbox[0])) * Math.max(0, Math.min(old[3], diag.bbox[3]) - Math.max(old[1], diag.bbox[1])) > 0.5 * (old[2] - old[0]) * (old[3] - old[1]));
+          // T-131: drop only the earlier figure(s) this choice table covers; other figures of the item stay.
+          declaredTarget.questionImages = (declaredTarget.questionImages || []).filter(figure => !covered(figure.bbox));
+          harvestedFigures.set(declaredTarget, (harvestedFigures.get(declaredTarget) || []).filter(figure => !covered(figure.bbox)));
+          continue;
+        }
         const cropPadding = diag.type === "shared_context" ? 16 : diag.type === "question" ? 32 : diag.type === "choice" ? 20 : 16;
         const shouldTrimEdges: EdgeTrimMode = (diag.type === "shared_context" || diag.type === "question") ? "all" : "none";
-        const crop = await cropBboxFromImage(pageImage, diag.bbox, cropPadding, 3, shouldTrimEdges).catch(() => null);
+        const isTable=/ตาราง|table/i.test(diag.description) || tableReference.test(declaredTarget.questionText);
+        const limits = diag.type === "question" ? figureVerticalLimits(diag.questionNumber || 0, pageQuestions.map(q => q.questionNumber), textRegions[pageIndex] || [],isTable,diag.bbox,pageQuestions) : [0, 0, 1000, 1000] as [number, number, number, number];
+        // T-124: a choice line directly under the figure bounds it as well.
+        const choiceTop = diag.type === "question" ? choiceBelowFigureTop(textRegions[pageIndex] || [], diag.bbox) : undefined;
+        if (choiceTop !== undefined) limits[2] = Math.min(limits[2], choiceTop - 3);
+        let safeBbox = constrainFigure(diag.bbox, limits);
+        const continuation=safeBbox&&isTable ? tableContinuationTop(textRegions[pageIndex] || [],safeBbox,limits[2]) : undefined;
+        if(continuation!==undefined) {limits[2]=Math.min(limits[2],continuation-3);safeBbox=safeBbox&&constrainFigure(safeBbox,limits);}
+        let confirmedGrid=false;
+        if (safeBbox && diag.type === "question" && isTable) {
+          const image = new Image(); image.src = pageImage; await image.decode();
+          const canvas = document.createElement("canvas"); canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;
+          const context=canvas.getContext("2d",{willReadFrequently:true});
+          if(context) {
+            context.drawImage(image,0,0);
+            const grid=detectRuledTable(context.getImageData(0,0,canvas.width,canvas.height).data,canvas.width,canvas.height,limits);
+            confirmedGrid=Boolean(grid); safeBbox=grid || safeBbox;
+          }
+        }
+        if (!safeBbox) { if (!firstError) firstError = `กรอบรูปข้อ ${diag.questionNumber} ทับข้อความ ต้องจับภาพใหม่จากต้นฉบับ`; continue; }
+        const reach = diag.type === "question" && !confirmedGrid ? figureReach(diag.questionNumber || 0, pageQuestions, textRegions[pageIndex] || [], diag.bbox) : undefined;
+        const crop = await cropBboxFromImage(pageImage, safeBbox, cropPadding, 3, shouldTrimEdges, limits, reach).catch(() => null);
         if (!crop) continue;
 
 
@@ -315,14 +496,16 @@ export async function harvestExamDiagrams(
           }
           if (sharedItem) {
             sharedItem.sharedContextImageUrl = crop;
+            sharedItem.sharedContextImageBbox = safeBbox;
             if (sharedItem.sharedContextText) {
-              sharedItem.sharedContextText = stripCapturedTableText(sharedItem.sharedContextText);
+              sharedItem.sharedContextText = stripTrailingFigureLabels(stripCapturedTableText(sharedItem.sharedContextText), textRegions[pageIndex] || [], safeBbox);
             }
             harvestedCount++;
           } else if (targetItem) {
             targetItem.sharedContextImageUrl = crop;
+            targetItem.sharedContextImageBbox = safeBbox;
             if (targetItem.sharedContextText) {
-              targetItem.sharedContextText = stripCapturedTableText(targetItem.sharedContextText);
+              targetItem.sharedContextText = stripTrailingFigureLabels(stripCapturedTableText(targetItem.sharedContextText), textRegions[pageIndex] || [], safeBbox);
             }
             harvestedCount++;
           }
@@ -335,7 +518,8 @@ export async function harvestExamDiagrams(
               text: "",
               isCorrect: false,
               imageUrl: crop,
-              imageStatus: "CLEAN",
+              imageStatus: "UNVERIFIED",
+              sourceBbox: safeBbox,
             };
             targetItem.choices.push(choice);
             const order = ["ก", "ข", "ค", "ง", "จ", "1", "2", "3", "4", "5", "A", "B", "C", "D", "E"];
@@ -353,16 +537,22 @@ export async function harvestExamDiagrams(
             harvestedCount++;
           } else {
             choice.imageUrl = crop;
-            choice.imageStatus = "CLEAN";
+            choice.imageStatus = "UNVERIFIED";
+            choice.sourceBbox = safeBbox;
             choice.text = "";
             harvestedCount++;
           }
         } else if (diag.type === "question" && targetItem) {
-          targetItem.imageUrl = crop;
-          targetItem.imageStatus = "CLEAN";
+          harvestedFigures.set(targetItem, [...(harvestedFigures.get(targetItem) || []), { url: crop, bbox: safeBbox }]);
+          const tableTextConfirmed=confirmedGrid || (isTable && (hasTabularTextEvidence(textRegions[pageIndex] || [],safeBbox) || hasCellRowEvidence(textRegions[pageIndex] || [],safeBbox)));
+          const withoutCapturedText = tableTextConfirmed ? removeCapturedGridText(targetItem.questionText, textRegions[pageIndex] || [], safeBbox)
+            : !isTable ? removeCapturedFigureEnumerations(targetItem.questionText, textRegions[pageIndex] || [], safeBbox) : targetItem.questionText;
+          targetItem.questionText = stripTrailingFigureLabels(stripCapturedTableText(withoutCapturedText),textRegions[pageIndex] || [],safeBbox);
+          targetItem.imageStatus = "UNVERIFIED";
           harvestedCount++;
         } else if (diag.type === "explanation" && targetItem) {
           targetItem.explanationImageUrl = crop;
+          targetItem.explanationImageBbox = safeBbox;
           harvestedCount++;
         }
       }
@@ -371,5 +561,13 @@ export async function harvestExamDiagrams(
     }
   }
 
+  for (const item of resultItems) {
+    const fresh = harvestedFigures.get(item);
+    // T-131: several figures per question (Q25 รูปที่ 1-4), in source order; the first also fills imageUrl.
+    const figures = sortFiguresBySource(fresh?.length ? fresh : item.questionImages || []);
+    item.questionImages = figures.length ? figures : undefined;
+    item.imageUrl = figures[0]?.url;
+    item.imageBbox = figures[0]?.bbox;
+  }
   return { items: resultItems, count: harvestedCount, error: firstError };
 }

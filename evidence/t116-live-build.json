@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-16",
+  "machine": "DESKTOP-FNVSAKS",
+  "url": "http://localhost:3000/",
+  "dist": ".next-production-t116",
+  "pid": 15580,
+  "sourceVersion": "261016-1734",
+  "observedIabBadge": "261016-1734",
+  "realLibraryCollectionsAfterRestart": true,
+  "sourceCollectionId": "1auNtUilU_yFu7dbNbXDc5O1St6fCYljK",
+  "sourceReadbackSha256": "4d46497721a7fd8e3edc0242e7b3cbb35ac08609b6ad46b7626d9ce80279a018",
+  "e2eChecks": 32,
+  "browserErrors": 0,
+  "captureAndLibrarySuites": "passed",
+  "cssStatus": 200,
+  "cssBytes": 57168,
+  "actualQuizFlowImportClaimed": false,
+  "gitStagedCommittedOrPushed": false
+}

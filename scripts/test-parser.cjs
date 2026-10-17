@@ -10,6 +10,9 @@ require.extensions['.ts'] = (module, filename) => {
 };
 const { parseExamText, reconcileAnswerKey, parseSharedContextHeader, stripCapturedTableText } = require('../lib/exam-parser.ts');
 const { normalizeOcrText } = require('../lib/ocr-service.ts');
+const {suggestOcrWords}=require('../lib/ocr-suggestions.ts');
+assert.deepEqual(suggestOcrWords('สถาน จุดเดือด ละลายนำ'),[{from:'สถาน',to:'สถานะ'},{from:'ละลายนำ',to:'ละลายน้ำ'}]);
+assert.deepEqual(suggestOcrWords('สถานะ สถานที่ สถานการณ์'),[],'Do not suggest repairs inside legitimate longer words');
 assert.equal(parseExamText(normalizeOcrText('## 1\\. escaped question\nก\\. first\nข\\. second')).length, 1);
 assert.deepEqual(parseExamText('unstructured source', [], 'การแยกสาร.docx'), []);
 const single = parseExamText('1. Actual source\nก. first\nข. second');
@@ -401,3 +404,90 @@ assert.ok(!cleanedSampleRows.includes('B ได้ของเหลวสีฟ
 assert.ok(!cleanedSampleRows.includes('C ได้ของเหลวสีเหลือง'));
 console.log('T-081 table row and header stripping regressions passed.');
 
+const chromatographyText = [
+  'ใช้ข้อมูลจากตารางต่อไปนี้ตอบคำถามข้อ 58-61',
+  'สีตัวอย่าง สีที่แยกได้ ระยะทางที่สารเคลื่อนที่ ระยะทางที่ตัวทำละลาย',
+  '(cm) เคลื่อนที่ (cm)', 'สีแดง 1 8.0 10', 'สี A สีน้ำเงิน 5.5 10',
+  'สีเหลือง 2.8 10', 'สีแดง 2 X20', 'สี B', 'สีม่วง 12 20',
+].join('\n');
+assert.equal(stripCapturedTableText(chromatographyText), chromatographyText.split('\n')[0]);
+const ordinaryNarrative = 'ใช้รูปต่อไปนี้ตอบคำถามข้อ 56-57\nสาร NaCl จำนวน 10 กรัมละลายในน้ำ 100 กรัม\nA\n9 A\n12 20\nสีแดงเป็นสารผสม';
+assert.equal(stripCapturedTableText(ordinaryNarrative), ordinaryNarrative, 'A figure alone must not cause prose/number/label deletion');
+assert.equal(stripCapturedTableText(chromatographyText + '\nสีแดงละลายในตัวทำละลายได้ดี'), chromatographyText.split('\n')[0] + '\nสีแดงละลายในตัวทำละลายได้ดี');
+assert.equal(stripCapturedTableText(chromatographyText + '\nสาร NaCl จำนวน 10 กรัมละลายในน้ำ 100 กรัม'), chromatographyText.split('\n')[0] + '\nสาร NaCl จำนวน 10 กรัมละลายในน้ำ 100 กรัม');
+console.log('T-114 chromatography table cleanup and ambiguous narrative preservation passed.');
+
+
+// T-119: OCR merged "ค. เฮกเซน. ง แอลกอฮอล์" into one row; the missing ง is restored, ordinary text is not split.
+const { splitMergedChoices, mergedChoicePattern } = require('../lib/exam-parser.ts');
+const merged = parseExamText(['1. การสกัดน้ำมันจากเมล็ดพืช ใช้สารใดเป็นตัวทำละลาย', 'ก. ด่างคลี', 'ข. ไอน้ำ', 'ค. เฮกเซน. ง แอลกอฮอล์'].join('\n'));
+assert.deepEqual(merged[0].choices.map(choice => [choice.key, choice.text]), [['ก', 'ด่างคลี'], ['ข', 'ไอน้ำ'], ['ค', 'เฮกเซน'], ['ง', 'แอลกอฮอล์']]);
+assert.deepEqual(splitMergedChoices([{ key: 'ก', text: 'สารละลาย', isCorrect: false }, { key: 'ข', text: 'สารแขวนลอย', isCorrect: false }, { key: 'ค', text: 'น้ำมันงา', isCorrect: false }, { key: 'ง', text: 'สรุปไม่ได้', isCorrect: false }]).length, 4, 'Complete choices stay unchanged');
+assert.equal(splitMergedChoices([{ key: 'ก', text: 'ข้อความ', isCorrect: false }, { key: 'ข', text: 'มีคำว่างอก', isCorrect: false }, { key: 'ค', text: 'ทดสอบ', isCorrect: false }]).length, 3, 'A Thai word containing ง is not a key');
+assert.ok(!mergedChoicePattern('ง').test('งานวิจัย'), 'Key must follow other text');
+const { validateExamItems } = require('../lib/exam-validation.ts');
+assert.ok(validateExamItems([{ id: 1, questionNumber: 1, questionText: 'q', choices: [{ key: 'ก', text: 'a' }, { key: 'ข', text: 'b' }, { key: 'ค', text: 'เฮกเซน. ง แอลกอฮอล์' }] }]).some(issue => issue.includes('ตัวเลือก ค อาจมีตัวเลือก ง รวมอยู่')));
+console.log('T-119 merged choice split and validation passed.');
+
+// T-121 (B-10): the owner's real chapter-7 set-3 PDF, OCR'd live by Google Vision (evidence/t121/ocr-response.json).
+{
+  const { combinedOcrText } = require('./t121-dump-parse.cjs');
+  const { validateExamItems: validateT121 } = require('../lib/exam-validation.ts');
+  const real = parseExamText(combinedOcrText(path.join(__dirname, '..', 'evidence', 't121', 'ocr-response.json')));
+  assert.deepEqual(real.map(item => item.questionNumber), Array.from({ length: 25 }, (_, index) => index + 1), 'no split question, no fake question 4, no gaps');
+  real.forEach(item => assert.equal(item.choices.map(choice => choice.key).join(''), item.questionNumber===15 ? 'กขค' : 'กขคง', `question ${item.questionNumber} retains printed keys or an explicit repair`));
+  const byNumber = number => real.find(item => item.questionNumber === number);
+  assert.equal(byNumber(6).choices[3].text, 'ใช้กรวยแยกสารและการสกัดด้วยตัวทำละลาย');
+  assert.equal(byNumber(14).choices[2].text, 'น้ำมันหอมระเหยจากมะกรูด');
+  assert.equal(byNumber(14).choices[3].text, 'กลิ่นกุหลาบจากดอกกุหลาบ');
+  assert.equal(byNumber(15).choices[2].text, 'การระเหยและการกลั่น. การระเหยและการตกผลึก', 'Ambiguous missing key is offered in editor, never split without confirmation');
+  assert.equal(byNumber(13).choices[0].text, 'น้ำมันดีเซล', 'pen tick removed');
+  assert.deepEqual(byNumber(17).choices.map(choice => choice.text), ['ข้อ 1', 'ข้อ 2', 'ข้อ 3', 'ถูกต้องทั้งข้อ 1 และ 2']);
+  assert.equal(byNumber(10).choices[0].text, 'A เป็นสารบริสุทธิ์', 'axis label is not choice text');
+  assert.match(byNumber(10).choices[3].text, /^ถ้านำ A ไปแยกโดยวิธีโครมาโทกราฟี/);
+  assert.equal(byNumber(24).choices[3].text, 'แยกสารที่มีจุดเดือดต่างกันมากๆ');
+  assert.deepEqual(real.filter(item => item.choices.some(choice => choice.keyInferred)).map(item => item.questionNumber), [6, 10, 14, 17, 24]);
+  assert.ok(validateT121(real).every(issue => /กู้คืนจาก OCR|ข้อ 15|ตาราง\/รูป/.test(issue)), 'ambiguous missing choice and missing table captures are visible for review');
+  // Synthetic guards.
+  const realNext = parseExamText('3. three\nก. a\nข. b\nค. c\n4. real four\nก. a\nข. b\nค. c\nง. d');
+  assert.deepEqual(realNext.map(item => item.questionNumber), [3, 4], 'a true next question 4 after a three-choice question stays a question');
+  const numbersInChoice = parseExamText('1. q\nก. 1 และ 2\nข. 2 และ 3\nค. 4 และ 5\nง. 5 และ 6');
+  assert.equal(numbersInChoice[0].choices[2].text, '4 และ 5', 'digits without a dot are not keys');
+  const restart = parseExamText('9. nine\nก. a\nข. b\nค. c\nง. d\n1. restart\nก. a\nข. b\nค. c\nง. d');
+  assert.deepEqual(restart.map(item => item.questionNumber), [9, 1], 'a restart with real choices is still a question');
+  const noise = parseExamText('9. nine\nก. a\nข. b\nค. c\nง. d\n2. margin note\n10. ten\nก. a\nข. b\nค. c\nง. d');
+  assert.deepEqual(noise.map(item => item.questionNumber), [9, 10], 'a backwards number without choices is not a question');
+  const sentence = parseExamText('1. q\nก. a\nข. b\nค. หนึ่ง. สอง สาม');
+  assert.equal(sentence[0].choices.length, 3, 'a short first sentence is not split');
+  const strayIssues = validateT121([{ id: 1, questionNumber: 6, questionText: "q", choices: ["ก", "ข", "ค"].map(key => ({ key, text: key })) }, { id: 2, questionNumber: 4, questionText: "stray", choices: [] }, { id: 3, questionNumber: 9, questionText: "q", choices: ["ก", "ข", "ค", "ง"].map(key => ({ key, text: key })) }]);
+  assert.ok(strayIssues.some(issue => issue.includes("เลขข้อย้อนหลังจากข้อ 6") && issue.includes("อาจเป็นตัวเลือก ง.")), "B-09 names the likely cause");
+  assert.ok(strayIssues.some(issue => issue.includes("ไม่พบข้อ 5, 6, 7, 8") || issue.includes("ไม่พบข้อ")), "B-29 names skipped numbers");
+  // B-26: the same PDF OCR'd after coloured pen marks were whitened needs fewer key repairs.
+  const filtered = parseExamText(combinedOcrText(path.join(__dirname, '..', 'evidence', 't121', 'ink-on', 'ocr-response.json')));
+  assert.deepEqual(filtered.map(item => item.questionNumber), Array.from({ length: 25 }, (_, index) => index + 1));
+  filtered.forEach(item => assert.equal(item.choices.map(choice => choice.key).join(''), 'กขคง'));
+  assert.ok(filtered.filter(item => item.choices.some(choice => choice.keyInferred)).length < 6);
+  const { isColouredInk } = require('../lib/ink-filter.ts');
+  assert.equal(isColouredInk(230, 40, 60), true, 'red pen');
+  assert.equal(isColouredInk(40, 90, 210), true, 'blue pen');
+  assert.equal(isColouredInk(30, 30, 35), false, 'black print');
+  assert.equal(isColouredInk(150, 150, 150), false, 'grey print');
+  console.log('T-121 real chapter-7 OCR structure and key-repair guards passed.');
+}
+
+// T-121 audit: uncaptured table rows keep one row per line (B-18); inline stem enumerations split.
+{
+  const { combinedOcrText } = require('./t121-dump-parse.cjs');
+  const real = parseExamText(combinedOcrText(path.join(__dirname, '..', 'evidence', 't121', 'ocr-response.json')));
+  const stem = number => real.find(item => item.questionNumber === number).questionText.split('\n');
+  assert.deepEqual(stem(21), ['จากตารางแสดงสมบัติของสาร A และ B เป็นดังนี้', 'สาร สถานะ การละลาย จุดเดือด (°C)', 'เอทานอล', 'A ของแข็ง ไม่ละลาย ไม่ละลาย 825', 'B ของแข็ง ไม่ละลาย ละลาย 218', 'วิธีการแยกสารเนื้อผสม A และ B มีวิธีการแยกได้อย่างไร']);
+  assert.equal(stem(6).length, 5, 'Q6 title, header, two rows, question sentence');
+  assert.deepEqual(stem(3).slice(1, 4), ['1. อุ่นในภาชนะ', '2. ละลายน้ำแล้วกรอง', '3. ระเหยแห้ง']);
+  assert.deepEqual(stem(22).slice(-2), ['5. กลบด้วยไอน่า', '6. ใช้กรวยแยก']);
+  assert.equal(real.find(item => item.questionNumber === 22).choices[2].text, '4 และ 5', 'numbers inside choices are untouched');
+  const prose = parseExamText('1. นักเรียนอ่านตารางแล้วสรุปว่า สาร A ละลายน้ำได้ดีกว่าสาร B และสาร C\nก. a\nข. b\nค. c\nง. d');
+  assert.equal(prose[0].questionText.includes('\n'), false, 'prose mentioning a table stays one line');
+  const { removeCapturedGridText } = require('../lib/capture-geometry.ts');
+  assert.equal(removeCapturedGridText('title\nA ของแข็ง 90 ok\nquestion', [{ text: 'A ของแข็ง 90 ok', bbox: [10, 10, 20, 20] }], [0, 0, 100, 100]), 'title\nquestion');
+  console.log('T-121 audit table-row and inline enumeration guards passed.');
+}

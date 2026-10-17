@@ -1,0 +1,24 @@
+{
+  "round": 2,
+  "page": 3,
+  "at": "2026-10-17T03:52:53.770Z",
+  "http": 200,
+  "durationMs": 4555,
+  "source": "evidence\\t121\\audit-0017\\pages\\page-3.png",
+  "questionNumbers": [
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21
+  ],
+  "scope": "Live source marks only; no OCR, solver, purchase, billing or model/key configuration change",
+  "raw": {
+    "answers": [],
+    "model": "gemini-flash-lite-latest",
+    "keyIndex": 0,
+    "totalKeys": 3
+  }
+}

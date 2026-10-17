@@ -1,5 +1,87 @@
 # Code Map
 
+### T-123 Handoff Repairs
+- `lib/exam-parser.ts`: figure enumeration preservation, decimal boundary guard, contextual ช/บ/炅 recovery, page-boundary ค review flag, parenthesized sample names and shared table header cleanup.
+- `lib/formatter-rules.ts`, `lib/exam-validation.ts`, `components/SplitDocumentEditor.tsx`: shared four/five-choice completeness, fifth answer/capture/keyboard support.
+- `lib/text-normalization.ts`, `lib/ocr-suggestions.ts`: decomposed sara-am and explicit semantic suggestions.
+- `lib/capture-geometry.ts`, `lib/diagram-client.ts`: geometry-proven figure enumeration cleanup, local grid fallback on provider failure and question-continuation crop limits.
+- `scripts/test-t123.cjs`, `scripts/test-t123-browser.cjs`: recorded-source units, original PDF replay, save/resume/fifth-answer/actual DOCX and quota-failure grids. Audit tools support five choices; DOCX audit uses existing JSZip rather than shell unzip.
+- `documents/conversion-review-guide.md`, `evidence/t123/verification.md`: manual Q15 split guide and actual verification ledger.
+- `scripts/verify-t123-live.cjs`, `scripts/audit-t123-live-marks.cjs`, `scripts/verify-t123-live-diagrams.cjs`: owner-opted-in sequential source-only/provider capture checks, manual-original ground truth and no-call replay of newly recorded provider results. `tableContinuationTop` can inspect up to the known following boundary before crop padding; known bare numbered stems anchor table refinement.
+
+### T-132 Crop Top Beside the Question Line; Enforced Capture Rules
+- `lib/capture-geometry.ts` figureVerticalLimits: beside case (top = question line top, left = figure left). `scripts/test-capture-rules.cjs`: rule -> code -> test map check plus unit checks for C-10/C-12/C-36 on recorded OCR. `scripts/test-t132-crop-top.cjs`: set 2 replay, saves every crop to evidence/t132/<label>/ and checks Q20/Q22. package.json: test-capture-rules and test-t123 in npm test; test-t121-fidelity and test-t132-crop-top in test:e2e.
+
+### T-131 Several Question Figures
+- `lib/formatter-rules.ts` QuestionFigure, ExamItem.questionImages, questionFigures(), sortFiguresBySource(); `lib/diagram-client.ts` harvestExamDiagrams collects question figures per item (harvestedFigures) and sorts them, choice tables drop only the figure they cover; `lib/harvest-editor.ts` setQuestionFigures (one wrapper per figure, manual figures kept); `lib/figure-text-cleanup.ts` cleans/removes per figure; `components/SplitDocumentEditor.tsx` renders [data-question-figure] per figure, labelImages skips labelled blocks, deleteImage removes one figure; `app/page.tsx` review keeps all figures. Export (`lib/export-document.ts`, `lib/export-layout.ts`) unchanged: each wrapper is its own questionImage paragraph. Test `scripts/test-t131-multi-figure.cjs` (replay `evidence/t121/t130-set2`).
+
+### T-130 Choice Tables, Header Notice, Drive Control
+- `lib/capture-geometry.ts` isChoiceTableFigure (looseThai); `lib/diagram-client.ts` skips choice-table question figures in harvestExamDiagrams; `lib/harvest-editor.ts` removes a harvested question image the new harvest dropped; `lib/figure-text-cleanup.ts` removes old choice-table images on reopen (choiceTexts). `app/page.tsx` header notice is an sr-only status. `components/RichTextToolbar.tsx` one Drive control with menu (exportStep, exportMenu); `components/GoogleDriveStatus.tsx` compact chip is the action. `app/globals.css` .ui-export-caret/.ui-export-menu/.drive-chip-main. Test `scripts/test-t130-choice-table.cjs` (replay `evidence/t121/t130-set2`).
+
+### T-129 Header Merge
+- `app/page.tsx`: header rail (drafts entry with history, tools menu with toolsOpen/toolsRef and outside-click/Escape close), drafts dialog shows import counts and history entries without drafts (historyEntries from lib/import-history.ts); separate import-history dialog removed. `app/globals.css` .tools-anchor/.tools-menu/.tools-item, rail anchor width. Test `scripts/test-e2e.cjs` (tools menu, history in drafts dialog).
+
+### T-128 Imports and Drive Layout
+- `lib/document-draft-store.ts` draftsForSource, markDraftExported, draftProgress; `components/DraftProgress.tsx`; `app/page.tsx` duplicate dialog in handleFileParsed, four landing drafts, export marks, header Drive slot (portal); `components/GoogleDriveStatus.tsx` compact variant; `lib/drive-library.ts` flat layout + findByHash + legacy reads; `lib/export-naming.ts`; `app/api/google/library/route.ts` ?hash=; `lib/google-export.ts` Google Doc name. Test `scripts/test-t128-duplicate-import.cjs`.
+
+### T-127 Answer Star Integrity
+- `components/SplitDocumentEditor.tsx` handleEditorInput (moves text typed after the star into the choice text; typed "*" only adds), insertChoiceAfter (key span aware), non-editable star span; `lib/answer-editor.ts` star contentEditable=false for saved drafts. Test `scripts/test-t127-answer-star.cjs`.
+
+### T-126 Answers and Choices
+- `lib/answer-editor.ts`: multi toggle, toggleManualAnswer, setMultiAnswer, confirmCurrentAnswers, relabelChoices, choiceKeySpan, deleteChoice, add/delete controls in decorateAnswerEditor, multi keys in answerItemsFromEditor. `lib/source-answer-service.ts` and `lib/source-answer-client.ts`: several circled keys per question. `lib/harvest-editor.ts` createChoiceRow (exported, key span aware). `components/SplitDocumentEditor.tsx` handleAnswerClick/keys 1-5. `lib/formatter-rules.ts` reconciledAnswerKeys. Test `scripts/test-t126-answers-choices.cjs`.
+
+### T-125 Capture Geometry Guarantee
+- `app/page.tsx`: cached draft OCR text reused only with ocrTextRegions; handleHarvestDiagrams reads OCR geometry first when missing and saves it with the draft. Rules: `documents/capture-rules.md`. Test `scripts/test-t125-cached-ocr.cjs` (in test:e2e).
+
+### T-124 Stale Draft Repair
+- `lib/figure-text-cleanup.ts`: cleanStemAgainstFigure, cleanFigureTextInEditor (called in the SplitDocumentEditor restore effect), staleFigures, CROP_VERSION. `lib/diagram-client.ts` recropFigure and the choice-below limit (choiceBelowFigureTop in `lib/capture-geometry.ts`). `components/SplitDocumentEditor.tsx` review item "รูปจากเวอร์ชันก่อน" + recropStaleFigures; `lib/harvest-editor.ts` stamps data-crop-version. Test `scripts/test-t124-stale-draft.cjs` (in test:e2e).
+
+### T-121 Fidelity and T-113 Runtime
+- Template order (2026-10-17): `lib/harvest-editor.ts` orderItemSections (used by mergeHarvestedEditor, SplitDocumentEditor restore effect, prepareExportDocument), removeWholeLines, createChoiceRow; `lib/capture-geometry.ts` stripTrailingFigureLabels (called in diagram-client question branch). Tests `scripts/test-t121-order-dom.cjs`; audit tools `scripts/audit-docx-template.cjs`, `scripts/audit-editor-structure.cjs`.
+- Audit 2026-10-17: `lib/api-key-manager.ts` executeAcrossModelsAndKeys (model outer, key inner) used by source-answer-service, ai-answer-service and diagram-service; `lib/source-answer-service.ts` isSelectionEvidence; `lib/diagram-service.ts` rescales 0..1 boxes; `lib/diagram-client.ts` extendCropAcrossInk widens a crop whose printed ink touches the side; `lib/capture-geometry.ts` hasCellRowEvidence; `lib/exam-parser.ts` isStemTableRow and splitInlineEnumerations. Replay test `scripts/test-t121-source-marks-ui.cjs`; live capture helper `scripts/capture-t121-real.cjs` (T121_ANSWERS=1).
+- Parser/review: lib/exam-parser.ts, lib/exam-validation.ts, lib/ocr-suggestions.ts, lib/answer-editor.ts; explicit repair survives saved model and HTML.
+- Capture: lib/capture-geometry.ts, lib/table-bounds.ts, lib/diagram-client.ts, lib/ocr-service.ts, lib/ocr-client.ts, app/api/ocr/route.ts; original line boxes, protected bounds, conservative full-grid refinement.
+- Workspace/cloud: components/SplitDocumentEditor.tsx, components/DocumentLibrary.tsx, app/page.tsx, lib/draft-backup.ts, lib/drive-library.ts, app/api/google/library/route.ts; versioned backup, verified source restore and safe HTML.
+- Resumed harvest: lib/harvest-editor.ts merges fresh media into the edited HTML snapshot, preserves narrative formatting and confirmed split rows, and persists the resulting snapshot rather than rendering stale saved image bytes.
+- Runtime: package.json/package-lock.json, lib/pdf-renderer.ts, scripts/sync-pdf-assets.cjs; patched Next/PDF/PostCSS and module worker assets.
+- Verification: scripts/test-t121-controls.cjs (legacy merge/save/restore and hostile HTML), scripts/test-t121-fidelity.cjs (real-source recorded-provider replay), scripts/capture-t121-real.cjs (live providers), scripts/test-diagram-contract.cjs, scripts/test-drive-library.cjs, scripts/test-parser.cjs. Completion history enforcement: scripts/finish-task.mjs.
+
+### T-119 Thirty-Point Pass
+- lib/exam-parser.ts: `mergedChoicePattern`, `splitMergedChoices` (called in `finish`); lib/exam-validation.ts: merged-choice message.
+- components/SplitDocumentEditor.tsx: `answerKeys`, `mergedRows`, `duplicateNumbers`, `sourceCompare`, `issueMap`, `issueBreakdown`, `confirmAllAiAnswers`, `splitMergedRow`, `jumpLock` and landing correction, keys 1-4, strip legend/arrow keys, review links/actions, page dots, sync/ink toggles with SVG filter, `editor-cv` long-document mode, compact choices, `choiceRowText`.
+- components/RichTextToolbar.tsx: export confirm, phase text, Drive pill.
+- app/page.tsx: `exportPhase` (try/finally), header dividers, `draftCount` badge, folded-dot alignment.
+- lib/export-document.ts: `prepareExportDocument(..., onProgress)`.
+- app/globals.css: T-119 block (cv, compact choices, clear chip, badge, details summary, review links, strip marks/legend, AI chip, page dots, ink filter, rail divider/badge, Drive pill, export confirm).
+- scripts/test-parser.cjs (merged split), scripts/test-e2e.cjs (duplicates, split, keys, compact, clear chip, AI confirm, export confirm), scripts/capture-t119.cjs.
+
+### T-118 Workspace Controls
+- components/SplitDocumentEditor.tsx: original count text, live/raw save action, separate download/export states and actionable disconnected export.
+- components/RichTextToolbar.tsx: Save state, Drive icon/status/action at export, independent request guards.
+- app/page.tsx: strict manual snapshot save, source count metadata on resume, connection dialog and restored inline header rail.
+- components/GoogleDriveStatus.tsx: observed status callback and refresh when management opens, unchanged existing OAuth/Picker actions.
+- lib/document-draft-store.ts: opt-in strict full write/readback and original-count preservation; legacy/default autosave behavior retained.
+- app/globals.css: same-row anchored inline hover rail and export-status layout; scripts/test-workspace-controls.cjs: raw/formatted save, quota, busy AI/diagram exports, independent DOCX, Drive connection, hover/mobile; existing library/E2E fixtures updated for owner-approved behavior.
+
+### T-117 Header Hit Targets
+app/page.tsx applies ui-stable-rail only to header utilities; app/globals.css fixes icon bounds and floats individual labels. scripts/test-library-ui.cjs compares every tool rectangle before/after hover and repeatedly opens library from outside the group. Evidence: evidence/t117-verification.md.
+
+### T-116 Related Drive Library
+- lib/drive-library.ts: source identity, collection ancestry/private folder validation, resumable uploads, immutable outputs, explicit import copies and readback.
+- app/api/google/library/route.ts: session/same-origin and bounded streaming API; lib/document-library-client.ts: raw uploads and safe observed URLs.
+- lib/library-pending-store.ts: durable browser queue for exact downloaded DOCX/source bytes and retry UUIDs.
+- components/DocumentLibrary.tsx, app/page.tsx, app/globals.css: grouped search/open/source upload, retry and explicit import confirmation; original auto-archive and export hooks.
+- app/api/google/export/route.ts, lib/google-export.ts: linked raw snapshot plus optional native Google Doc view, with unchanged template generation.
+- scripts/test-drive-library.cjs, scripts/test-library-ui.cjs: mocked server contract and browser regressions; scripts/verify-t115-source.cjs: private exact-PDF production crop checks.
+
+### T-114 Contextual Capture and Table Deduplication
+- lib/exam-parser.ts: table-context-gated cell/header cleanup, including chromatography color rows, preserving ambiguous narrative.
+- lib/captured-table-editor.ts: idempotent styled-DOM line removal for existing image-bearing question/shared blocks, including restored drafts.
+- components/SplitDocumentEditor.tsx: pointer/keyboard question/role suggestion, shared-range destination, post-edit image reveal, bounded narrow-image tools and native-picker replacement target.
+- lib/diagram-client.ts: protected original vertical crop bounds, thin guide-line retention and correct clipped padding extents; question-text cleanup after harvest.
+- lib/diagram-service.ts: detection prompt explicitly includes chromatography front/baseline/X/spot labels.
+- scripts/test-parser.cjs, scripts/test-diagram-contract.cjs, scripts/test-e2e.cjs, scripts/test-capture-editor.cjs: pure/negative, real Canvas pixels, capture context, legacy styled DOM, DOCX, native picker, toolbar and mobile regressions. Evidence: evidence/t114-verification.md.
+
 ### T-112 GitHub Release Preparation
 - .github/workflows/build-test.yml: least-privilege Node 22 locked build/tests, Chromium production verification and blocking high/critical production audit, without production credentials or deployment.
 - scripts/check-release-readiness.mjs: Git-managed file/path/size/pattern inspection; location-only reports and explicit history/binary limitations.

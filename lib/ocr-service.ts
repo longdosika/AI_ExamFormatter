@@ -5,12 +5,14 @@
 
 import { normalizeThaiOcrText } from "./text-normalization";
 import { getProviderApiKeys } from "./api-key-manager";
+import type { OcrTextRegion } from "./capture-geometry";
 
 export interface OcrResult {
   success: boolean;
   text: string;
   modelUsed?: string;
   error?: string;
+  textRegions?: OcrTextRegion[];
 }
 
 /** Normalize harmless Markdown escaping emitted by Typhoon before parsing. */
@@ -124,9 +126,9 @@ interface VisionWord {
 }
 interface VisionParagraph { words?: VisionWord[] }
 interface VisionBlock { paragraphs?: VisionParagraph[] }
-interface VisionPage { blocks?: VisionBlock[] }
+interface VisionPage { blocks?: VisionBlock[]; width?: number; height?: number }
 
-function reconstructSpatialText(visionPage?: VisionPage): string | null {
+function reconstructSpatialText(visionPage?: VisionPage, regions: OcrTextRegion[] = []): string | null {
   if (!visionPage || !visionPage.blocks) return null;
   const words: { 
     text: string; 
@@ -206,6 +208,10 @@ function reconstructSpatialText(visionPage?: VisionPage): string | null {
         }
       }
     }
+    if (visionPage.width && visionPage.height) {
+      const bound = (value: number, size: number) => Math.max(0, Math.min(1000, value / size * 1000));
+      regions.push({ text: lineText, bbox: [bound(Math.min(...line.map(w => w.minY)), visionPage.height), bound(Math.min(...line.map(w => w.minX)), visionPage.width), bound(Math.max(...line.map(w => w.maxY)), visionPage.height), bound(Math.max(...line.map(w => w.maxX)), visionPage.width)] });
+    }
     return lineText;
   }).join("\n");
 }
@@ -232,7 +238,8 @@ export async function requestGoogleVisionOcr(imageDataUrl: string, apiKey: strin
     }
     const data = await response.json();
     const page = data.responses?.[0]?.fullTextAnnotation?.pages?.[0];
-    const spatial = reconstructSpatialText(page);
+    const textRegions: OcrTextRegion[] = [];
+    const spatial = reconstructSpatialText(page, textRegions);
     const rawText = spatial || data.responses?.[0]?.fullTextAnnotation?.text;
     if (!rawText || !rawText.trim()) {
       return { success: false, text: "", error: "ไม่พบข้อความที่อ่านได้จากภาพ (Google Vision)" };
@@ -241,6 +248,7 @@ export async function requestGoogleVisionOcr(imageDataUrl: string, apiKey: strin
       success: true,
       text: normalizeOcrText(rawText),
       modelUsed: "google-cloud-vision",
+      textRegions,
     };
   } catch (err) {
     return {

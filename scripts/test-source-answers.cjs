@@ -11,6 +11,14 @@ for(const row of [{...answer,id:2},{...answer,key:'จ'},{...answer,confidence:0
 assert.deepEqual(validateSourceAnswers([answer,answer],questions,2),[]);
 assert.deepEqual(validateSourceAnswers(null,questions,2),[]);
 console.log('Source answer ownership, ambiguity, evidence, confidence and bbox guards passed');
+// T-121 (B-25): an X or tick is not a source selection, even when the model reports it confidently.
+for (const evidence of ['กากบาทสีแดงทับตัวเลือก ง', 'เครื่องหมายถูกสีชมพูหน้าตัวเลือก ก', 'X mark over choice ข clearly']) assert.deepEqual(validateSourceAnswers([{ ...answer, evidence }], questions, 2), [], evidence);
+assert.equal(validateSourceAnswers([{ ...answer, evidence: 'วงกลมสีฟ้าล้อมรอบตัวเลือก ข' }], questions, 2).length, 1);
+console.log('T-121 source answers reject X/tick evidence');
+// T-126: several circled keys of one question are all answers; the same key twice stays ambiguous.
+assert.deepEqual(validateSourceAnswers([{ ...answer, key: 'ก', evidence: 'วงกลมล้อมรอบตัวเลือก ก' }, { ...answer, key: 'ง', evidence: 'วงกลมล้อมรอบตัวเลือก ง' }], questions, 2).map(row => row.key), ['ก', 'ง']);
+assert.deepEqual(validateSourceAnswers([answer, { ...answer }], questions, 2), [], 'duplicate key for one question is ambiguous');
+console.log('T-126 multiple circled answers accepted per question');
 const aiAnswer={id:1,key:'ค',confidence:0.91,evidence:'จากหลักการแยกสาร ตัวเลือกนี้สอดคล้องกับโจทย์'};
 assert.equal(validateAiAnswers([aiAnswer],questions)[0].key,'ค');
 for(const row of [{...aiAnswer,key:'จ'},{...aiAnswer,confidence:0.79},{...aiAnswer,evidence:'สั้น'},{...aiAnswer,id:2},null]) assert.deepEqual(validateAiAnswers([row],questions),[]);
@@ -26,6 +34,13 @@ const {readSourceAnswers,solveUnresolvedAnswers}=require('../lib/source-answer-c
     const result=await readSourceAnswers([item],['image'],()=>true,()=>{});
     assert.equal(result.count,1);assert.equal(item.reconciledAnswerKey,'ข');assert.equal(item.sourceAnswerEvidence.page,1);
     await readSourceAnswers([item],['image'],()=>true,()=>{});assert.equal(calls,1,'Explicit/reconciled answers must not be overwritten');
+    // T-126: two circled keys (set 3 Q9: ก and ง) become two correct choices of one question.
+    global.fetch=async()=>({ok:true,json:async()=>({answers:[{...answer,key:'ก',page:1},{...answer,key:'ง',page:1}],model:'test'})});
+    const multi={id:1,questionNumber:9,sourcePage:1,questionText:'source',choices:questions[0].keys.map(key=>({key,text:key,isCorrect:false})),explanationText:''};
+    const multiResult=await readSourceAnswers([multi],['image'],()=>true,()=>{});
+    assert.equal(multiResult.count,1,'one question answered');
+    assert.deepEqual(multi.choices.filter(c=>c.isCorrect).map(c=>c.key),['ก','ง']);
+    assert.deepEqual(multi.reconciledAnswerKeys,['ก','ง']);assert.equal(multi.reconciledAnswerKey,'ก');
     const stale={...item,reconciledAnswerKey:undefined,choices:item.choices.map(c=>({...c,isCorrect:false}))};let current=true;
     global.fetch=async()=>{current=false;return {ok:true,json:async()=>({answers:[{...answer,page:1}],model:'test'})};};
     await readSourceAnswers([stale],['image'],()=>current,()=>{});assert.equal(stale.reconciledAnswerKey,undefined);

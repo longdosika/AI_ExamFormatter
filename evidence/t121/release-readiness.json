@@ -1,0 +1,8 @@
+{
+  "status": "PASS",
+  "checkedFiles": 781,
+  "totalBytes": 68430769,
+  "findings": [],
+  "warnings": [],
+  "scope": "Current Git-managed working tree only; not a full history, binary-content, or live-credential audit."
+}

@@ -1,0 +1,119 @@
+[
+ {
+  "page": 1,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [
+    {
+     "id": "diag-p1-1",
+     "type": "question",
+     "questionNumber": 6,
+     "description": "ตารางแสดงสมบัติของสารประกอบ A และ B ประกอบด้วยข้อมูลสถานะ จุดเดือด การนำไฟฟ้า และการละลายน้ำ",
+     "bbox": [
+      0.597,
+      0.145,
+      0.687,
+      0.748
+     ],
+     "page": 1,
+     "confidence": 0.9
+    }
+   ],
+   "model": "gemini-3.8-flash",
+   "keyIndex": 2,
+   "totalKeys": 3
+  }
+ },
+ {
+  "page": 2,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [
+    {
+     "id": "diag-p2-1",
+     "type": "question",
+     "questionNumber": 8,
+     "description": "แผนภาพแสดงผลการทดลองการแยกสารด้วยวิธีโครมาโทกราฟีที่มีแถบสี A, B, C, D",
+     "bbox": [
+      168,
+      361,
+      274,
+      663
+     ],
+     "page": 2,
+     "confidence": 0.9
+    },
+    {
+     "id": "diag-p2-2",
+     "type": "question",
+     "questionNumber": 10,
+     "description": "กราฟความสัมพันธ์ระหว่างอุณหภูมิ (°C) กับเวลา (นาที) ในการหาจุดเดือดของของเหลว A",
+     "bbox": [
+      521,
+      187,
+      626,
+      442
+     ],
+     "page": 2,
+     "confidence": 0.9
+    }
+   ],
+   "model": "gemini-3.8-flash",
+   "keyIndex": 2,
+   "totalKeys": 3
+  }
+ },
+ {
+  "page": 3,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [
+    {
+     "id": "diag-p3-1",
+     "type": "question",
+     "questionNumber": 20,
+     "description": "ภาพชุดอุปกรณ์การกรองสารด้วยกรวยและกระดาษกรอง",
+     "bbox": [
+      518,
+      193,
+      639,
+      355
+     ],
+     "page": 3,
+     "confidence": 0.9
+    },
+    {
+     "id": "diag-p3-2",
+     "type": "question",
+     "questionNumber": 21,
+     "description": "ตารางแสดงสมบัติของสาร A และ B เกี่ยวกับสถานะ การละลายในน้ำและเอทานอล และจุดเดือด",
+     "bbox": [
+      676,
+      143,
+      794,
+      669
+     ],
+     "page": 3,
+     "confidence": 0.9
+    }
+   ],
+   "model": "gemini-3.8-flash",
+   "keyIndex": 2,
+   "totalKeys": 3
+  }
+ },
+ {
+  "page": 4,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [],
+   "model": "gemini-3.8-flash",
+   "keyIndex": 2,
+   "totalKeys": 3
+  }
+ }
+]

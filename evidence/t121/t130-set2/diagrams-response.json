@@ -1,0 +1,218 @@
+[
+ {
+  "page": 1,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [
+    {
+     "id": "diag-p1-1",
+     "type": "question",
+     "questionNumber": 5,
+     "description": "ตารางตัวเลือกคำตอบของข้อ 5 ระบุความสัมพันธ์ระหว่างการระเหยและการตกผลึกในแต่ละขั้นตอนของการทำนาเกลือ",
+     "bbox": [
+      679,
+      134,
+      822,
+      531
+     ],
+     "page": 1,
+     "confidence": 0.9
+    }
+   ],
+   "model": "gemini-3.8-flash",
+   "keyIndex": 2,
+   "totalKeys": 3
+  }
+ },
+ {
+  "page": 2,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [
+    {
+     "id": "diag-p2-1",
+     "type": "question",
+     "questionNumber": 7,
+     "description": "ตารางการจำแนกสาร ประกอบด้วยคอลัมน์ ธาตุ, สารประกอบ, สารละลาย, สารเนื้อผสม",
+     "bbox": [
+      165,
+      170,
+      303,
+      748
+     ],
+     "page": 2,
+     "confidence": 0.9
+    },
+    {
+     "id": "diag-p2-2",
+     "type": "question",
+     "questionNumber": 8,
+     "description": "แผนภาพผังมโนทัศน์การจำแนกสาร",
+     "bbox": [
+      338,
+      220,
+      464,
+      776
+     ],
+     "page": 2,
+     "confidence": 0.9
+    },
+    {
+     "id": "diag-p2-3",
+     "type": "question",
+     "questionNumber": 8,
+     "description": "ตารางตัวเลือกสาร A, สาร B, สาร C, สาร D",
+     "bbox": [
+      504,
+      167,
+      640,
+      638
+     ],
+     "page": 2,
+     "confidence": 0.9
+    },
+    {
+     "id": "diag-p2-4",
+     "type": "question",
+     "questionNumber": 10,
+     "description": "ตารางเกณฑ์การจัดจำแนกสารและตัวอย่างสาร",
+     "bbox": [
+      792,
+      162,
+      931,
+      820
+     ],
+     "page": 2,
+     "confidence": 0.9
+    }
+   ],
+   "model": "gemini-3.8-flash",
+   "keyIndex": 2,
+   "totalKeys": 3
+  }
+ },
+ {
+  "page": 3,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [
+    {
+     "id": "diag-p3-1",
+     "type": "question",
+     "questionNumber": 16,
+     "description": "ตารางสมบัติของสาร A, B, C แสดงจุดเดือด จุดหลอมเหลว และการละลายน้ำ",
+     "bbox": [
+      447,
+      143,
+      561,
+      668
+     ],
+     "page": 3,
+     "confidence": 0.9
+    },
+    {
+     "id": "diag-p3-2",
+     "type": "question",
+     "questionNumber": 20,
+     "description": "แผนภาพโครมาโทกราฟีในกระบอกแก้ว แสดงตำแหน่งการเคลื่อนที่ของสาร Z, Y, X และจุดสี",
+     "bbox": [
+      826,
+      162,
+      922,
+      292
+     ],
+     "page": 3,
+     "confidence": 0.9
+    }
+   ],
+   "model": "gemini-3.8-flash",
+   "keyIndex": 2,
+   "totalKeys": 3
+  }
+ },
+ {
+  "page": 4,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [
+    {
+     "id": "diag-p4-1",
+     "type": "question",
+     "questionNumber": 22,
+     "description": "แผนภาพชุดอุปกรณ์การกรองด้วยกรวยและเซลโลเฟน แสดงตำแหน่งหมายเลข 1, 2, 3",
+     "bbox": [
+      212,
+      230,
+      308,
+      425
+     ],
+     "page": 4,
+     "confidence": 0.9
+    },
+    {
+     "id": "diag-p4-2",
+     "type": "question",
+     "questionNumber": 25,
+     "description": "รูปที่ 1 ชุดอุปกรณ์การกลั่นอย่างง่ายพร้อมป้ายกำกับส่วนประกอบ",
+     "bbox": [
+      590,
+      106,
+      771,
+      512
+     ],
+     "page": 4,
+     "confidence": 0.9
+    },
+    {
+     "id": "diag-p4-3",
+     "type": "question",
+     "questionNumber": 25,
+     "description": "รูปที่ 2 ขั้นตอนการพับกระดาษกรองและชุดอุปกรณ์การกรองสาร",
+     "bbox": [
+      595,
+      550,
+      771,
+      888
+     ],
+     "page": 4,
+     "confidence": 0.9
+    },
+    {
+     "id": "diag-p4-4",
+     "type": "question",
+     "questionNumber": 25,
+     "description": "รูปที่ 3 ชุดอุปกรณ์กรวยแยกสาร",
+     "bbox": [
+      772,
+      150,
+      938,
+      252
+     ],
+     "page": 4,
+     "confidence": 0.9
+    },
+    {
+     "id": "diag-p4-5",
+     "type": "question",
+     "questionNumber": 25,
+     "description": "รูปที่ 4 ชุดอุปกรณ์การระเหิดหรือให้ความร้อนบนตะเกียงแอลกอฮอล์",
+     "bbox": [
+      800,
+      320,
+      938,
+      440
+     ],
+     "page": 4,
+     "confidence": 0.9
+    }
+   ],
+   "model": "gemini-3.8-flash",
+   "keyIndex": 2,
+   "totalKeys": 3
+  }
+ }
+]

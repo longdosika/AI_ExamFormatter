@@ -1,0 +1,191 @@
+{
+  "set": 5,
+  "at": "2026-10-17T03:55:51.839Z",
+  "base": "http://localhost:3000",
+  "sourcePageCount": 6,
+  "scope": "Recorded actual OCR; live diagram responses; Google mocked disconnected; no saved user draft, purchase or import",
+  "responses": [
+    {
+      "page": 1,
+      "at": "2026-10-17T03:55:23.601Z",
+      "http": 200,
+      "durationMs": 5725,
+      "raw": {
+        "success": true,
+        "diagrams": [],
+        "model": "gemini-flash-lite-latest",
+        "keyIndex": 0,
+        "totalKeys": 3
+      }
+    },
+    {
+      "page": 2,
+      "at": "2026-10-17T03:55:28.479Z",
+      "http": 200,
+      "durationMs": 4164,
+      "raw": {
+        "success": true,
+        "diagrams": [
+          {
+            "id": "diag-p2-1",
+            "type": "shared_context",
+            "questionNumber": 6,
+            "description": "ตารางผลการทดลองการแยกสาร A โดยวิธีโครมาโทกราฟีกระดาษ แสดงค่า Rf ของสาร B, C และ D",
+            "bbox": [
+              485,
+              229,
+              616,
+              597
+            ],
+            "page": 2,
+            "confidence": 0.9
+          }
+        ],
+        "model": "gemini-flash-lite-latest",
+        "keyIndex": 0,
+        "totalKeys": 3
+      }
+    },
+    {
+      "page": 3,
+      "at": "2026-10-17T03:55:34.295Z",
+      "http": 200,
+      "durationMs": 4915,
+      "raw": {
+        "success": true,
+        "diagrams": [],
+        "model": "gemini-flash-lite-latest",
+        "keyIndex": 0,
+        "totalKeys": 3
+      }
+    },
+    {
+      "page": 4,
+      "at": "2026-10-17T03:55:39.374Z",
+      "http": 200,
+      "durationMs": 4349,
+      "raw": {
+        "success": true,
+        "diagrams": [
+          {
+            "id": "diag-p4-1",
+            "type": "shared_context",
+            "questionNumber": 16,
+            "description": "ตารางแสดงผลการทดสอบด้วยวิธีโครมาโทกราฟีกระดาษของสารสีต่างๆ",
+            "bbox": [
+              653,
+              126,
+              907,
+              897
+            ],
+            "page": 4,
+            "confidence": 0.9
+          }
+        ],
+        "model": "gemini-flash-lite-latest",
+        "keyIndex": 0,
+        "totalKeys": 3
+      }
+    },
+    {
+      "page": 5,
+      "at": "2026-10-17T03:55:44.708Z",
+      "http": 200,
+      "durationMs": 4509,
+      "raw": {
+        "success": true,
+        "diagrams": [],
+        "model": "gemini-flash-lite-latest",
+        "keyIndex": 0,
+        "totalKeys": 3
+      }
+    },
+    {
+      "page": 6,
+      "at": "2026-10-17T03:55:49.810Z",
+      "http": 200,
+      "durationMs": 4403,
+      "raw": {
+        "success": true,
+        "diagrams": [
+          {
+            "id": "diag-p6-1",
+            "type": "shared_context",
+            "questionNumber": 21,
+            "description": "ตารางแสดงสมบัติบางประการของสาร X, Y, Z (จุดหลอมเหลว, จุดเดือด, การละลายน้ำ)",
+            "bbox": [
+              138,
+              143,
+              237,
+              882
+            ],
+            "page": 6,
+            "confidence": 0.9
+          },
+          {
+            "id": "diag-p6-2",
+            "type": "question",
+            "questionNumber": 21,
+            "description": "ตารางตัวเลือกการแยกสาร X, Y, Z ตามลำดับขั้น",
+            "bbox": [
+              393,
+              144,
+              574,
+              655
+            ],
+            "page": 6,
+            "confidence": 0.9
+          },
+          {
+            "id": "diag-p6-3",
+            "type": "question",
+            "questionNumber": 22,
+            "description": "ตารางบันทึกผลการศึกษาสมบัติของสารเพื่อจัดหมวดหมู่ประเภทต่างๆ (ปรอท, ผงชูรส, น้ำประสานทอง, น้ำมันเบนซิน, เพชร)",
+            "bbox": [
+              587,
+              143,
+              829,
+              949
+            ],
+            "page": 6,
+            "confidence": 0.9
+          }
+        ],
+        "model": "gemini-flash-lite-latest",
+        "keyIndex": 0,
+        "totalKeys": 3
+      }
+    }
+  ],
+  "allPagesLive": true,
+  "captures": [
+    {
+      "item": "6",
+      "role": "question",
+      "bbox": "[488.1305637982196,230.84994753410282,611.2759643916914,596.0125918153201]",
+      "file": "set5-crop1-q6-question.png"
+    },
+    {
+      "item": "13",
+      "role": "other",
+      "bbox": "[653,126,907,897]",
+      "file": "set5-crop2-q13-other.png"
+    },
+    {
+      "item": "21",
+      "role": "question",
+      "bbox": "[393,144,435.4272997032641,655]",
+      "file": "set5-crop3-q21-question.png"
+    },
+    {
+      "item": "22",
+      "role": "question",
+      "bbox": "[586.053412462908,140.60860440713537,852.3738872403561,951.7313746065058]",
+      "file": "set5-crop4-q22-question.png"
+    }
+  ],
+  "quality": "22 ข้อ · ตัวเลือกไม่ครบ 0 · เลขซ้ำ 0 · เลขข้าม 0 · รูป/ตารางขาด 0",
+  "errors": [],
+  "partial": false,
+  "note": "Provider 200 and image counts do not certify complete geometry; visually compare the saved original and each crop."
+}

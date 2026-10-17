@@ -1,0 +1,86 @@
+
+const CHOICE_KEYS = ["ก", "ข", "ค", "ง", "จ"];
+export const MAX_CHOICES = CHOICE_KEYS.length;
+export function isMultiAnswer(item: HTMLElement) { return item.dataset.multiAnswer === "true"; }
+function questionLabel(item: HTMLElement) { return item.textContent?.trim().match(/^\d+/)?.[0] || item.dataset.itemId || ""; }
+
+/** T-126: radio buttons in single mode, checkboxes in multi mode; the toggle shows its state. */
+export function syncAnswerInputs(item: HTMLElement) {
+  const multi = isMultiAnswer(item);
+  item.querySelectorAll<HTMLInputElement>("input[data-answer-select]").forEach(input => {
+    if (input.type !== (multi ? "checkbox" : "radio")) input.type = multi ? "checkbox" : "radio";
+  });
+  const toggle = item.querySelector<HTMLElement>("[data-multi-toggle]");
+  if (toggle) {
+    toggle.setAttribute("aria-pressed", String(multi));
+    toggle.textContent = multi ? "✓ ตอบได้หลายข้อ" : "ตอบได้หลายข้อ";
+  }
+}
+
+/** T-126: switching back to single mode keeps only the first selected answer. */
+export function setMultiAnswer(item: HTMLElement, on: boolean) {
+  item.dataset.multiAnswer = on ? "true" : "false";
+  if (!on) {
+    const selected = Array.from(item.querySelectorAll<HTMLElement>("[data-choice-key]")).filter(row => row.dataset.answerOrigin && row.dataset.answerOrigin !== "none");
+    if (selected.length > 1) selectManualAnswer(item, selected[0].dataset.choiceKey || null);
+  }
+  syncAnswerInputs(item);
+}
+
+function clearTypedStars(row: HTMLElement) {
+  const walker = document.createTreeWalker(row, NodeFilter.SHOW_TEXT);
+  let text: Node | null;
+  while ((text = walker.nextNode())) {
+    if (!text.parentElement?.closest("[data-answer-marker], [data-export-ignore]")) text.textContent = text.textContent?.replace(/\s*\*\s*$/u, "") || "";
+  }
+}
+
+/** T-126: multi mode adds or removes one key; every remaining answer becomes a user-confirmed answer. */
+export function toggleManualAnswer(item: HTMLElement, key: string) {
+  item.dataset.answerEdited = "true";
+  item.querySelectorAll<HTMLElement>("details[data-export-ignore]").forEach(evidence => { evidence.hidden = true; });
+  item.querySelectorAll<HTMLElement>("[data-choice-key]").forEach(row => {
+    clearTypedStars(row);
+    const selected = Boolean(row.dataset.answerOrigin && row.dataset.answerOrigin !== "none");
+    paintAnswer(row, (row.dataset.choiceKey === key ? !selected : selected) ? "manual" : undefined);
+  });
+}
+
+/** Confirm every current answer of a question (source, AI or user) as a user answer, keeping several in multi mode. */
+export function confirmCurrentAnswers(item: HTMLElement) {
+  const selected = Array.from(item.querySelectorAll<HTMLElement>("[data-choice-key]")).filter(row => row.dataset.answerOrigin && row.dataset.answerOrigin !== "none");
+  if (!selected.length) return 0;
+  if (!isMultiAnswer(item) || selected.length === 1) { selectManualAnswer(item, selected[0].dataset.choiceKey || null); return 1; }
+  item.dataset.answerEdited = "true";
+  selected.forEach(row => paintAnswer(row, "manual"));
+  return selected.length;
+}
+
+/** T-126: keys follow row order (ก ข ค ง จ); controls and labels follow their row. */
+export function relabelChoices(item: HTMLElement) {
+  const number = questionLabel(item);
+  Array.from(item.querySelectorAll<HTMLElement>("[data-choice-key]")).forEach((row, index) => {
+    const key = CHOICE_KEYS[index] || row.dataset.choiceKey || "";
+    if (row.dataset.choiceKey !== key) {
+      const walker = document.createTreeWalker(row, NodeFilter.SHOW_TEXT);
+      let text: Node | null;
+      while ((text = walker.nextNode())) {
+        if (/^\s*[ก-จ]\.\s*$/.test(text.textContent || "")) { text.textContent = `${key}. `; break; }
+      }
+      row.dataset.choiceKey = key;
+    }
+    const input = row.querySelector<HTMLInputElement>("input[data-answer-select]");
+    if (input) { input.dataset.answerSelect = key; input.setAttribute("aria-label", `เฉลยข้อ ${number} ตัวเลือก ${key}`); input.title = `เลือก ${key} เป็นเฉลยโดยผู้ใช้`; }
+    row.querySelector<HTMLElement>("[data-choice-delete]")?.setAttribute("aria-label", `ลบตัวเลือก ${key} ข้อ ${number}`);
+  });
+  const add = item.querySelector<HTMLButtonElement>("[data-choice-add]");
+  if (add) add.disabled = item.querySelectorAll("[data-choice-key]").length >= MAX_CHOICES;
+}
+
+/** T-126: remove one choice; later keys move up and the answers stay on their rows. */
+export function deleteChoice(item: HTMLElement, row: HTMLElement) {
+  row.remove();
+  item.dataset.choicesEdited = "true";
+  item.dataset.answerEdited = "true";
+  relabelChoices(item);
+}

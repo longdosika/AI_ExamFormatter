@@ -1,0 +1,119 @@
+[
+ {
+  "page": 1,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [
+    {
+     "id": "diag-p1-1",
+     "type": "shared_context",
+     "questionNumber": 6,
+     "description": "ตารางแสดงสมบัติของสารประกอบ A และ B",
+     "bbox": [
+      596,
+      142,
+      693,
+      747
+     ],
+     "page": 1,
+     "confidence": 0.9
+    }
+   ],
+   "model": "gemini-flash-lite-latest",
+   "keyIndex": 0,
+   "totalKeys": 3
+  }
+ },
+ {
+  "page": 2,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [
+    {
+     "id": "diag-p2-1",
+     "type": "question",
+     "questionNumber": 8,
+     "description": "แผนภาพโครมาโทกราฟีของสาร ก",
+     "bbox": [
+      178,
+      355,
+      276,
+      659
+     ],
+     "page": 2,
+     "confidence": 0.9
+    },
+    {
+     "id": "diag-p2-2",
+     "type": "question",
+     "questionNumber": 10,
+     "description": "กราฟแสดงความสัมพันธ์ระหว่างอุณหภูมิกับเวลา",
+     "bbox": [
+      514,
+      213,
+      622,
+      439
+     ],
+     "page": 2,
+     "confidence": 0.9
+    }
+   ],
+   "model": "gemini-flash-lite-latest",
+   "keyIndex": 0,
+   "totalKeys": 3
+  }
+ },
+ {
+  "page": 3,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [
+    {
+     "id": "diag-p3-1",
+     "type": "question",
+     "questionNumber": 20,
+     "description": "ภาพการทดลองการกรองสารด้วยกรวยกรองและกระดาษกรอง",
+     "bbox": [
+      513,
+      188,
+      664,
+      358
+     ],
+     "page": 3,
+     "confidence": 0.9
+    },
+    {
+     "id": "diag-p3-2",
+     "type": "shared_context",
+     "questionNumber": 21,
+     "description": "ตารางแสดงสมบัติของสาร A และ B (สถานะ การละลายน้ำ เอทานอล จุดเดือด)",
+     "bbox": [
+      673,
+      143,
+      805,
+      535
+     ],
+     "page": 3,
+     "confidence": 0.9
+    }
+   ],
+   "model": "gemini-flash-lite-latest",
+   "keyIndex": 0,
+   "totalKeys": 3
+  }
+ },
+ {
+  "page": 4,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [],
+   "model": "gemini-flash-lite-latest",
+   "keyIndex": 0,
+   "totalKeys": 3
+  }
+ }
+]

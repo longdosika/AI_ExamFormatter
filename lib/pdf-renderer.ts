@@ -35,7 +35,7 @@ export async function renderPdfPages(file: File, maxPages = Infinity, options: I
       // Keep PDF rendering deterministic in localhost/Vercel environments;
       // relying on a CDN worker makes a valid image/PDF look like an import
       // failure when the browser has no access to that external origin.
-      pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.js";
+      pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
     }
     loadingTask = pdfjsLib.getDocument({
       data: new Uint8Array(arrayBuffer),
@@ -43,6 +43,7 @@ export async function renderPdfPages(file: File, maxPages = Infinity, options: I
       standardFontDataUrl: "/pdf-assets/standard_fonts/",
       cMapUrl: "/pdf-assets/cmaps/",
       cMapPacked: true,
+      isEvalSupported: false,
     });
     const pdf = await loadingTask.promise;
     throwIfImportAborted(signal);

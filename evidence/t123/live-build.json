@@ -1,0 +1,42 @@
+{
+  "observedAt": "2026-10-17T04:09:36.944Z",
+  "timezone": "Asia/Bangkok",
+  "machine": "DESKTOP-FNVSAKS",
+  "node": "v24.19.0",
+  "origin": "http://localhost:3000",
+  "build": "261017-1101",
+  "sourceMatches": true,
+  "distDir": ".next-production-t123-live",
+  "launchedPid": 3004,
+  "httpStatus": 200,
+  "css": {
+    "status": 200,
+    "bytes": 63737
+  },
+  "unitChecks": 15,
+  "completionGatePassed": true,
+  "productionReplay": {
+    "set4": true,
+    "set5": true,
+    "fidelity25": true,
+    "fidelity80": true
+  },
+  "actualThisPass": {
+    "sourceMarkPageCalls": 8,
+    "diagramPageCalls": 18,
+    "note": "App endpoint calls; internal model/key rotation may make multiple provider attempts.",
+    "googleWrites": false,
+    "quizFlowImport": false,
+    "packagePurchased": false,
+    "billingOrKeyModelConfigChanged": false,
+    "originalPdfsUnchanged": true
+  },
+  "sourceMarkAcceptance": false,
+  "remaining": [
+    "H-07 missing/incorrect figures and incomplete choices; I-047 multiple tables in set5 Q21",
+    "H-10 fewer than10 correct in second live round; three consecutive rounds not passed",
+    "H-01 real persistent QuizFlow import",
+    "H-12 Git publication not authorized"
+  ],
+  "taskStatus": "In Progress"
+}

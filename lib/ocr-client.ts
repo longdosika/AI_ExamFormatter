@@ -1,5 +1,6 @@
 /** The API limit is per request, not a user-facing document page limit. */
-interface PageOutcome { page: number; success: boolean; modelUsed?: string; error?: string }
+import { validTextRegions, type OcrTextRegion } from "./capture-geometry";
+interface PageOutcome { page: number; success: boolean; modelUsed?: string; error?: string; textRegions?: OcrTextRegion[] }
 
 /**
  * Keep requests below common serverless/proxy body limits. The API still
@@ -73,7 +74,7 @@ export async function readOcrDocument(images: string[], options: {
       for (let index = 0; index < batch.length; index++) {
         const outcome = outcomes.find(page => page.page === index + 1);
         pageResults.push({page:offset + index + 1, success:outcome?.success === true,
-          modelUsed:outcome?.modelUsed, error:outcome?.error || (!outcome ? "OCR ไม่ส่งผลของหน้านี้" : undefined)});
+          modelUsed:outcome?.modelUsed, textRegions:validTextRegions(outcome?.textRegions), error:outcome?.error || (!outcome ? "OCR ไม่ส่งผลของหน้านี้" : undefined)});
       }
       const complete = data.allPagesSuccess === true && Boolean(text) &&
         outcomes.length === batch.length && outcomes.every(page => page.success);

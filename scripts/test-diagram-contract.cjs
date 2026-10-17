@@ -8,7 +8,32 @@ require.extensions['.ts'] = (module, filename) => {
 };
 
 const { analyzePageDiagrams } = require('../lib/diagram-service.ts');
-const { detectIntruderCuts } = require('../lib/diagram-client.ts');
+const { detectIntruderCuts, extendCropAcrossInk } = require('../lib/diagram-client.ts');
+const { validTextRegions, figureVerticalLimits, constrainFigure, hasTabularTextEvidence, removeCapturedGridText, tableContinuationTop } = require('../lib/capture-geometry.ts');
+const regions = [{text:'20. question stem',bbox:[400,100,430,800]}, {text:'21. next stem',bbox:[700,100,730,800]}, {text:'A guide label',bbox:[600,500,610,600]}];
+assert.deepEqual(figureVerticalLimits(20,[20,21],regions),[433,0,697,1000]);
+assert.deepEqual(constrainFigure([390,100,740,500],[433,0,697,1000]),[433,100,697,500]);
+assert.equal(constrainFigure([100,100,200,200],[433,0,697,1000]),null);
+assert.deepEqual(figureVerticalLimits(20,[20,21],[]),[0,0,1000,1000],'No invented OCR geometry');
+assert.deepEqual(figureVerticalLimits(20,[20,21],regions,false,[150,100,300,500]),[0,0,397,1000],'Figures printed before their own stem are preserved');
+assert.equal(validTextRegions([{text:'bad',bbox:[0,0,NaN,50]}]).length,0);
+const {detectRuledTable}=require('../lib/table-bounds.ts');
+const pixels=new Uint8ClampedArray(300*200*4).fill(255);
+const line=(x0,y0,x1,y1)=>{for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){const i=(y*300+x)*4;pixels[i]=pixels[i+1]=pixels[i+2]=0;}};
+for(const y of [40,85,130])line(30,y,260,y);
+for(const x of [30,100,180,260])line(x,40,x,130);
+const grid=detectRuledTable(pixels,300,200,[0,0,1000,1000]);
+assert.ok(grid&&grid[1]<110&&grid[3]>860,'Full ruled grid includes all outer columns');
+assert.equal(detectRuledTable(new Uint8ClampedArray(300*200*4).fill(255),300,200,[0,0,1000,1000]),null,'Blank is never a table');
+const tableLines=[{text:'สาร การละลายในตัวทำ ละลาย การถูกดูดซับด้วยตัวดูดซับ',bbox:[710,200,740,800]},...['X 3 1','Y 1 3','Z 2 2'].map((text,i)=>({text,bbox:[750+i*25,240,765+i*25,700]}))];
+const tableBox=[700,180,840,820];
+assert.ok(hasTabularTextEvidence(tableLines,tableBox));
+assert.equal(hasTabularTextEvidence(tableLines.slice(0,2),tableBox),false,'One row is not evidence of a table');
+const {referencesFigure}=require('../lib/exam-validation.ts');
+assert.equal(referencesFigure('ใช้โครมาโทกราฟีแยกสาร'),false,'Chromatography is not an attached-graph reference');
+assert.equal(referencesFigure('นำข้อมูลมาเขียนกราฟได้ดังรูป'),true);
+assert.equal(removeCapturedGridText('นำข้อมูลมาเปรียบเทียบ '+tableLines.map(r=>r.text).join(' ')+' สารใดมีค่า R มากที่สุด',tableLines,tableBox),'นำข้อมูลมาเปรียบเทียบ สารใดมีค่า R มากที่สุด');
+assert.equal(tableContinuationTop([...tableLines,{text:'สารใดมีค่า R มากที่สุด',bbox:[849,170,871,700]}],[700,180,863,820]),849,'Continuation below a table is excluded even when only part of its line enters the provider crop');
 
 // 1. Contract: Diagram Types & Bounding Box Validations
 const mockDiagrams = [
@@ -158,6 +183,19 @@ const crystalTrimResult = simulateGutterDetection(mockCrystalRows, 3, 3, { top: 
 assert.equal(crystalTrimResult.topCut, 0, 'Choice crystal must not be trimmed when options are false');
 assert.equal(crystalTrimResult.bottomCut, 100, 'Choice crystal must preserve full height');
 
+const detachedGuideRows = new Array(240).fill(0);
+for (let y = 20; y <= 21; y++) detachedGuideRows[y] = 80;
+for (let y = 65; y <= 74; y++) detachedGuideRows[y] = 15;
+for (let y = 155; y <= 164; y++) detachedGuideRows[y] = 15;
+for (let y = 218; y <= 219; y++) detachedGuideRows[y] = 80;
+const guideCuts = detectIntruderCuts(detachedGuideRows);
+assert.ok(guideCuts.topCut <= 20 && guideCuts.bottomCut >= 220, 'Detached solvent front and baseline are not intruder text');
+const protectedCuts = detectIntruderCuts(q80Rows, 3, 3, { top: true, bottom: true, contentTop: 34, contentBottom: 310 });
+assert.ok(protectedCuts.topCut <= 34 && protectedCuts.bottomCut >= 310, 'Whitespace alone never deletes inside the detected figure bounds');
+const paddingOnlyCuts = detectIntruderCuts(q80Rows, 3, 3, { top: true, bottom: true, contentTop: 91, contentBottom: 261 });
+assert.equal(paddingOnlyCuts.topCut, 88);
+assert.equal(paddingOnlyCuts.bottomCut, 264);
+
 // 4. T-084 visible ordering labels: question figures use the explicit heading requested by the user.
 const editorSource = fs.readFileSync(require.resolve('../components/SplitDocumentEditor.tsx'), 'utf8');
 assert.ok(editorSource.includes('รูปโจทย์:'), 'Question image heading must be visible as รูปโจทย์:');
@@ -171,6 +209,50 @@ assert.ok(editorSource.includes('data-explanation-image="true"'), 'Explanation i
 
 const packageSource = fs.readFileSync(require.resolve('../package.json'), 'utf8');
 assert.ok(packageSource.includes('"predev": "node scripts/stamp-version.cjs"'), 'Development server startup must stamp the visible build number');
+
+// T-121 audit: ordinary ruled tables (Q6/Q21 of the real chapter-7 file) count as tables without grid detection.
+{
+  const { hasCellRowEvidence } = require('../lib/capture-geometry.ts');
+  const ocr = JSON.parse(fs.readFileSync(require('node:path').join(__dirname, '..', 'evidence', 't121', 'audit-answers-fixed', 'ocr-response.json'), 'utf8'));
+  const page3 = ocr[0].pageResults[2].textRegions, page1 = ocr[0].pageResults[0].textRegions;
+  assert.equal(hasCellRowEvidence(page3, [676, 143, 794, 669]), true, 'Q21 table');
+  assert.equal(hasCellRowEvidence(page1, [596, 142, 693, 747]), true, 'Q6 table');
+  assert.equal(hasCellRowEvidence(page3, [513, 188, 664, 358]), false, 'Q20 apparatus picture');
+  assert.equal(hasCellRowEvidence(page3, [676, 143, 830, 669]), false, 'a box that also holds the question sentence is not a pure table');
+}
+// T-121 (owner Q8 screenshot): chromatogram labels OCR'd into the stem tail are removed once the figure is captured.
+{
+  const { stripTrailingFigureLabels } = require('../lib/capture-geometry.ts');
+  const ocr = JSON.parse(fs.readFileSync(require('node:path').join(__dirname, '..', 'evidence', 't121', 'continuation-r2', 'ocr-response.json'), 'utf8'));
+  const page2 = ocr[0].pageResults[1].textRegions;
+  const stem = 'เมื่อนำสารมาแยกโดยวิธีโครมาโทกราฟีและใช้น้ำ เป็นตัวทำละลายได้ผลการทดลองดังนี้ ข้อสรุปใดถูกต้อง D ac สี B สี A สาร ก';
+  assert.equal(stripTrailingFigureLabels(stem, page2, [194, 359, 276, 655]), 'เมื่อนำสารมาแยกโดยวิธีโครมาโทกราฟีและใช้น้ำ เป็นตัวทำละลายได้ผลการทดลองดังนี้ ข้อสรุปใดถูกต้อง');
+  assert.equal(stripTrailingFigureLabels('ข้อใดถูกต้อง', page2, [194, 359, 276, 655]), 'ข้อใดถูกต้อง', 'nothing to strip');
+  assert.equal(stripTrailingFigureLabels(stem, page2, [600, 0, 700, 100]), stem.trimEnd(), 'labels outside the figure stay');
+}
+// T-121 audit: a 0..1-scaled box from a newer model is read as 0..1000, not as an invisible box.
+{
+  const { validateDetectedDiagrams } = require('../lib/diagram-service.ts');
+  assert.deepEqual(validateDetectedDiagrams([{ type: 'question', questionNumber: 6, bbox: [0.597, 0.145, 0.687, 0.748] }], 1)[0].bbox, [597, 145, 687, 748]);
+  assert.deepEqual(validateDetectedDiagrams([{ type: 'question', questionNumber: 6, bbox: [596, 142, 693, 747] }], 1)[0].bbox, [596, 142, 693, 747]);
+  assert.deepEqual(validateDetectedDiagrams([{ type: 'question', questionNumber: 6, bbox: [0, 0, 1, 1] }], 1)[0].bbox, [0, 0, 1000, 1000]);
+}
+// T-121 audit: a provider box ending inside a figure label ("เวลา (น|าที)") widens to the next clear gap.
+{
+  const width = 1000, height = 40;
+  const pixels = new Uint8ClampedArray(width * height * 4).fill(255);
+  const ink = (from, to, rgb = [0, 0, 0]) => { for (let row = 10; row < 20; row++) for (let column = from; column < to; column++) pixels.set([...rgb, 255], (row * width + column) * 4); };
+  ink(100, 200); ink(203, 206); ink(209, 230); // figure, then label glyphs with 2-3px internal gaps
+  ink(260, 300); // choice text after a wide gap
+  assert.deepEqual(extendCropAcrossInk(pixels, width, height, { x: 60, y: 0, w: 145, h: 40 }), { x: 60, w: 174 }, "label completed, choice text excluded");
+  assert.deepEqual(extendCropAcrossInk(pixels, width, height, { x: 60, y: 0, w: 180, h: 40 }), { x: 60, w: 180 }, "no ink at the edge: unchanged");
+  ink(240, 246, [230, 40, 60]); // coloured pen mark in the gap is ignored
+  assert.deepEqual(extendCropAcrossInk(pixels, width, height, { x: 60, y: 0, w: 145, h: 40 }), { x: 60, w: 174 });
+  const crowded = new Uint8ClampedArray(width * height * 4).fill(255);
+  for (let row = 10; row < 20; row++) for (let column = 0; column < width; column++) if (column % 4 !== 3) crowded.set([0, 0, 0, 255], (row * width + column) * 4);
+  assert.deepEqual(extendCropAcrossInk(crowded, width, height, { x: 100, y: 0, w: 100, h: 40 }), { x: 100, w: 100 }, "no gap within budget: unchanged");
+  assert.deepEqual(extendCropAcrossInk(pixels, width, height, { x: 60, y: 0, w: 145, h: 40 }, { left: 0, right: width }, { top: 25, bottom: 40 }), { x: 60, w: 145 }, "rows outside the figure band do not count");
+}
 
 console.log("Diagram harvesting contract, bbox validation, T-089/T-092 gutter trimming, T-084 crop/order, and T-086 bottom-trim/build-stamp tests passed.");
 

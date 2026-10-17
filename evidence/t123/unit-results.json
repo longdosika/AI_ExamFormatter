@@ -1,0 +1,57 @@
+{
+  "results": [
+    {
+      "name": "H-02 crossed numeric key before repeated real question",
+      "passed": true
+    },
+    {
+      "name": "H-03 actual set4 figure enumeration and decimal are not fake questions",
+      "passed": true
+    },
+    {
+      "name": "H-03 normal numbered stems and real next boundaries stay intact",
+      "passed": true
+    },
+    {
+      "name": "H-03 captured geometry removes labels only after actual capture",
+      "passed": true
+    },
+    {
+      "name": "H-03 figure legend with a real question number cannot truncate its capture",
+      "passed": true
+    },
+    {
+      "name": "H-04 actual page-boundary choice has an explicit reviewable split",
+      "passed": true
+    },
+    {
+      "name": "H-04 ambiguous ordinary page continuation is retained, not guessed",
+      "passed": true
+    },
+    {
+      "name": "H-05 all seven actual five-choice questions validate without count errors",
+      "passed": true
+    },
+    {
+      "name": "H-06 actual set5 confused Chinese and Thai keys recover only in sequence",
+      "passed": true
+    },
+    {
+      "name": "H-08 captured shared header is removed but experiment narrative stays",
+      "passed": true
+    },
+    {
+      "name": "H-07 actual table crops stop before the following question sentence",
+      "passed": true
+    },
+    {
+      "name": "H-06 Thai choices naming parenthesized samples do not duplicate rows",
+      "passed": true
+    },
+    {
+      "name": "H-09 decomposed sara-am is canonical, semantic repairs are suggestions only",
+      "passed": true
+    }
+  ],
+  "passed": true
+}

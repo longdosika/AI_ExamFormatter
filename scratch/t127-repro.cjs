@@ -1,0 +1,44 @@
+// Reproduce: split Q15 (and add a choice to Q14), select the new row, inspect star marker / saved state / DOCX.
+const fs = require('node:fs');
+const path = require('node:path');
+const ts = require('typescript');
+const JSZip = require('jszip');
+const { chromium } = require('playwright');
+require.extensions['.ts'] = (module, filename) => module._compile(ts.transpileModule(fs.readFileSync(filename, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true } }).outputText, filename);
+const { validateDetectedDiagrams } = require('../lib/diagram-service.ts');
+const base = process.env.E2E_BASE_URL || 'http://localhost:3000';
+const pdf = 'C:/Users/natha/Downloads/บทที่ 7 ชุดที่ 3 เรื่อง การแยกสาร.pdf';
+const dir = path.join(__dirname, '..', 'evidence', 't121', 'audit-answers-fixed');
+const read = name => JSON.parse(fs.readFileSync(path.join(dir, name), 'utf8'));
+(async () => {
+  const ocr = read('ocr-response.json'), diagrams = read('diagrams-response.json'), answers = read('answers-response.json');
+  const browser = await chromium.launch({ headless: true, channel: 'msedge' });
+  const page = await browser.newPage({ viewport: { width: 1912, height: 914 }, acceptDownloads: true });
+  let ocrCall = 0;
+  await page.route('**/api/ocr', route => route.fulfill({ json: ocr[Math.min(ocrCall++, ocr.length - 1)] }));
+  await page.route('**/api/diagrams', route => { const body = route.request().postDataJSON(); const record = diagrams.find(e => e.page === body.page)?.body || { diagrams: [] }; route.fulfill({ json: { ...record, diagrams: validateDetectedDiagrams(record.diagrams, body.page) } }); });
+  for (const kind of ['source-answers', 'ai-answers']) await page.route(`**/api/${kind}`, route => { const body = route.request().postDataJSON(); route.fulfill({ json: answers.find(e => e.url === kind && e.page === body.page)?.body || { answers: [] } }); });
+  const editor = page.locator('[contenteditable="true"]');
+  const item = n => editor.locator('[data-item-id]').filter({ hasText: new RegExp(`^\\s*${n}\\.`) }).first();
+  await page.goto(base); await page.waitForLoadState('networkidle');
+  await page.locator('input[type=file]').setInputFiles(pdf);
+  await page.getByRole('button', { name: 'แปลงเป็นรูปแบบข้อสอบ', exact: true }).click();
+  await editor.locator('[data-item-id]').first().waitFor({ timeout: 180000 });
+  await page.getByRole('button', { name: 'วิเคราะห์เฉลยจากต้นฉบับและ AI', exact: true }).click();
+  await page.waitForFunction(() => document.querySelectorAll('[data-answer-origin="source_provided"]').length >= 11, null, { timeout: 180000 });
+  await page.getByRole('button', { name: 'แยกตัวเลือก ค และ ง ข้อ 15', exact: true }).click();
+  await item(15).getByRole('radio', { name: 'เฉลยข้อ 15 ตัวเลือก ง', exact: true }).check().catch(e => console.log('radio15', e.message.slice(0, 120)));
+  await item(14).getByRole('button', { name: 'เพิ่มตัวเลือกข้อ 14', exact: true }).click();
+  await page.keyboard.type('ตัวเลือกเพิ่ม');
+  await item(14).getByRole('radio', { name: 'เฉลยข้อ 14 ตัวเลือก จ', exact: true }).check().catch(e => console.log('radio14', e.message.slice(0, 120)));
+  const dump = n => item(n).evaluate(node => Array.from(node.querySelectorAll('[data-choice-key]')).map(row => ({ key: row.dataset.choiceKey, origin: row.dataset.answerOrigin, marker: row.querySelector('[data-answer-marker]') ? JSON.stringify(row.querySelector('[data-answer-marker]').textContent) : 'NO-MARKER', inputs: row.querySelectorAll('input[data-answer-select]').length, html: row.innerHTML.slice(0, 400) })));
+  console.log('Q15', JSON.stringify(await dump(15), null, 1));
+  console.log('Q14', JSON.stringify((await dump(14)).slice(-1), null, 1));
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'ดาวน์โหลด DOCX', exact: true }).click();
+  const confirm = page.getByRole('button', { name: 'ส่งออกเลย', exact: true }); if (await confirm.isVisible().catch(() => false)) await confirm.click();
+  const xml = await (await JSZip.loadAsync(fs.readFileSync(await (await download).path()))).file('word/document.xml').async('string');
+  const lines = xml.split('</w:p>').map(p => p.replace(/<[^>]+>/g, '').trim()).filter(Boolean);
+  for (const n of [14, 15]) { const s = lines.findIndex(l => l.startsWith(`${n}. `)); console.log('DOCX', n, JSON.stringify(lines.slice(s, s + 8))); }
+  await browser.close();
+})().catch(e => { console.error(e); process.exit(1); });

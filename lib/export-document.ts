@@ -55,7 +55,8 @@ export function snapshotDocument(editor: HTMLElement, title: string): ExportDocu
   };
   const visit = (node: Node, inheritedBackground?: string) => {
     if (node.nodeType === Node.TEXT_NODE) {
-      const text = node.textContent || "";
+      // T-126: zero-width spaces (caret placeholders in new choice rows, pasted text) never reach the export.
+      const text = (node.textContent || "").replace(/​/g, "");
       if (!text) return;
       const parent = node.parentElement;
       const style = parent ? getComputedStyle(parent) : null;
@@ -97,15 +98,23 @@ export function snapshotDocument(editor: HTMLElement, title: string): ExportDocu
   return { title: title.replace(/\.[^.]+$/, "") + " — QuizFlow", paragraphs };
 }
 import { normalizeAnswerDecorations } from "./answer-editor";
+import { orderItemSections } from "./harvest-editor";
 
 
 /** Decode independently of lazy/offscreen DOM images before either export path. */
-export async function prepareExportDocument(editor: HTMLElement, title: string): Promise<ExportDocument> {
+export async function prepareExportDocument(editor: HTMLElement, title: string, onProgress?: (done: number, total: number) => void): Promise<ExportDocument> {
+  // T-121: the export follows the editor order, so old drafts are put in master-template order first.
+  orderItemSections(editor);
   const snapshot = snapshotDocument(editor, title);
   const prepared = new Map<string, ExportRun>();
+  // T-119: report image preparation so the export control can show real progress.
+  const totalImages = snapshot.paragraphs.reduce((sum, paragraph) => sum + paragraph.runs.filter(run => run.image).length, 0);
+  let doneImages = 0;
+  onProgress?.(0, totalImages);
   for (const paragraph of snapshot.paragraphs) {
     for (const run of paragraph.runs) {
       if (!run.image) continue;
+      onProgress?.(++doneImages, totalImages);
       const displayScale = run.displayScale ?? 1;
       delete run.displayScale;
       const cacheKey = `${run.image}|${displayScale}`;

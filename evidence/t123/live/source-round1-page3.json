@@ -1,0 +1,77 @@
+{
+  "round": 1,
+  "page": 3,
+  "at": "2026-10-17T03:52:29.394Z",
+  "http": 200,
+  "durationMs": 12255,
+  "source": "evidence\\t121\\audit-0017\\pages\\page-3.png",
+  "questionNumbers": [
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21
+  ],
+  "scope": "Live source marks only; no OCR, solver, purchase, billing or model/key configuration change",
+  "raw": {
+    "answers": [
+      {
+        "id": 17,
+        "key": "ค",
+        "confidence": 0.98,
+        "evidence": "วงกลมสีน้ำเงินล้อมรอบตัวเลือก ค.",
+        "bbox": [
+          327,
+          498,
+          358,
+          531
+        ],
+        "page": 3
+      },
+      {
+        "id": 18,
+        "key": "ข",
+        "confidence": 0.98,
+        "evidence": "วงกลมสีน้ำเงินล้อมรอบตัวเลือก ข.",
+        "bbox": [
+          373,
+          501,
+          400,
+          534
+        ],
+        "page": 3
+      },
+      {
+        "id": 19,
+        "key": "ข",
+        "confidence": 0.98,
+        "evidence": "วงกลมสีน้ำเงินล้อมรอบตัวเลือก ข.",
+        "bbox": [
+          442,
+          501,
+          468,
+          532
+        ],
+        "page": 3
+      },
+      {
+        "id": 21,
+        "key": "ข",
+        "confidence": 0.98,
+        "evidence": "วงกลมสีน้ำเงินล้อมรอบตัวเลือก ข.",
+        "bbox": [
+          823,
+          504,
+          849,
+          535
+        ],
+        "page": 3
+      }
+    ],
+    "model": "gemini-3.8-flash",
+    "keyIndex": 2,
+    "totalKeys": 3
+  }
+}

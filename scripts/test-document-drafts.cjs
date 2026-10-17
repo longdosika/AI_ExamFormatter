@@ -42,6 +42,16 @@ async function runTests() {
   } = moduleExports;
 
   const storage = createMockStorage();
+  const strictStorage = createMockStorage();
+  const strictInput = { fileName: 'strict.pdf', fileBytes: 12, itemCount: 2, sourceItemCount: 80, ocrText: 'raw', formattedItems: [], editorHtml: '<strong>live edit</strong>' };
+  saveDocumentDraft(strictStorage, strictInput, { requireFullSnapshot: true });
+  assert.equal(loadAllDrafts(strictStorage)[0].editorHtml, strictInput.editorHtml);
+  saveDocumentDraft(strictStorage, { ...strictInput, sourceItemCount: undefined });
+  assert.equal(loadAllDrafts(strictStorage)[0].sourceItemCount, 80, 'Autosave preserves original count after explicit save');
+  const beforeQuotaFailure = strictStorage.getItem('exam-formatter-document-drafts-v1');
+  assert.throws(() => saveDocumentDraft({ ...strictStorage, setItem: () => { throw new Error('quota'); } }, strictInput, { requireFullSnapshot: true }), /quota/);
+  assert.equal(strictStorage.getItem('exam-formatter-document-drafts-v1'), beforeQuotaFailure, 'Strict manual failure never removes the prior snapshot');
+  assert.throws(() => saveDocumentDraft({ getItem: () => null, setItem: () => {}, removeItem: () => {} }, strictInput, { requireFullSnapshot: true }), /ยืนยัน/, 'No-op storage must not report a manual save');
   const sourceCode = fs.readFileSync(path.join(__dirname, "../lib/original-source-store.ts"), "utf8");
   const sourceModule = { exports: {} };
   new Function("exports", "require", "module", ts.transpileModule(sourceCode, {compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText)(sourceModule.exports, specifier => specifier === './document-draft-store' ? moduleExports : require(specifier), sourceModule);
@@ -123,6 +133,21 @@ async function runTests() {
   storage.setItem("exam-formatter-document-drafts-v1", "{ corrupt json !!");
   assert.deepStrictEqual(loadAllDrafts(storage), []);
 
+  // T-128: a renamed copy is found by SHA-256; progress and export marks survive later saves.
+  {
+    const { draftsForSource, markDraftExported, draftProgress } = moduleExports;
+    const store = createMockStorage();
+    const hash = "a".repeat(64);
+    saveDocumentDraft(store, { fileName: "บทที่ 7.pdf", fileBytes: 100, sourceHash: hash, ocrText: "1. q", formattedItems: [{ id: 1, questionNumber: 1, questionText: "q", choices: [{ key: "ก", text: "a", isCorrect: true }], explanationText: "" }, { id: 2, questionNumber: 2, questionText: "q", choices: [{ key: "ก", text: "a", isCorrect: false }], explanationText: "" }], itemCount: 2, diagramsHarvested: true, editorHtml: '<div data-item-id="1"><div data-choice-key="ก" data-answer-origin="manual"></div></div><div data-item-id="2"><div data-choice-key="ก" data-answer-origin="none"></div></div>' });
+    assert.equal(draftsForSource(store, "renamed copy.pdf", 100, hash).length, 1, "renamed copy found by hash");
+    assert.equal(draftsForSource(store, "other.pdf", 100, "b".repeat(64)).length, 0);
+    saveDocumentDraft(store, { fileName: "บทที่ 7.pdf", fileBytes: 100, sourceHash: hash, ocrText: "1. q", itemCount: 2, editorHtml: '<div data-item-id="1"><div data-answer-origin="manual"></div></div><div data-item-id="2"></div>' });
+    assert.equal(draftsForSource(store, "x.pdf", 100, hash)[0].diagramsHarvested, true, "a save without the flag keeps figures captured");
+    assert.equal(markDraftExported(store, hash, "x.pdf", 100, "2026-10-17T07:30:00.000Z"), true);
+    const progress = draftProgress(draftsForSource(store, "x.pdf", 100, hash)[0]);
+    assert.deepEqual(progress, { converted: true, figures: true, answered: 1, total: 2, exportedAt: "2026-10-17T07:30:00.000Z" });
+    assert.equal(loadAllDrafts(store).length, 1, "storage format kept after marking the export");
+  }
   console.log("PASS Document Draft & OCR Cache Store contract verified cleanly");
 }
 

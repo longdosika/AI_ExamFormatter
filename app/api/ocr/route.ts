@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       questionMarkers,
       uncertainCount,
       quality: allPagesSuccess && questionMarkers > 0 && uncertainCount === 0 ? "ready" : "needs_review",
-      pageResults: pageResults.map(({ page, success, error, modelUsed }) => ({ page, success, error, modelUsed })),
+      pageResults: pageResults.map(({ page, success, error, modelUsed, textRegions }) => ({ page, success, error, modelUsed, textRegions })),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "เกิดข้อผิดพลาดในการประมวลผล OCR";

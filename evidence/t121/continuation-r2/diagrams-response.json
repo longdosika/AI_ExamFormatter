@@ -1,0 +1,119 @@
+[
+ {
+  "page": 1,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [
+    {
+     "id": "diag-p1-1",
+     "type": "shared_context",
+     "questionNumber": 6,
+     "description": "ตารางแสดงสมบัติของสารประกอบ A และ B",
+     "bbox": [
+      599,
+      142,
+      686,
+      750
+     ],
+     "page": 1,
+     "confidence": 0.9
+    }
+   ],
+   "model": "gemini-flash-lite-latest",
+   "keyIndex": 0,
+   "totalKeys": 3
+  }
+ },
+ {
+  "page": 2,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [
+    {
+     "id": "diag-p2-1",
+     "type": "question",
+     "questionNumber": 8,
+     "description": "Chromatography results diagram showing curves for substances A, B, C, D and solvent 'สาร ก'.",
+     "bbox": [
+      194,
+      359,
+      276,
+      655
+     ],
+     "page": 2,
+     "confidence": 0.9
+    },
+    {
+     "id": "diag-p2-2",
+     "type": "question",
+     "questionNumber": 10,
+     "description": "Temperature vs time graph for liquid A boiling point analysis.",
+     "bbox": [
+      518,
+      203,
+      626,
+      440
+     ],
+     "page": 2,
+     "confidence": 0.9
+    }
+   ],
+   "model": "gemini-flash-lite-latest",
+   "keyIndex": 0,
+   "totalKeys": 3
+  }
+ },
+ {
+  "page": 3,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [
+    {
+     "id": "diag-p3-1",
+     "type": "question",
+     "questionNumber": 20,
+     "description": "ภาพการทดลองการกรองสารด้วยกรวยกรองและกระดาษกรอง",
+     "bbox": [
+      513,
+      188,
+      663,
+      354
+     ],
+     "page": 3,
+     "confidence": 0.9
+    },
+    {
+     "id": "diag-p3-2",
+     "type": "shared_context",
+     "questionNumber": 21,
+     "description": "ตารางแสดงสมบัติของสาร A และ B ได้แก่ สถานะ การละลายในน้ำและการละลายในเอทานอล และจุดเดือด",
+     "bbox": [
+      673,
+      143,
+      815,
+      535
+     ],
+     "page": 3,
+     "confidence": 0.9
+    }
+   ],
+   "model": "gemini-flash-lite-latest",
+   "keyIndex": 1,
+   "totalKeys": 3
+  }
+ },
+ {
+  "page": 4,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [],
+   "model": "gemini-flash-lite-latest",
+   "keyIndex": 1,
+   "totalKeys": 3
+  }
+ }
+]

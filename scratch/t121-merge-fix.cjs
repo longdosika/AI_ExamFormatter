@@ -1,0 +1,7 @@
+const fs=require('fs');const f='lib/harvest-editor.ts';let s=fs.readFileSync(f,'utf8');
+const rep=(a,b)=>{if(!s.includes(a))throw new Error('missing '+a.slice(0,60));s=s.replace(a,()=>b);};
+rep("    if(stem && previous && stem.textContent===previous.questionText && previous.questionText!==item.questionText) {\n      const old=previous.questionText,next=item.questionText;",
+"    // Stems render line breaks as <br>, so compare and diff without them (T-121: table rows stay one per line).\n    const flat=(text:string)=>text.replace(/\n/g,'');\n    if(stem && previous && stem.textContent===flat(previous.questionText) && flat(previous.questionText)!==flat(item.questionText)) {\n      const old=flat(previous.questionText),next=flat(item.questionText);");
+rep("          if(to>from) text.deleteData(from,to-from);\n          offset+=length;\n        }\n",
+"          if(to>from) text.deleteData(from,to-from);\n          offset+=length;\n        }\n        // Rows removed with their text leave line breaks behind: drop empty text and repeated/edge <br>.\n        for(const child of Array.from(stem.childNodes)) if(child.nodeType===Node.TEXT_NODE&&!child.textContent?.trim()) child.remove();\n        for(const br of Array.from(stem.querySelectorAll('br'))) {\n          const before=br.previousSibling,after=br.nextSibling;\n          if(!before||!after||(before as Element).tagName==='BR') br.remove();\n        }\n");
+fs.writeFileSync(f,s);console.log('ok');

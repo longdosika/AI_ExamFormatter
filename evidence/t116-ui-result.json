@@ -1,0 +1,18 @@
+{
+  "passed": true,
+  "sourceWrites": 1,
+  "outputWrites": 1,
+  "imports": 1,
+  "cloud": "mocked",
+  "browser": "msedge",
+  "checks": [
+    "search/group",
+    "explicit confirmation",
+    "desktop/mobile",
+    "offline download",
+    "durable queue/reload",
+    "failed retry retains snapshot",
+    "successful retry removes queue",
+    "Escape/focus"
+  ]
+}

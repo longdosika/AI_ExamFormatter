@@ -31,14 +31,22 @@ export async function readSourceAnswers(items: ExamItem[], images: string[], cur
     }
     if (!current()) return { count, failures };
     if (!result) { failures.push(index + 1); continue; }
+    // T-126: several circled keys of one question are all correct answers.
+    const answered = new Set<number>();
     for (const answer of (result.answers || []) as SourceAnswer[]) {
       const item = items.find(item => item.id === answer.id && item.sourcePage === answer.page);
-      if (!item || item.reconciledAnswerKey || !item.choices.some(choice => choice.key === answer.key)) continue;
-      item.reconciledAnswerKey = answer.key;
-      item.reconciliationProvenance = "source_vision";
-      item.sourceAnswerEvidence = { page: answer.page, confidence: answer.confidence, evidence: answer.evidence, bbox: answer.bbox, model: result.model };
-      item.choices.forEach(choice => { choice.isCorrect = choice.key === answer.key; choice.shadingType = choice.isCorrect ? "source_provided" : "none"; });
-      count++;
+      if (!item || (item.reconciledAnswerKey && !answered.has(item.id)) || !item.choices.some(choice => choice.key === answer.key)) continue;
+      if (!answered.has(item.id)) {
+        answered.add(item.id);
+        item.reconciledAnswerKey = answer.key;
+        item.reconciliationProvenance = "source_vision";
+        item.sourceAnswerEvidence = { page: answer.page, confidence: answer.confidence, evidence: answer.evidence, bbox: answer.bbox, model: result.model };
+        item.choices.forEach(choice => { choice.isCorrect = false; choice.shadingType = "none"; });
+        count++;
+      }
+      const keys = new Set([...(item.reconciledAnswerKeys || [item.reconciledAnswerKey!]), answer.key]);
+      item.reconciledAnswerKeys = keys.size > 1 ? Array.from(keys) : undefined;
+      item.choices.forEach(choice => { if (choice.key === answer.key) { choice.isCorrect = true; choice.shadingType = "source_provided"; } });
     }
   }
   return { count, failures };

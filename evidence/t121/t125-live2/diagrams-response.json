@@ -1,0 +1,134 @@
+[
+ {
+  "page": 1,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [
+    {
+     "id": "diag-p1-1",
+     "type": "shared_context",
+     "questionNumber": 6,
+     "description": "ตารางแสดงสมบัติของสารประกอบ A และ B",
+     "bbox": [
+      603,
+      139,
+      686,
+      747
+     ],
+     "page": 1,
+     "confidence": 0.9
+    }
+   ],
+   "model": "gemini-flash-lite-latest",
+   "keyIndex": 0,
+   "totalKeys": 3
+  }
+ },
+ {
+  "page": 2,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [
+    {
+     "id": "diag-p2-1",
+     "type": "question",
+     "questionNumber": 8,
+     "description": "chromatogram results diagram showing bands A, B, C, D for substance ก",
+     "bbox": [
+      172,
+      357,
+      280,
+      663
+     ],
+     "page": 2,
+     "confidence": 0.9
+    },
+    {
+     "id": "diag-p2-2",
+     "type": "question",
+     "questionNumber": 10,
+     "description": "graph showing relationship between temperature (C) and time (minutes) for liquid A",
+     "bbox": [
+      518,
+      203,
+      626,
+      451
+     ],
+     "page": 2,
+     "confidence": 0.9
+    }
+   ],
+   "model": "gemini-flash-lite-latest",
+   "keyIndex": 0,
+   "totalKeys": 3
+  }
+ },
+ {
+  "page": 3,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [
+    {
+     "id": "diag-p3-1",
+     "type": "question",
+     "questionNumber": 20,
+     "description": "ภาพการกรองสารด้วยกระดาษกรองและกรวยกรอง",
+     "bbox": [
+      518,
+      195,
+      663,
+      350
+     ],
+     "page": 3,
+     "confidence": 0.9
+    },
+    {
+     "id": "diag-p3-2",
+     "type": "shared_context",
+     "questionNumber": 21,
+     "description": "ตารางแสดงสมบัติของสาร A และ B (สถานะ การละลายน้ำและเอทานอล จุดเดือด)",
+     "bbox": [
+      673,
+      143,
+      768,
+      534
+     ],
+     "page": 3,
+     "confidence": 0.9
+    }
+   ],
+   "model": "gemini-flash-lite-latest",
+   "keyIndex": 0,
+   "totalKeys": 3
+  }
+ },
+ {
+  "page": 4,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [
+    {
+     "id": "diag-p4-1",
+     "type": "explanation",
+     "questionNumber": 25,
+     "description": "Handwritten drawings including a smiley face and a triangular tent-like shape drawn in pink ink on the page.",
+     "bbox": [
+      583,
+      275,
+      715,
+      428
+     ],
+     "page": 4,
+     "confidence": 0.9
+    }
+   ],
+   "model": "gemini-flash-lite-latest",
+   "keyIndex": 0,
+   "totalKeys": 3
+  }
+ }
+]

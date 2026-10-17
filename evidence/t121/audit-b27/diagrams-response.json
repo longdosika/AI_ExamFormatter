@@ -1,0 +1,148 @@
+[
+ {
+  "page": 1,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [
+    {
+     "id": "diag-p1-1",
+     "type": "shared_context",
+     "questionNumber": 6,
+     "description": "ตารางแสดงสมบัติของสารประกอบ A และ B",
+     "bbox": [
+      597,
+      143,
+      684,
+      741
+     ],
+     "page": 1,
+     "confidence": 0.9
+    }
+   ],
+   "model": "gemini-flash-lite-latest",
+   "keyIndex": 0,
+   "totalKeys": 3
+  }
+ },
+ {
+  "page": 2,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [
+    {
+     "id": "diag-p2-1",
+     "type": "question",
+     "questionNumber": 8,
+     "description": "ผลการทดลองโครมาโทกราฟีของสาร ก",
+     "bbox": [
+      169,
+      344,
+      278,
+      695
+     ],
+     "page": 2,
+     "confidence": 0.9
+    },
+    {
+     "id": "diag-p2-2",
+     "type": "question",
+     "questionNumber": 10,
+     "description": "กราฟแสดงความสัมพันธ์ระหว่างอุณหภูมิและเวลาของของเหลว A",
+     "bbox": [
+      521,
+      205,
+      617,
+      438
+     ],
+     "page": 2,
+     "confidence": 0.9
+    }
+   ],
+   "model": "gemini-flash-lite-latest",
+   "keyIndex": 0,
+   "totalKeys": 3
+  }
+ },
+ {
+  "page": 3,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [
+    {
+     "id": "diag-p3-1",
+     "type": "question",
+     "questionNumber": 20,
+     "description": "ภาพการกรองสารด้วยกรวยกรองและกระดาษกรอง",
+     "bbox": [
+      518,
+      194,
+      664,
+      350
+     ],
+     "page": 3,
+     "confidence": 0.9
+    },
+    {
+     "id": "diag-p3-2",
+     "type": "shared_context",
+     "questionNumber": 21,
+     "description": "ตารางแสดงสมบัติของสาร A และ B (สถานะ การละลายน้ำ เอทานอล จุดเดือด)",
+     "bbox": [
+      675,
+      143,
+      767,
+      535
+     ],
+     "page": 3,
+     "confidence": 0.9
+    }
+   ],
+   "model": "gemini-flash-lite-latest",
+   "keyIndex": 0,
+   "totalKeys": 3
+  }
+ },
+ {
+  "page": 4,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [
+    {
+     "id": "diag-p4-1",
+     "type": "explanation",
+     "questionNumber": 25,
+     "description": "Hand-drawn smiley face doodle in pink ink at the bottom left",
+     "bbox": [
+      591,
+      277,
+      710,
+      423
+     ],
+     "page": 4,
+     "confidence": 0.9
+    },
+    {
+     "id": "diag-p4-2",
+     "type": "explanation",
+     "questionNumber": 25,
+     "description": "Hand-drawn tent/pyramid doodle in pink ink at the bottom right",
+     "bbox": [
+      422,
+      664,
+      613,
+      818
+     ],
+     "page": 4,
+     "confidence": 0.9
+    }
+   ],
+   "model": "gemini-flash-lite-latest",
+   "keyIndex": 0,
+   "totalKeys": 3
+  }
+ }
+]

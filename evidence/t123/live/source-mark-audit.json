@@ -1,0 +1,59 @@
+{
+  "inspectedSource": "evidence/t121/audit-0017/pages/page-1.png through page-4.png",
+  "expected": {
+    "1": "ค",
+    "2": "ค",
+    "4": "ง",
+    "6": "ค",
+    "8": "ง",
+    "10": "ค",
+    "14": "ก",
+    "17": "ค",
+    "18": "ข",
+    "19": "ข",
+    "21": "ข",
+    "24": "ค"
+  },
+  "exclusion": "Q9 has two circled keys and is ambiguous; X/cross/tick marks alone are not selected answers.",
+  "rounds": [
+    {
+      "round": 1,
+      "fullPages": true,
+      "models": [
+        "gemini-3.8-flash",
+        "gemini-flash-lite-latest"
+      ],
+      "correctCount": 11,
+      "unsupported": [],
+      "duplicateIds": [],
+      "missed": [
+        24
+      ]
+    },
+    {
+      "round": 2,
+      "fullPages": true,
+      "models": [
+        "gemini-flash-lite-latest"
+      ],
+      "correctCount": 1,
+      "unsupported": [],
+      "duplicateIds": [],
+      "missed": [
+        1,
+        2,
+        4,
+        6,
+        8,
+        10,
+        14,
+        17,
+        18,
+        19,
+        21
+      ]
+    }
+  ],
+  "acceptance": false,
+  "next": "Stop repeated source tests after round2 failed the consecutive-round threshold; no purchase or billing change. Provider model fallback is observed, not proof of a specific HTTP quota response."
+}

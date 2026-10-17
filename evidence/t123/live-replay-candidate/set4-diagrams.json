@@ -1,0 +1,712 @@
+{
+  "set": 4,
+  "at": "2026-10-17T04:05:12.524Z",
+  "base": "http://127.0.0.1:3111",
+  "sourcePageCount": 12,
+  "scope": "Recorded actual OCR and newly recorded live diagram responses; zero provider calls",
+  "responses": [
+    {
+      "page": 1,
+      "replay": true,
+      "originalAt": "2026-10-17T03:54:02.349Z",
+      "raw": {
+        "success": true,
+        "diagrams": [
+          {
+            "id": "diag-p1-1",
+            "type": "shared_context",
+            "questionNumber": 2,
+            "description": "ภาพผลการทดลองโครมาโทกราฟีกระดาษของน้ำตาล 7 ชนิด พร้อมรายการชื่อน้ำตาลด้านข้าง",
+            "bbox": [
+              471,
+              119,
+              632,
+              834
+            ],
+            "page": 1,
+            "confidence": 0.9
+          }
+        ],
+        "model": "gemini-flash-lite-latest",
+        "keyIndex": 0,
+        "totalKeys": 3
+      }
+    },
+    {
+      "page": 2,
+      "replay": true,
+      "originalAt": "2026-10-17T03:54:07.009Z",
+      "raw": {
+        "success": true,
+        "diagrams": [
+          {
+            "id": "diag-p2-1",
+            "type": "shared_context",
+            "questionNumber": 4,
+            "description": "ตารางข้อมูลแสดงจุดเดือดและการละลายน้ำของสาร A, B, C และ D",
+            "bbox": [
+              205,
+              143,
+              359,
+              622
+            ],
+            "page": 2,
+            "confidence": 0.9
+          },
+          {
+            "id": "diag-p2-2",
+            "type": "shared_context",
+            "questionNumber": 6,
+            "description": "ตารางข้อมูลแสดงค่าการละลายของสาร A, B และ C ในกรดแอซีติกและน้ำ",
+            "bbox": [
+              603,
+              145,
+              762,
+              725
+            ],
+            "page": 2,
+            "confidence": 0.9
+          }
+        ],
+        "model": "gemini-flash-lite-latest",
+        "keyIndex": 0,
+        "totalKeys": 3
+      }
+    },
+    {
+      "page": 3,
+      "replay": true,
+      "originalAt": "2026-10-17T03:54:12.691Z",
+      "raw": {
+        "success": true,
+        "diagrams": [
+          {
+            "id": "diag-p3-1",
+            "type": "shared_context",
+            "questionNumber": 7,
+            "description": "ตารางแสดงผลการทดลองการกรอง การใส่ถุงเซลโลเฟน และการผ่านลำแสงของสารผสม A, B และ C",
+            "bbox": [
+              117,
+              114,
+              269,
+              886
+            ],
+            "page": 3,
+            "confidence": 0.9
+          },
+          {
+            "id": "diag-p3-2",
+            "type": "shared_context",
+            "questionNumber": 8,
+            "description": "ตารางแสดงข้อมูลความสามารถในการละลายของสาร X, Y, Z ในตัวทำละลาย A, B และ C",
+            "bbox": [
+              398,
+              115,
+              546,
+              773
+            ],
+            "page": 3,
+            "confidence": 0.9
+          },
+          {
+            "id": "diag-p3-3",
+            "type": "shared_context",
+            "questionNumber": 9,
+            "description": "ตารางแสดงสมบัติของสาร A, B, C, D ได้แก่ จุดเดือด Rf การเปลี่ยนสีกระดาษลิตมัส และการเปลี่ยนแปลงเมื่อเติมสารละลาย NaHCO3 ต่อหลอดนำแก๊สลงในน้ำปูนใส",
+            "bbox": [
+              727,
+              113,
+              930,
+              891
+            ],
+            "page": 3,
+            "confidence": 0.9
+          }
+        ],
+        "model": "gemini-flash-lite-latest",
+        "keyIndex": 0,
+        "totalKeys": 3
+      }
+    },
+    {
+      "page": 4,
+      "replay": true,
+      "originalAt": "2026-10-17T03:54:19.108Z",
+      "raw": {
+        "success": true,
+        "diagrams": [
+          {
+            "id": "diag-p4-1",
+            "type": "shared_context",
+            "questionNumber": 10,
+            "description": "ตารางแสดงผลการทดลองโครมาโทกราฟีกระดาษของสารบริสุทธิ์ x, y และ z ในตัวทำละลาย A, B, C และ D",
+            "bbox": [
+              411,
+              137,
+              592,
+              903
+            ],
+            "page": 4,
+            "confidence": 0.9
+          },
+          {
+            "id": "diag-p4-2",
+            "type": "shared_context",
+            "questionNumber": 10,
+            "description": "ตารางแสดงค่า Rf ของสารตัวอย่างในตัวทำละลาย A, B, C และ D",
+            "bbox": [
+              677,
+              292,
+              824,
+              666
+            ],
+            "page": 4,
+            "confidence": 0.9
+          }
+        ],
+        "model": "gemini-flash-lite-latest",
+        "keyIndex": 0,
+        "totalKeys": 3
+      }
+    },
+    {
+      "page": 5,
+      "replay": true,
+      "originalAt": "2026-10-17T03:54:25.783Z",
+      "raw": {
+        "success": true,
+        "diagrams": [
+          {
+            "id": "diag-p5-1",
+            "type": "shared_context",
+            "questionNumber": 12,
+            "description": "ตารางข้อมูลแสดงระยะทางทางการเคลื่อนที่ของสาร 5 ชนิด และตัวทำละลาย",
+            "bbox": [
+              328,
+              209,
+              536,
+              689
+            ],
+            "page": 5,
+            "confidence": 0.9
+          },
+          {
+            "id": "diag-p5-2",
+            "type": "question",
+            "questionNumber": 12,
+            "description": "กราฟผลการทดลองโครมาโทกราฟีของตัวเลือก ก ข ค ง",
+            "bbox": [
+              603,
+              137,
+              878,
+              497
+            ],
+            "page": 5,
+            "confidence": 0.9
+          }
+        ],
+        "model": "gemini-flash-lite-latest",
+        "keyIndex": 0,
+        "totalKeys": 3
+      }
+    },
+    {
+      "page": 6,
+      "replay": true,
+      "originalAt": "2026-10-17T03:54:31.114Z",
+      "raw": {
+        "success": true,
+        "diagrams": [
+          {
+            "id": "diag-p6-1",
+            "type": "shared_context",
+            "questionNumber": 15,
+            "description": "ตารางแสดงผลการทดลองการแยกสาร A, B และ C โดยใช้โครมาโทกราฟีกระดาษ",
+            "bbox": [
+              515,
+              137,
+              636,
+              836
+            ],
+            "page": 6,
+            "confidence": 0.9
+          }
+        ],
+        "model": "gemini-flash-lite-latest",
+        "keyIndex": 0,
+        "totalKeys": 3
+      }
+    },
+    {
+      "page": 7,
+      "replay": true,
+      "originalAt": "2026-10-17T03:54:36.673Z",
+      "raw": {
+        "success": true,
+        "diagrams": [
+          {
+            "id": "diag-p7-1",
+            "type": "shared_context",
+            "questionNumber": 16,
+            "description": "ตารางแสดงสมบัติของสาร A และ B สำหรับคำถามข้อ 16",
+            "bbox": [
+              132,
+              126,
+              226,
+              903
+            ],
+            "page": 7,
+            "confidence": 0.9
+          },
+          {
+            "id": "diag-p7-2",
+            "type": "shared_context",
+            "questionNumber": 17,
+            "description": "ตารางแสดงสมบัติของของเหลว A, B และ C สำหรับคำถามข้อ 17",
+            "bbox": [
+              426,
+              196,
+              545,
+              654
+            ],
+            "page": 7,
+            "confidence": 0.9
+          },
+          {
+            "id": "diag-p7-3",
+            "type": "shared_context",
+            "questionNumber": 18,
+            "description": "ตารางแสดงผลการทดลองโครมาโทกราฟีของสีส้ม A และสีส้ม B สำหรับคำถามข้อ 18",
+            "bbox": [
+              770,
+              198,
+              904,
+              752
+            ],
+            "page": 7,
+            "confidence": 0.9
+          }
+        ],
+        "model": "gemini-flash-lite-latest",
+        "keyIndex": 0,
+        "totalKeys": 3
+      }
+    },
+    {
+      "page": 8,
+      "replay": true,
+      "originalAt": "2026-10-17T03:54:41.636Z",
+      "raw": {
+        "success": true,
+        "diagrams": [
+          {
+            "id": "diag-p8-1",
+            "type": "choice",
+            "questionNumber": 20,
+            "choiceKey": "ก",
+            "description": "กราฟแสดงความสัมพันธ์ระหว่างอุณหภูมิกับเวลา ตัวเลือกที่ 1",
+            "bbox": [
+              550,
+              125,
+              715,
+              450
+            ],
+            "page": 8,
+            "confidence": 0.9
+          },
+          {
+            "id": "diag-p8-2",
+            "type": "choice",
+            "questionNumber": 20,
+            "choiceKey": "ข",
+            "description": "กราฟแสดงความสัมพันธ์ระหว่างปริมาตรกับเวลา ตัวเลือกที่ 2",
+            "bbox": [
+              550,
+              500,
+              712,
+              838
+            ],
+            "page": 8,
+            "confidence": 0.9
+          },
+          {
+            "id": "diag-p8-3",
+            "type": "choice",
+            "questionNumber": 20,
+            "choiceKey": "ค",
+            "description": "กราฟแสดงความสัมพันธ์ระหว่างปริมาตรกับเวลา (มีช่วงคงที่) ตัวเลือกที่ 3",
+            "bbox": [
+              723,
+              122,
+              896,
+              450
+            ],
+            "page": 8,
+            "confidence": 0.9
+          },
+          {
+            "id": "diag-p8-4",
+            "type": "choice",
+            "questionNumber": 20,
+            "choiceKey": "ง",
+            "description": "กราฟแสดงความสัมพันธ์ระหว่างอุณหภูมิกับเวลา (ลดลง) ตัวเลือกที่ 4",
+            "bbox": [
+              723,
+              500,
+              882,
+              852
+            ],
+            "page": 8,
+            "confidence": 0.9
+          }
+        ],
+        "model": "gemini-flash-lite-latest",
+        "keyIndex": 0,
+        "totalKeys": 3
+      }
+    },
+    {
+      "page": 9,
+      "replay": true,
+      "originalAt": "2026-10-17T03:54:46.380Z",
+      "raw": {
+        "success": true,
+        "diagrams": [
+          {
+            "id": "diag-p9-1",
+            "type": "question",
+            "questionNumber": 21,
+            "description": "กราฟแสดงความสัมพันธ์ระหว่างปริมาตรกับอุณหภูมิ",
+            "bbox": [
+              89,
+              113,
+              229,
+              457
+            ],
+            "page": 9,
+            "confidence": 0.9
+          },
+          {
+            "id": "diag-p9-2",
+            "type": "shared_context",
+            "questionNumber": 22,
+            "description": "ตารางแสดงค่า Rf ของสาร A, B, C, X, Y และ Z",
+            "bbox": [
+              438,
+              188,
+              644,
+              632
+            ],
+            "page": 9,
+            "confidence": 0.9
+          }
+        ],
+        "model": "gemini-flash-lite-latest",
+        "keyIndex": 0,
+        "totalKeys": 3
+      }
+    },
+    {
+      "page": 10,
+      "replay": true,
+      "originalAt": "2026-10-17T03:54:51.229Z",
+      "raw": {
+        "success": true,
+        "diagrams": [
+          {
+            "id": "diag-p10-1",
+            "type": "shared_context",
+            "questionNumber": 23,
+            "description": "ตารางแสดงปริมาณการละลายของสาร x, y และ z ในตัวทำละลาย A และ B สำหรับใช้ตอบคำถามข้อ 23",
+            "bbox": [
+              116,
+              212,
+              276,
+              753
+            ],
+            "page": 10,
+            "confidence": 0.9
+          },
+          {
+            "id": "diag-p10-2",
+            "type": "shared_context",
+            "questionNumber": 24,
+            "description": "ตารางผลการทดลองโครมาโทกราฟีกระดาษของสีผสมอาหารสีเขียว สีเหลือง และสีม่วง สำหรับใช้ตอบคำถามข้อ 24",
+            "bbox": [
+              449,
+              214,
+              626,
+              711
+            ],
+            "page": 10,
+            "confidence": 0.9
+          }
+        ],
+        "model": "gemini-flash-lite-latest",
+        "keyIndex": 0,
+        "totalKeys": 3
+      }
+    },
+    {
+      "page": 11,
+      "replay": true,
+      "originalAt": "2026-10-17T03:54:57.479Z",
+      "raw": {
+        "success": true,
+        "diagrams": [
+          {
+            "id": "diag-p11-1",
+            "type": "shared_context",
+            "questionNumber": 26,
+            "description": "ตารางขั้นตอนการแยกสารตัวอย่าง (กำมะถัน เหล็ก ทราย เกลือ)",
+            "bbox": [
+              145,
+              163,
+              411,
+              903
+            ],
+            "page": 11,
+            "confidence": 0.9
+          },
+          {
+            "id": "diag-p11-2",
+            "type": "shared_context",
+            "questionNumber": 27,
+            "description": "ตารางแสดงผลการแยกสาร A, B และ C ด้วยวิธีโครมาโทกราฟีกระดาษ",
+            "bbox": [
+              470,
+              129,
+              587,
+              858
+            ],
+            "page": 11,
+            "confidence": 0.9
+          },
+          {
+            "id": "diag-p11-3",
+            "type": "question",
+            "questionNumber": 28,
+            "description": "แผนภาพผลการทดลองโครมาโทกราฟีกระดาษ แสดงจุด x และ y พร้อมข้อความอธิบาย",
+            "bbox": [
+              822,
+              196,
+              952,
+              597
+            ],
+            "page": 11,
+            "confidence": 0.9
+          }
+        ],
+        "model": "gemini-flash-lite-latest",
+        "keyIndex": 0,
+        "totalKeys": 3
+      }
+    },
+    {
+      "page": 12,
+      "replay": true,
+      "originalAt": "2026-10-17T03:55:03.364Z",
+      "raw": {
+        "success": true,
+        "diagrams": [
+          {
+            "id": "diag-p12-1",
+            "type": "shared_context",
+            "questionNumber": 29,
+            "description": "ตารางแสดงสมบัติของสาร A, B, C และ D (การละลายในตัวทำละลาย X และการดูดซับบนตัวดูดซับ Y)",
+            "bbox": [
+              299,
+              137,
+              563,
+              903
+            ],
+            "page": 12,
+            "confidence": 0.9
+          }
+        ],
+        "model": "gemini-flash-lite-latest",
+        "keyIndex": 0,
+        "totalKeys": 3
+      }
+    }
+  ],
+  "allPagesLive": false,
+  "captures": [
+    {
+      "item": "2",
+      "questionNumber": 2,
+      "role": "question",
+      "bbox": "[471,119,632,834]",
+      "file": "set4-crop1-q2-question.png"
+    },
+    {
+      "item": "4",
+      "questionNumber": 4,
+      "role": "question",
+      "bbox": "[204.0059347181009,137.46065057712488,356.8249258160237,625.3934942287514]",
+      "file": "set4-crop2-q4-question.png"
+    },
+    {
+      "item": "6",
+      "questionNumber": 6,
+      "role": "question",
+      "bbox": "[599.406528189911,140.60860440713537,755.1928783382789,728.2266526757608]",
+      "file": "set4-crop3-q6-question.png"
+    },
+    {
+      "item": "7",
+      "questionNumber": 7,
+      "role": "question",
+      "bbox": "[117.2106824925816,108.0797481636936,270.02967359050444,890.8709338929696]",
+      "file": "set4-crop4-q7-question.png"
+    },
+    {
+      "item": "8",
+      "questionNumber": 8,
+      "role": "question",
+      "bbox": "[396.88427299703267,108.0797481636936,578.6350148367952,777.5445960125918]",
+      "file": "set4-crop5-q8-question.png"
+    },
+    {
+      "item": "9",
+      "questionNumber": 9,
+      "role": "question",
+      "bbox": "[723.2937685459941,109.12906610703043,933.2344213649851,894.01888772298]",
+      "file": "set4-crop6-q9-question.png"
+    },
+    {
+      "item": "10",
+      "questionNumber": 10,
+      "role": "question",
+      "bbox": "[677,292,824,666]",
+      "file": "set4-crop7-q10-question.png"
+    },
+    {
+      "item": "12",
+      "questionNumber": 12,
+      "role": "question",
+      "bbox": "[603,137,878,497]",
+      "file": "set4-crop8-q12-question.png"
+    },
+    {
+      "item": "15",
+      "questionNumber": 15,
+      "role": "question",
+      "bbox": "[515,137,636,836]",
+      "file": "set4-crop9-q15-question.png"
+    },
+    {
+      "item": "16",
+      "questionNumber": 16,
+      "role": "question",
+      "bbox": "[169.8813056379822,120.67156348373557,245.54896142433233,846.7995802728227]",
+      "file": "set4-crop10-q16-question.png"
+    },
+    {
+      "item": "17",
+      "questionNumber": 17,
+      "role": "question",
+      "bbox": "[456.2314540059347,125.91815320041972,565.2818991097923,658.97166841553]",
+      "file": "set4-crop11-q17-question.png"
+    },
+    {
+      "item": "18",
+      "questionNumber": 18,
+      "role": "question",
+      "bbox": "[718.1008902077151,128.0167890870934,910.2373887240356,889.8216159496327]",
+      "file": "set4-crop12-q18-question.png"
+    },
+    {
+      "item": "20",
+      "questionNumber": 20,
+      "role": "choice",
+      "choice": "ก",
+      "bbox": "[550,125,715,450]",
+      "file": "set4-crop13-q20-choice.png"
+    },
+    {
+      "item": "20",
+      "questionNumber": 20,
+      "role": "choice",
+      "choice": "ข",
+      "bbox": "[550,500,712,838]",
+      "file": "set4-crop14-q20-choice.png"
+    },
+    {
+      "item": "20",
+      "questionNumber": 20,
+      "role": "choice",
+      "choice": "ค",
+      "bbox": "[723,122,896,450]",
+      "file": "set4-crop15-q20-choice.png"
+    },
+    {
+      "item": "20",
+      "questionNumber": 20,
+      "role": "choice",
+      "choice": "ง",
+      "bbox": "[723,500,882,852]",
+      "file": "set4-crop16-q20-choice.png"
+    },
+    {
+      "item": "21",
+      "questionNumber": 21,
+      "role": "question",
+      "bbox": "[89,113,229,457]",
+      "file": "set4-crop17-q21-question.png"
+    },
+    {
+      "item": "22",
+      "questionNumber": 22,
+      "role": "question",
+      "bbox": "[438,188,644,632]",
+      "file": "set4-crop18-q22-question.png"
+    },
+    {
+      "item": "23",
+      "questionNumber": 23,
+      "role": "question",
+      "bbox": "[122.40356083086053,204.61699895068205,367.9525222551929,814.2707240293809]",
+      "file": "set4-crop19-q23-question.png"
+    },
+    {
+      "item": "24",
+      "questionNumber": 24,
+      "role": "question",
+      "bbox": "[445.10385756676556,160.54564533053517,770.0296735905044,901.3641133263379]",
+      "file": "set4-crop20-q24-question.png"
+    },
+    {
+      "item": "25",
+      "questionNumber": 26,
+      "role": "question",
+      "bbox": "[128.33827893175075,123.81951731374606,360.5341246290801,909.7586568730326]",
+      "file": "set4-crop21-q26-question.png"
+    },
+    {
+      "item": "26",
+      "questionNumber": 27,
+      "role": "question",
+      "bbox": "[470,129,587,858]",
+      "file": "set4-crop22-q27-question.png"
+    },
+    {
+      "item": "27",
+      "questionNumber": 28,
+      "role": "question",
+      "bbox": "[825.7002967359051,196,952,597]",
+      "file": "set4-crop23-q28-question.png"
+    },
+    {
+      "item": "28",
+      "questionNumber": 29,
+      "role": "question",
+      "bbox": "[299,137,563,903]",
+      "file": "set4-crop24-q29-question.png"
+    }
+  ],
+  "quality": "28 ข้อ · ตัวเลือกไม่ครบ 4 · เลขซ้ำ 0 · เลขข้าม 1 · รูป/ตารางขาด 1",
+  "errors": [],
+  "partial": false,
+  "note": "Provider 200 and image counts do not certify complete geometry; visually compare the saved original and each crop."
+}

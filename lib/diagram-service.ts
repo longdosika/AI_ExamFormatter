@@ -34,7 +34,12 @@ export function validateDetectedDiagrams(value: unknown, page: number): Detected
       rawBbox = rawBbox[0];
     }
     if (!Array.isArray(rawBbox) || rawBbox.length !== 4) continue;
-    const [ymin, xmin, ymax, xmax] = rawBbox.map((n: unknown) => Number(n));
+    let [ymin, xmin, ymax, xmax] = rawBbox.map((n: unknown) => Number(n));
+    // T-121 (audit): newer models sometimes answer on a 0..1 scale ([0.597, 0.145, 0.687, 0.748] for a
+    // whole-width table); read as 0..1000 that is an invisible 1px box, so scale it.
+    if ([ymin, xmin, ymax, xmax].every(n => Number.isFinite(n) && n >= 0 && n <= 1) && ymax > ymin && xmax > xmin) {
+      [ymin, xmin, ymax, xmax] = [ymin, xmin, ymax, xmax].map(n => Math.round(n * 1000));
+    }
     if (!Number.isFinite(ymin) || !Number.isFinite(xmin) || !Number.isFinite(ymax) || !Number.isFinite(xmax)) continue;
     if (ymin < 0 || xmin < 0 || ymax > 1000 || xmax > 1000 || ymin >= ymax || xmin >= xmax) continue;
 
@@ -59,7 +64,7 @@ export function validateDetectedDiagrams(value: unknown, page: number): Detected
   return valid;
 }
 
-import { executeWithKeyRotation } from "./api-key-manager";
+import { executeAcrossModelsAndKeys } from "./api-key-manager";
 
 let activeDiagramScan = false;
 
@@ -103,6 +108,7 @@ CRITICAL INSTRUCTIONS:
      * TOP: Must start safely ABOVE the topmost horizontal border line, completely enclosing table column headers (e.g. 'สาร', 'ผลการทดลอง', 'ชนิดสาร', 'ปริมาณ', etc.). NEVER slice into or below the header row!
      * BOTTOM: Must extend safely BELOW the bottommost horizontal border line.
      * SIDES: Must encompass both outer left and right vertical border strokes with a safe margin.
+   - Chromatography strips include the solvent-front line at the TOP and the origin/baseline with its X mark at the BOTTOM, plus every spot and A/B/C label. Blank gaps between those parts belong to the same figure; never crop just the spots.
 
 
 3. QUESTION FIGURES (รูปโจทย์):
@@ -124,54 +130,41 @@ Questions on this page: ${JSON.stringify(questions.map(q => ({ no: q.questionNum
 
 Return JSON: {"diagrams": [ {"type": "question"|"shared_context"|"choice"|"explanation", "questionNumber": number, "choiceKey": "ก"|"ข"|"ค"|"ง"|null, "description": string, "bbox": [ymin, xmin, ymax, xmax]} ]}. If no visual diagrams, return {"diagrams": []}.`;
 
-    const rotation = await executeWithKeyRotation("gemini", async (key, keyIdx, totalKeys) => {
-      let lastError: Error | null = null;
-      for (const model of CANDIDATE_MODELS) {
-        try {
-          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "x-goog-api-key": key },
-            signal: AbortSignal.timeout(90_000),
-            body: JSON.stringify({
-              systemInstruction: { parts: [{ text: systemPrompt }] },
-              contents: [
-                {
-                  role: "user",
-                  parts: [
-                    { text: `Page ${page}: Identify all diagrams, data tables, and choice figures.` },
-                    { inlineData: { mimeType: `image/${match[1]}`, data: match[2] } }
-                  ]
-                }
-              ],
-              generationConfig: {
-                temperature: 0,
-                responseMimeType: "application/json",
-                maxOutputTokens: 4096,
-              }
-            })
-          });
-
-          if (response.status === 429 || response.status === 503 || response.status === 404) {
-            lastError = new Error(`GEMINI_HTTP_${response.status}`);
-            continue; // Try next model in cascade
+    const rotation = await executeAcrossModelsAndKeys("gemini", CANDIDATE_MODELS, async (key, model, keyIdx, totalKeys) => {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+        signal: AbortSignal.timeout(90_000),
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          contents: [
+            {
+              role: "user",
+              parts: [
+                { text: `Page ${page}: Identify all diagrams, data tables, and choice figures.` },
+                { inlineData: { mimeType: `image/${match[1]}`, data: match[2] } }
+              ]
+            }
+          ],
+          generationConfig: {
+            temperature: 0,
+            responseMimeType: "application/json",
+            maxOutputTokens: 4096,
           }
-          if (!response.ok) throw new Error(`GEMINI_HTTP_${response.status}`);
+        })
+      });
 
-          const result = await response.json();
-          const text = result.candidates?.[0]?.content?.parts
-            ?.filter((part: { text?: string; thought?: boolean }) => part.text && !part.thought)
-            ?.map((part: { text: string }) => part.text)
-            ?.join("");
+      if (!response.ok) throw new Error(`GEMINI_HTTP_${response.status}`);
 
-          if (!text) throw new Error("GEMINI_EMPTY_RESPONSE");
-          const parsed = JSON.parse(text);
-          return { diagrams: validateDetectedDiagrams(parsed.diagrams, page), model, keyIndex: keyIdx, totalKeys };
-        } catch (err) {
-          lastError = err instanceof Error ? err : new Error(String(err));
-        }
-      }
+      const result = await response.json();
+      const text = result.candidates?.[0]?.content?.parts
+        ?.filter((part: { text?: string; thought?: boolean }) => part.text && !part.thought)
+        ?.map((part: { text: string }) => part.text)
+        ?.join("");
 
-      throw lastError || new Error("ALL_MODELS_FAILED");
+      if (!text) throw new Error("GEMINI_EMPTY_RESPONSE");
+      const parsed = JSON.parse(text);
+      return { diagrams: validateDetectedDiagrams(parsed.diagrams, page), model, keyIndex: keyIdx, totalKeys };
     });
 
     return rotation.result;

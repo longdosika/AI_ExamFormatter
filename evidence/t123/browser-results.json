@@ -1,0 +1,61 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "set": 5,
+      "editorItems": 22,
+      "docx": {
+        "file": "D:\\90-AI\\AI_ExamFormatter\\tmp\\pdfs\\t123-set5.docx",
+        "bytes": 8667,
+        "images": 0
+      },
+      "errors": []
+    },
+    {
+      "set": 4,
+      "captured": [
+        {
+          "number": 4,
+          "bbox": [
+            204.0059347181009,
+            137.46065057712488,
+            356.8249258160237,
+            625.3934942287514
+          ]
+        },
+        {
+          "number": 6,
+          "bbox": [
+            599.406528189911,
+            140.60860440713537,
+            755.1928783382789,
+            728.2266526757608
+          ]
+        },
+        {
+          "number": 7,
+          "bbox": [
+            117.2106824925816,
+            108.0797481636936,
+            270.02967359050444,
+            890.8709338929696
+          ]
+        }
+      ],
+      "diagramCalls": 12,
+      "provider": "simulated429; no provider request",
+      "scope": "Only unique ruled grids; unruled/uncertain diagrams remain flagged"
+    },
+    {
+      "set": 4,
+      "editorItems": 28,
+      "docx": {
+        "file": "D:\\90-AI\\AI_ExamFormatter\\tmp\\pdfs\\t123-set4.docx",
+        "bytes": 546524,
+        "images": 4
+      },
+      "errors": []
+    }
+  ],
+  "note": "Recorded actual OCR; no new OCR/Gemini/Google or QuizFlow import call"
+}

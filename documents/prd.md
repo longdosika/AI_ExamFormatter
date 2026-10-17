@@ -1,5 +1,14 @@
 # PRD
 
+### T-123 Owner-Confirmed Choice Counts
+R-002/R-004: support either four ordered choices ก ข ค ง or five ก ข ค ง จ, as explicitly confirmed on 2026-10-17. Preserve all source choices, answer provenance and image-only rows through validation, editing, draft resume and export. Inferred OCR keys remain reviewable; unsupported counts/duplicates are still flagged.
+
+### T-121 Conversion Fidelity and Resumable Cloud Drafts
+Existing R-001/R-002/R-003/R-004/R-006 apply: preserve the original, repair only evidenced choice keys, require confirmation for a missing key, keep one choice per line, and review captured tables/figures without a false CLEAN claim. Immutable Drive draft versions must restore edited content and the hash-verified original without OCR. Export remains available at any stage; export is not QuizFlow import.
+
+### T-118 Working Controls and Always-Available Snapshot Export (2026-10-16)
+R-001/R-003/R-004: show original question count as plain text in the original pane header, independently of edited draft count; provide explicit draft save for live formatted DOM or reviewed raw text. Google connection status and its management action belong beside export, not the brand header. Export the current snapshot during background answer/diagram/OCR work whenever content exists; Google authorization/privacy/payload validation still applies, and duplicate requests of the same export type are prevented. Missing Google connection opens actionable settings rather than disabling export; DOCX remains independent. Owner explicitly restores inline hover/focus labels in the existing header rail, superseding T-117's floating tooltips.
+
 ### T-105 Original Reference and User-Controlled Navigation (2026-10-15)
 R-001/R-004: Keep original source media associated with its editable draft across browser reloads; source-left remains original-only and supports capture/magnifier without re-OCR. Legacy drafts without stored originals allow identity-checked source-only reattachment without resetting edits. Storage failures must be visible; browser-local storage is not cross-device backup. R-002/R-004: completed diagram/answer steps become subdued but can run again. Long question navigation uses first/decade/final anchors and circular controls that explicitly expand/collapse hidden questions with accessible, reduced-motion-aware animation.
 
@@ -22,6 +31,11 @@ Create a web app ที่แปลงเอกสาร .ยกด / รูป�
 ## Target Users
 เราเอง ใช้ผ่าน internet
 ## Requirements
+### R-006 Related Drive Document Library
+- User need: Google Drive as primary grouped storage for unchanged originals, output versions and the exact snapshot reported as imported into QuizFlow.
+- Status: Verified
+- Acceptance Criteria: Identify sources by SHA-256, preserve source bytes and immutable DOCX versions, retain parent/version/build relationships and optional Google Doc views; searchable grouped open/download access. Keep failed download archives in a visible retry queue. Only explicit user confirmation creates a separate QuizFlow-import copy; never infer downstream success from export. Preserve existing sharing, avoid public/domain-visible source destinations, do not migrate old files by filename guesses.
+
 ### R-001 ลาก / browser ไฟล์ต้นฉบับ
 - User need: ลาก / browser ไฟล์ต้นฉบับ
 - Status: `Proposed`

@@ -1,0 +1,81 @@
+{
+  "harvested": [
+    [
+      590,
+      106,
+      771,
+      512
+    ],
+    [
+      595,
+      550,
+      771,
+      888
+    ],
+    [
+      772,
+      150,
+      938,
+      252
+    ],
+    [
+      800,
+      320,
+      938,
+      440
+    ]
+  ],
+  "reopened": [
+    [
+      590,
+      106,
+      771,
+      512
+    ],
+    [
+      595,
+      550,
+      771,
+      888
+    ],
+    [
+      772,
+      150,
+      938,
+      252
+    ],
+    [
+      800,
+      320,
+      938,
+      440
+    ]
+  ],
+  "docx": {
+    "labels": 1,
+    "label": 1,
+    "choices": 7,
+    "images": 4,
+    "imageParagraphs": 4
+  },
+  "google": {
+    "labels": 1,
+    "label": 1,
+    "choices": 7,
+    "images": 4,
+    "imageParagraphs": 4
+  },
+  "roles": [
+    "question",
+    "questionImageLabel",
+    "questionImage",
+    "questionImage",
+    "questionImage",
+    "questionImage",
+    "choicesLabel",
+    "choice",
+    "choice",
+    "choice",
+    "choice"
+  ]
+}

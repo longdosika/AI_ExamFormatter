@@ -1,0 +1,13 @@
+{
+  "status": "passed",
+  "synthetic": true,
+  "styledCleanup": true,
+  "idempotent": true,
+  "guideLineRows": 4,
+  "legacyDraftCleaned": true,
+  "actualDocxChecked": true,
+  "contextualUpload": true,
+  "sharedRangeOwner": true,
+  "resizedAndReplaced": true,
+  "mobileNoOverflow": true
+}

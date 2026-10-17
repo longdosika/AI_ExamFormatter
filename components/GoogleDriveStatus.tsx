@@ -1,7 +1,8 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
+import { FolderOpen, Lock, LogOut } from "lucide-react";
 
-interface DriveStatus {
+export interface DriveStatus {
   configured: boolean;
   connected: boolean;
   folderReady: boolean;
@@ -29,7 +30,7 @@ function loadPicker(): Promise<PickerApi> {
   return pickerLoader;
 }
 
-export function GoogleDriveStatus({ onReady }: {onReady: (ready: boolean) => void}) {
+export function GoogleDriveStatus({ onReady, onStatus, active = true, variant = "card" }: {onReady: (ready: boolean) => void; onStatus?: (status: DriveStatus | null) => void; active?: boolean; variant?: "card" | "compact"}) {
   const [status, setStatus] = useState<DriveStatus | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -37,11 +38,11 @@ export function GoogleDriveStatus({ onReady }: {onReady: (ready: boolean) => voi
     const response = await fetch("/api/google/session", { cache: "no-store", signal });
     if (!response.ok) throw new Error("ตรวจสถานะ Google ไม่สำเร็จ");
     const value: DriveStatus = await response.json();
-    setStatus(value); onReady(value.connected && value.folderReady);
-  }, [onReady]);
+    setStatus(value); onStatus?.(value); onReady(value.connected && value.folderReady);
+  }, [onReady, onStatus]);
   useEffect(() => {
     const controller = new AbortController();
-    refresh(controller.signal).catch(error => { if (!controller.signal.aborted) { setMessage(error.message); onReady(false); } });
+    refresh(controller.signal).catch(error => { if (!controller.signal.aborted) { setMessage(error.message); onStatus?.({ configured: false, connected: false, folderReady: false, folderId: "", error: error.message }); onReady(false); } });
     const query = new URLSearchParams(window.location.search);
     if (query.get("google") === "failed") {
       const reasons: Record<string,string> = {
@@ -55,7 +56,7 @@ export function GoogleDriveStatus({ onReady }: {onReady: (ready: boolean) => voi
       setMessage(reasons[query.get("reason") || ""] || "เชื่อม Google ไม่สำเร็จ กรุณาลองใหม่");
     }
     return () => controller.abort();
-  }, [refresh, onReady]);
+  }, [refresh, onReady, onStatus, active]);
   const selectFolder = async () => {
     setBusy(true); setMessage("");
     try {
@@ -82,6 +83,21 @@ export function GoogleDriveStatus({ onReady }: {onReady: (ready: boolean) => voi
     } catch (error) { setMessage(error instanceof Error ? error.message : "ออกจากการเชื่อมต่อไม่สำเร็จ"); }
     finally { setBusy(false); }
   };
+  // T-128: compact header form on the import screen (replaces the tagline); the full card stays in the document dialog.
+  if (variant === "compact") {
+    const state = !status ? "checking" : !status.configured ? "error" : !status.connected ? "connect" : status.folderReady ? "ready" : "folder";
+    const label = !status ? "กำลังตรวจ Google…" : !status.configured ? "Google ยังไม่ได้ตั้งค่า" : !status.connected ? "เชื่อม Google Drive" : status.folderReady ? "Drive · AI_ExamFormatter" : "เลือกโฟลเดอร์ AI_ExamFormatter";
+    const detail = !status ? "" : !status.configured ? (status.missingFields?.length ? `ขาด: ${status.missingFields.join(", ")}` : status.error || "รอตั้งค่าการเชื่อมต่อ")
+      : status.folderReady ? "ส่งออกและเก็บไฟล์ไปที่โฟลเดอร์ AI_ExamFormatter (ต้นฉบับและไฟล์ส่งออกอยู่ที่เดียวกัน)" : "";
+    return <div role="group" aria-label="การเชื่อมต่อ Google Drive" className="drive-chip" data-state={state} title={detail || undefined}>
+      {/* T-130: the chip is the action itself: lock + connect -> choose folder -> ready (no second button beside a status text). */}
+      {state === "connect" ? <a href="/api/google/auth" className="drive-chip-main" aria-label="เชื่อมบัญชี Google"><Lock aria-hidden="true" className="h-3.5 w-3.5" /><span className="drive-chip-label">{label}</span></a>
+        : state === "folder" ? <button type="button" disabled={busy} onClick={selectFolder} className="drive-chip-main"><FolderOpen aria-hidden="true" className="h-3.5 w-3.5" /><span className="drive-chip-label">{label}</span></button>
+        : <><span aria-hidden="true" className="drive-chip-dot" /><span role="status" className="drive-chip-label">{label}</span></>}
+      {status?.connected && <button type="button" disabled={busy} onClick={disconnect} className="drive-chip-quiet" aria-label="ออกจากการเชื่อมต่อ Google" title="ออกจากการเชื่อมต่อ Google"><LogOut aria-hidden="true" className="h-3.5 w-3.5" /></button>}
+      {message && <span role="alert" className="drive-chip-error">{message}</span>}
+    </div>;
+  }
   return <section aria-label="การเชื่อมต่อ Google Drive" className="my-4 flex flex-wrap items-center gap-3 rounded-xl border border-[var(--ui-line)] bg-white px-4 py-3 text-[13px] text-[var(--ui-ink-2)]">
     <span role="status">
       {!status

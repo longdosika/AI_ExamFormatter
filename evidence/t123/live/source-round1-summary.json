@@ -1,0 +1,18 @@
+{
+  "round": 1,
+  "requestedPages": [
+    2,
+    3,
+    4
+  ],
+  "completedPages": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "allHttp200": true,
+  "fullFourPages": true,
+  "detectedCount": 11,
+  "note": "Detected count is NOT a correctness certification; compare marks with original pages before acceptance."
+}

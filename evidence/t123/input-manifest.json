@@ -1,0 +1,31 @@
+{
+  "machine": "DESKTOP-FNVSAKS",
+  "observedAt": "2026-10-17T03:42:53.670Z",
+  "timezone": "Asia/Bangkok",
+  "files": [
+    {
+      "set": 1,
+      "path": "C:/Users/natha/Downloads/บทที่ 7 ชุดที่ 1 เรื่อง การแยกสาร.pdf",
+      "bytes": 3149425,
+      "sha256": "4d46497721a7fd8e3edc0242e7b3cbb35ac08609b6ad46b7626d9ce80279a018"
+    },
+    {
+      "set": 3,
+      "path": "C:/Users/natha/Downloads/บทที่ 7 ชุดที่ 3 เรื่อง การแยกสาร.pdf",
+      "bytes": 1172617,
+      "sha256": "d1bc697d51885664058d2f4e6b9b89b7f80ede972f5a4c828169ef7e1c324f76"
+    },
+    {
+      "set": 4,
+      "path": "C:/Users/natha/Downloads/บทที่ 7 ชุดที่ 4 เรื่อง การแยกสาร.pdf",
+      "bytes": 3354891,
+      "sha256": "30e55d9da2a59e4cb66fb558c006c760af0d38c320db916147b51acddee13459"
+    },
+    {
+      "set": 5,
+      "path": "C:/Users/natha/Downloads/บทที่ 7 ชุดที่ 5 เรื่อง การแยกสาร.pdf",
+      "bytes": 1993548,
+      "sha256": "e9ea1328680e4c36c1ddd2bac2b20904c997417975694f8264a92c2603f0a873"
+    }
+  ]
+}

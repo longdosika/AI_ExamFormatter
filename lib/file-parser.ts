@@ -1,6 +1,7 @@
 import JSZip from "jszip";
 import { renderPdfPages } from "./pdf-renderer";
 import { ImportOptions, throwIfImportAborted } from "./import-lifecycle";
+import type { OcrTextRegion } from "./capture-geometry";
 export { revokeParsedFileUrls } from "./import-lifecycle";
 
 export interface ParsedFileResult {
@@ -14,6 +15,7 @@ export interface ParsedFileResult {
   sourceBlob?: Blob;
   originalText?: string;
   pageImages?: string[]; // Rendered page images for continuous native PDF viewing
+  ocrTextRegions?: OcrTextRegion[][];
   extractedImages: { id: string; dataUrl: string }[];
   isClean: boolean;
   statusMessage: string;

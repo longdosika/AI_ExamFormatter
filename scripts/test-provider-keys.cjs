@@ -126,6 +126,23 @@ async function runTests() {
   );
   assert.strictEqual(nonQuotaRotated, false, 'Non-quota error must fail immediately without rotating keys');
 
+  // T-121 (audit): the preferred model is tried on every key before a weaker model is used.
+  const { executeAcrossModelsAndKeys } = require('../lib/api-key-manager.ts');
+  const calls = [];
+  const across = await executeAcrossModelsAndKeys('gemini', ['strong', 'lite'], async (key, model) => {
+    calls.push(`${model}@${key}`);
+    if (model === 'strong' && key === 'key-primary') throw new Error('GEMINI_HTTP_429');
+    return `${model}@${key}`;
+  }, { env: mockEnv1 });
+  assert.strictEqual(across.result, 'strong@key-backup-2', 'quota on key 1 moves to key 2 with the same strong model');
+  assert.deepStrictEqual(calls, ['strong@key-primary', 'strong@key-backup-2']);
+  const fallback = await executeAcrossModelsAndKeys('gemini', ['strong', 'lite'], async (key, model) => {
+    if (model === 'strong') throw new Error('GEMINI_EMPTY_RESPONSE');
+    return model;
+  }, { env: mockEnv1 });
+  assert.strictEqual(fallback.model, 'lite', 'a model failing on every key falls back to the next model');
+  await assert.rejects(() => executeAcrossModelsAndKeys('gemini', ['strong'], async () => 'x', { env: {} }), /GEMINI_NOT_CONFIGURED/);
+
   console.log('PASS Provider Multi-Key & Quota Rotation test contract verified cleanly');
 }
 

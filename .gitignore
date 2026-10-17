@@ -18,6 +18,8 @@ __pycache__/
 vendor/
 
 # Build, test and cache output
+tmp/pdfs/
+tmp/t116-library-fixture.md
 dist/
 build/
 out/

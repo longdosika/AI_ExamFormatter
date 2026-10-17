@@ -10,10 +10,11 @@
     "start": "node -r ./scripts/next-realpath-shim.cjs ./node_modules/next/dist/bin/next start",
     "typecheck": "tsc --noEmit",
     "lint": "eslint app components lib scripts --ext .ts,.tsx,.mjs,.cjs",
-    "test": "node scripts/check-knowledge-vault.mjs && node scripts/test-environment-check.cjs && node scripts/test-parser.cjs && node scripts/test-source-answers.cjs && node scripts/test-local-vision-metrics.cjs && node scripts/test-local-vision-http.cjs && node scripts/test-ocr-contract.cjs && node scripts/test-ocr-client.cjs && node scripts/test-ollama-runtime.cjs && node scripts/test-diagram-contract.cjs && node scripts/test-provider-keys.cjs && node scripts/test-document-drafts.cjs && node scripts/test-experiment-stats.cjs && node scripts/test-import-history.cjs && node scripts/test-cases.cjs && node scripts/test-performance.cjs && node scripts/test-google.cjs && node scripts/test-pdf-assets.cjs && node scripts/test-release-readiness.cjs",
+    "test": "node scripts/check-knowledge-vault.mjs && node scripts/test-environment-check.cjs && node scripts/test-parser.cjs && node scripts/test-source-answers.cjs && node scripts/test-local-vision-metrics.cjs && node scripts/test-local-vision-http.cjs && node scripts/test-ocr-contract.cjs && node scripts/test-ocr-client.cjs && node scripts/test-ollama-runtime.cjs && node scripts/test-diagram-contract.cjs && node scripts/test-capture-rules.cjs && node scripts/test-t123.cjs && node scripts/test-provider-keys.cjs && node scripts/test-document-drafts.cjs && node scripts/test-experiment-stats.cjs && node scripts/test-import-history.cjs && node scripts/test-cases.cjs && node scripts/test-performance.cjs && node scripts/test-google.cjs && node scripts/test-drive-library.cjs && node scripts/test-pdf-assets.cjs && node scripts/test-release-readiness.cjs",
     "test:quality": "node scripts/test-quality.cjs",
+    "test:unit": "node scripts/test-t123.cjs",
     "test:environment": "node scripts/test-environment-check.cjs",
-    "test:e2e": "node scripts/test-e2e.cjs",
+    "test:e2e": "node scripts/test-e2e.cjs && node scripts/test-capture-editor.cjs && node scripts/test-library-ui.cjs && node scripts/test-workspace-controls.cjs && node scripts/test-t121-controls.cjs && node scripts/test-t121-order-dom.cjs && node scripts/test-t124-stale-draft.cjs && node scripts/test-t125-cached-ocr.cjs && node scripts/test-t126-answers-choices.cjs && node scripts/test-t127-answer-star.cjs && node scripts/test-t128-duplicate-import.cjs && node scripts/test-t130-choice-table.cjs && node scripts/test-t131-multi-figure.cjs && node scripts/test-t121-fidelity.cjs && node scripts/test-t132-crop-top.cjs",
     "env:check": "node scripts/check-environment.mjs",
     "env:check:strict": "node scripts/check-environment.mjs --strict",
     "env:check:record": "node scripts/check-environment.mjs --write-evidence",
@@ -26,8 +27,8 @@
     "google-auth-library": "^11.2.0",
     "jszip": "^3.10.1",
     "lucide-react": "^0.453.0",
-    "next": "^14.2.15",
-    "pdfjs-dist": "^3.11.174",
+    "next": "15.5.27",
+    "pdfjs-dist": "4.10.38",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tailwind-merge": "^2.5.4"
@@ -38,10 +39,13 @@
     "@types/react-dom": "^18.3.1",
     "autoprefixer": "^10.4.20",
     "eslint": "^8.57.1",
-    "eslint-config-next": "^14.2.35",
+    "eslint-config-next": "15.5.27",
     "playwright": "^1.64.0",
-    "postcss": "^8.4.47",
+    "postcss": "^8.5.30",
     "tailwindcss": "^3.4.14",
     "typescript": "^5.6.3"
+  },
+  "overrides": {
+    "postcss": "^8.5.30"
   }
 }

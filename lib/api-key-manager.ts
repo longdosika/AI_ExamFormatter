@@ -162,3 +162,31 @@ export async function executeWithKeyRotation<T>(
 
   throw lastError;
 }
+
+/**
+ * T-121 (audit): try each model on every key before stepping down to the next, weaker model.
+ * Rotating models inside one key made a quota-limited first key silently downgrade every request
+ * (gemini-3.8-flash 429 on key 1 -> flash-lite answered with fewer source marks) while keys 2-3 still had quota.
+ */
+export async function executeAcrossModelsAndKeys<T>(
+  provider: ProviderType,
+  models: string[],
+  operation: (apiKey: string, model: string, keyIndex: number, totalKeys: number) => Promise<T>,
+  options?: { env?: NodeJS.ProcessEnv },
+): Promise<{ result: T; model: string; keyIndex: number; totalKeys: number }> {
+  let lastError: unknown = null;
+  for (const model of models) {
+    try {
+      const rotation = await executeWithKeyRotation(provider, (key, keyIndex, totalKeys) => operation(key, model, keyIndex, totalKeys), {
+        env: options?.env,
+        // Any failure (quota, overload, unknown model, empty or invalid JSON) may succeed on another key.
+        customShouldRotate: () => true,
+      });
+      return { result: rotation.result, model, keyIndex: rotation.keyIndex, totalKeys: rotation.totalKeys };
+    } catch (error) {
+      if (error instanceof Error && /_NOT_CONFIGURED$/.test(error.message)) throw error;
+      lastError = error;
+    }
+  }
+  throw lastError || new Error("ALL_MODELS_FAILED");
+}

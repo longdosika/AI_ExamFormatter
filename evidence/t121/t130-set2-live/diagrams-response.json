@@ -1,0 +1,218 @@
+[
+ {
+  "page": 1,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [
+    {
+     "id": "diag-p1-1",
+     "type": "question",
+     "questionNumber": 5,
+     "description": "ตารางตัวเลือกแสดงขั้นตอนการระเหยและการตกผลึกในการทำนาเกลือ",
+     "bbox": [
+      679,
+      134,
+      822,
+      530
+     ],
+     "page": 1,
+     "confidence": 0.9
+    }
+   ],
+   "model": "gemini-3.8-flash",
+   "keyIndex": 2,
+   "totalKeys": 3
+  }
+ },
+ {
+  "page": 2,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [
+    {
+     "id": "diag-p2-1",
+     "type": "question",
+     "questionNumber": 7,
+     "description": "ตารางการจำแนกสารตามประเภท ธาตุ สารประกอบ สารละลาย สารเนื้อผสม",
+     "bbox": [
+      163,
+      170,
+      306,
+      748
+     ],
+     "page": 2,
+     "confidence": 0.9
+    },
+    {
+     "id": "diag-p2-2",
+     "type": "question",
+     "questionNumber": 8,
+     "description": "แผนภาพผังมโนทัศน์การจำแนกสาร",
+     "bbox": [
+      335,
+      218,
+      466,
+      777
+     ],
+     "page": 2,
+     "confidence": 0.9
+    },
+    {
+     "id": "diag-p2-3",
+     "type": "question",
+     "questionNumber": 8,
+     "description": "ตารางตัวเลือกชนิดของสาร A, B, C และ D",
+     "bbox": [
+      501,
+      165,
+      640,
+      639
+     ],
+     "page": 2,
+     "confidence": 0.9
+    },
+    {
+     "id": "diag-p2-4",
+     "type": "question",
+     "questionNumber": 10,
+     "description": "ตารางเกณฑ์การจัดจำแนกสารและตัวอย่างสาร",
+     "bbox": [
+      791,
+      163,
+      932,
+      820
+     ],
+     "page": 2,
+     "confidence": 0.9
+    }
+   ],
+   "model": "gemini-3.8-flash",
+   "keyIndex": 2,
+   "totalKeys": 3
+  }
+ },
+ {
+  "page": 3,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [
+    {
+     "id": "diag-p3-1",
+     "type": "question",
+     "questionNumber": 16,
+     "description": "ตารางสมบัติของสาร A, B, C แสดงจุดเดือด จุดหลอมเหลว และการละลายน้ำ",
+     "bbox": [
+      445,
+      140,
+      563,
+      670
+     ],
+     "page": 3,
+     "confidence": 0.9
+    },
+    {
+     "id": "diag-p3-2",
+     "type": "question",
+     "questionNumber": 20,
+     "description": "ภาพการทดลองโครมาโทกราฟีของหยดสีเขียว แสดงระดับการเคลื่อนที่ของสาร Z, Y, X",
+     "bbox": [
+      824,
+      161,
+      924,
+      292
+     ],
+     "page": 3,
+     "confidence": 0.9
+    }
+   ],
+   "model": "gemini-3.8-flash",
+   "keyIndex": 2,
+   "totalKeys": 3
+  }
+ },
+ {
+  "page": 4,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [
+    {
+     "id": "diag-p4-1",
+     "type": "question",
+     "questionNumber": 22,
+     "description": "แผนภาพชุดอุปกรณ์กรองสารและเซลโลเฟน แสดงตำแหน่ง 1, 2 และ 3",
+     "bbox": [
+      212,
+      230,
+      312,
+      428
+     ],
+     "page": 4,
+     "confidence": 0.9
+    },
+    {
+     "id": "diag-p4-2",
+     "type": "question",
+     "questionNumber": 25,
+     "description": "รูปที่ 1 ชุดอุปกรณ์การกลั่นอย่างง่ายพร้อมป้ายกำกับส่วนประกอบ",
+     "bbox": [
+      588,
+      106,
+      775,
+      512
+     ],
+     "page": 4,
+     "confidence": 0.9
+    },
+    {
+     "id": "diag-p4-3",
+     "type": "question",
+     "questionNumber": 25,
+     "description": "รูปที่ 2 ขั้นตอนการพับกระดาษกรองและชุดอุปกรณ์การกรอง",
+     "bbox": [
+      594,
+      548,
+      775,
+      888
+     ],
+     "page": 4,
+     "confidence": 0.9
+    },
+    {
+     "id": "diag-p4-4",
+     "type": "question",
+     "questionNumber": 25,
+     "description": "รูปที่ 3 ชุดกรวยแยกสารบนขาตั้ง",
+     "bbox": [
+      770,
+      147,
+      938,
+      256
+     ],
+     "page": 4,
+     "confidence": 0.9
+    },
+    {
+     "id": "diag-p4-5",
+     "type": "question",
+     "questionNumber": 25,
+     "description": "รูปที่ 4 ชุดอุปกรณ์การระเหิด/การให้ความร้อนบนตะแกรงลวด",
+     "bbox": [
+      798,
+      320,
+      938,
+      442
+     ],
+     "page": 4,
+     "confidence": 0.9
+    }
+   ],
+   "model": "gemini-3.8-flash",
+   "keyIndex": 2,
+   "totalKeys": 3
+  }
+ }
+]

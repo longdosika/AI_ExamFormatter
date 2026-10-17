@@ -85,6 +85,16 @@
   .ui-rail:hover .ui-rail-btn:nth-child(6) .ui-rail-label, .ui-rail:focus-within .ui-rail-btn:nth-child(6) .ui-rail-label { transition-delay: 150ms; }
 }
 
+/* T-118: owner requested inline expansion again; switch geometry in one frame,
+   avoiding intermediate moving hit targets from staggered width animation. */
+.ui-inline-rail .ui-rail-label { transition: opacity .15s ease; transition-delay: 0s !important; }
+.ui-inline-rail-anchor { position: relative; width: 152px; height: 38px; flex-shrink: 0; }
+.ui-inline-rail { position: absolute; right: 0; top: 0; z-index: 45; width: max-content; max-width: calc(100vw - 190px); overflow-x: auto; }
+@media(max-width: 767px) { .ui-inline-rail { max-width: calc(100vw - 24px); } }
+.ui-export-area { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.ui-drive-status { display: block; min-height: 14px; padding: 0 3px; font-size: 10px; line-height: 14px; color: var(--ui-ink-2); white-space: nowrap; }
+.ui-drive-status:hover { text-decoration: underline; }
+
 /* T-107 editor image tools: selection frame and drop target are outlines only (export ignores outlines). */
 @keyframes ui-frame-in { from { opacity: 0; transform: scale(.985); } to { opacity: 1; transform: none; } }
 .ui-image-frame { outline: 2px dashed rgba(0, 109, 119, .55); outline-offset: 0; animation: ui-frame-in .2s var(--ui-ease) both; }
@@ -262,7 +272,173 @@ button:disabled {
 .ui-question-pill { position: absolute; right: 18px; z-index: 25; pointer-events: none; border-radius: 999px; background: #24302a; color: #f1ede3; padding: 4px 12px; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; box-shadow: 0 8px 20px -10px rgba(36, 48, 42, .7); opacity: 0; transform: translateY(-4px); transition: opacity .2s ease, transform .2s var(--ui-ease); }
 .ui-question-pill[data-show="true"] { opacity: 1; transform: none; }
 
+.library-backdrop { position: fixed; inset: 0; z-index: 70; background: rgba(25, 33, 29, .35); display: flex; justify-content: center; padding: 16px; }
+.library-dialog { width: 880px; max-width: 100%; min-height: 0; display: flex; flex-direction: column; border: 1px solid var(--ui-line); border-radius: 8px; background: var(--ui-paper, #fff); color: var(--ui-ink); box-shadow: 0 16px 50px #0003; }
+.library-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--ui-line); }
+.library-head h2 { font-size: 16px; font-weight: 600; }
+.library-actions { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 16px 0; }
+.library-status, .library-error { padding: 6px 16px; font-size: 12px; min-height: 28px; }
+.library-error { color: #963e31; background: #fff0ed; }
+.library-body { min-height: 0; overflow: auto; padding: 0 16px 16px; }
+.library-search { display: flex; align-items: center; gap: 8px; border: 1px solid var(--ui-line); border-radius: 6px; padding: 6px 10px; }
+.library-search input { width: 100%; min-width: 0; background: transparent; }
+.library-list { list-style: none; margin: 8px 0 20px; }
+.library-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--ui-line); }
+.library-group { text-align: left; flex: 1; min-width: 0; }
+.library-group strong, .library-file, .library-title, .library-confirm strong { overflow-wrap: anywhere; font-size: 13px; }
+.library-list small { display: block; color: var(--ui-ink-3); font-size: 11px; margin-top: 4px; overflow-wrap: anywhere; }
+.library-title { margin-top: 16px; font-weight: 600; }
+.library-hash { font: 11px monospace; overflow-wrap: anywhere; margin: 4px 0 20px; }
+.library-body h4 { font-size: 13px; font-weight: 600; color: var(--ui-teal); border-bottom: 1px solid var(--ui-line); padding-bottom: 6px; }
+.library-list .library-output { flex-wrap: wrap; }
+.library-output > .library-file { flex-basis: 100%; }
+.library-confirm { padding: 12px; margin: 12px 0 20px; border: 1px solid var(--ui-line); border-radius: 6px; background: var(--ui-sunken); display: grid; gap: 12px; font-size: 13px; }
+.library-confirm textarea { display: block; width: 100%; border: 1px solid var(--ui-line); border-radius: 4px; padding: 6px; background: #fff; }
+@media(max-width: 600px) { .library-backdrop { padding: 6px; } .library-actions .ui-btn { white-space: normal; } }
+
 @media (prefers-reduced-motion: reduce) {
   .ui-notice .ui-notice-text, .ui-question-pill, .ui-next-step svg { transition: none; }
   .recent-draft, .ui-file-received, [data-answer-origin]:not([data-answer-origin="none"]), [data-answer-origin]:not([data-answer-origin="none"]) [data-answer-marker] { animation: none; }
 }
+
+/* ---------------------------------------------------------------------------
+   T-119 thirty-point pass. Static styling first; any motion is one-shot and reduced-motion safe.
+   --------------------------------------------------------------------------- */
+/* Long documents: skip rendering off-screen questions; auto remembers each question's real height. */
+.editor-cv [data-item-id] { content-visibility: auto; contain-intrinsic-size: auto 420px; }
+
+/* The master template requires one choice per line, including legacy drafts. */
+[data-compact-choices="true"] { display: block; }
+[data-choice-key] { padding-top: 6px; padding-bottom: 6px; }
+
+/* Clear answer only where an answer exists, as a compact control (#9). */
+[data-clear-answer] { display: inline-flex; align-items: center; gap: 4px; margin-left: 16px; border-radius: 999px; padding: 2px 10px !important; font-size: 11px !important; color: #8b5148 !important; background: #fbefec; }
+[data-clear-answer]::before { content: "×"; font-size: 13px; line-height: 1; }
+[data-clear-answer]:hover { background: #f7dfd9; }
+[data-item-id]:not(:has([data-answer-origin]:not([data-answer-origin="none"]))) [data-clear-answer] { display: none; }
+
+/* Readable origin tag (#10) and one-line AI reasoning summary (#11). */
+[data-answer-badge] { font-family: inherit !important; font-size: 11px !important; font-weight: 600 !important; letter-spacing: 0; }
+[data-item-id] details[data-export-ignore] { margin-left: 16px; font-size: 11.5px; }
+[data-item-id] details[data-export-ignore] > summary { display: inline-flex; align-items: center; gap: 4px; list-style: none; cursor: pointer; color: #6b6656; border-radius: 6px; padding: 1px 6px; }
+[data-item-id] details[data-export-ignore] > summary::-webkit-details-marker { display: none; }
+[data-item-id] details[data-export-ignore] > summary::before { content: "›"; font-weight: 700; transition: transform .18s ease; }
+[data-item-id] details[data-export-ignore][open] > summary::before { transform: rotate(90deg); }
+[data-item-id] details[data-export-ignore] > summary:hover { background: #f4f1e8; }
+
+/* Review findings are links; merged choices offer a split action (#2, #5). */
+.review-list { padding-left: 2px; display: grid; gap: 2px; }
+.review-link { text-align: left; color: inherit; border-radius: 4px; padding: 0 4px; text-decoration: underline; text-decoration-color: rgba(122, 79, 5, .35); text-underline-offset: 3px; }
+.review-link:hover { background: #fdf0d2; text-decoration-color: currentColor; }
+.review-action { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; border-radius: 999px; padding: 1px 10px; background: #fff; border: 1px solid #e8cf94; font-weight: 600; color: #7a4f05; }
+.review-action:hover { background: #fff3d6; }
+
+/* Strip: duplicate numbers (dashed ring), source comparison and legend (#1, #4, #22). */
+.nav-chip[data-duplicate="true"]:not([aria-current="true"]) { box-shadow: inset 0 0 0 1.5px #e0a32e; outline: 1px dashed #c0391f; outline-offset: 1px; }
+.nav-chip[data-source-compare="mismatch"]::before { content: ""; position: absolute; top: 1px; right: 1px; width: 5px; height: 5px; border-radius: 50%; background: #c0391f; }
+.nav-legend-anchor { position: relative; cursor: help; border-radius: 4px; padding: 0 2px; }
+.nav-legend { position: absolute; left: 0; top: calc(100% + 8px); z-index: 45; display: none; min-width: 190px; flex-direction: column; gap: 4px; padding: 8px 10px; border-radius: 10px; background: #fffdf8; border: 1px solid var(--ui-line); box-shadow: 0 12px 28px -14px rgba(36, 48, 42, .5); font-weight: 400; color: var(--ui-ink-2); white-space: nowrap; }
+.nav-legend span { display: flex; align-items: center; gap: 6px; }
+.nav-legend i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; }
+.nav-legend i[data-answer="source"] { background: #3f7d55; } .nav-legend i[data-answer="ai"] { background: #c69a1d; } .nav-legend i[data-answer="manual"] { background: #397493; }
+.nav-legend i[data-issue="true"] { background: transparent; box-shadow: inset 0 0 0 1.5px #e0a32e; border-radius: 3px; }
+.nav-legend-anchor:hover .nav-legend, .nav-legend-anchor:focus .nav-legend { display: flex; }
+.nav-summary-ai { background: #fff8e3; color: #7a5c00; border-color: #efd99a; transition: background-color .18s ease; }
+.nav-summary-ai:hover { background: #ffefc1; }
+.nav-summary-ai.is-armed { background: #c69a1d; color: #fff; border-color: #c69a1d; }
+
+/* Source pane: page dots (#18) and ink reduction view filter (#20, view only). */
+.source-page-dots { position: absolute; right: 6px; top: 50%; z-index: 20; display: flex; flex-direction: column; gap: 5px; transform: translateY(-50%); padding: 6px 4px; border-radius: 999px; background: rgba(255, 255, 255, .7); backdrop-filter: blur(4px); }
+.source-page-dots button { width: 7px; height: 7px; border-radius: 50%; background: #c8c2b2; transition: background-color .18s ease, transform .18s var(--ui-ease); }
+.source-page-dots button:hover { transform: scale(1.4); background: var(--ui-olive); }
+.source-page-dots button[aria-current="page"] { background: var(--ui-olive); transform: scale(1.3); }
+.source-ink-filter img { filter: url(#source-ink-reduce); }
+@media (prefers-reduced-motion: reduce) { .source-page-dots button, .review-link, [data-item-id] details[data-export-ignore] > summary::before { transition: none; } }
+
+/* T-119 header groups (#15), draft count (#16), Drive pill beside export (#7) and export confirmation (#28). */
+.ui-rail-divider { align-self: stretch; width: 1px; margin: 6px 3px; background: var(--ui-line-strong); flex-shrink: 0; }
+.ui-rail-btn { position: relative; }
+.ui-rail-badge { position: absolute; top: 1px; left: 18px; min-width: 15px; height: 15px; padding: 0 4px; border-radius: 999px; background: var(--ui-olive); color: #fff; font-size: 9.5px; font-weight: 700; line-height: 15px; text-align: center; font-variant-numeric: tabular-nums; pointer-events: none; }
+.ui-export-area { flex-direction: row; align-items: center; gap: 6px; }
+.ui-drive-status { display: inline-flex; align-items: center; gap: 5px; min-height: 24px; padding: 0 9px 0 7px; border-radius: 999px; border: 1px solid var(--ui-line); background: var(--ui-sunken); font-size: 11px; line-height: 1; color: var(--ui-ink-2); }
+.ui-drive-status::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #9aa29d; flex-shrink: 0; }
+[data-drive-state="ready"] .ui-drive-status::before { background: #8fb3a0; }
+[data-drive-state="checking"] .ui-drive-status::before { background: #cbb58c; }
+[data-drive-state="error"] .ui-drive-status::before, [data-drive-state="disconnected"] .ui-drive-status::before { background: #e0a32e; }
+.ui-drive-status[data-phase="true"]::before { background: #cbb58c; }
+.ui-drive-status:hover { text-decoration: none; background: var(--ui-hover); }
+@media (max-width: 2099px) { .ui-drive-status:not([data-phase="true"]) { font-size: 0; gap: 0; padding: 0 8px; } }
+.ui-export-confirm { position: absolute; right: 0; top: calc(100% + 8px); z-index: 50; width: 250px; padding: 10px 12px; border-radius: 12px; background: #fffdf8; color: #28332d; border: 1px solid #e4e0d6; box-shadow: 0 16px 36px -16px rgba(36, 48, 42, .6); font-size: 12.5px; animation: ui-status-in .2s var(--ui-ease) both; }
+.ui-export-confirm p { margin: 0 0 8px; line-height: 1.45; }
+.ui-export-confirm-go { height: 28px; padding: 0 12px; border-radius: 8px; background: #d8c59c; color: #24302a; font-weight: 600; }
+.ui-export-confirm-go:hover { background: #e4d4ae; }
+.ui-export-confirm-review { height: 28px; padding: 0 12px; border-radius: 8px; border: 1px solid #e4e0d6; color: #4a554f; }
+.ui-export-confirm-review:hover { background: #f4f1e8; }
+@media (prefers-reduced-motion: reduce) { .ui-export-confirm { animation: none; } }
+
+/* T-126: multi-answer toggle, add-choice chip and per-row delete control (editor only, never exported). */
+.answer-chip { display: inline-flex; align-items: center; gap: 4px; margin-left: 8px; border-radius: 999px; padding: 2px 10px; font-size: 11px; color: #3f5a52; background: #eef3f0; cursor: pointer; }
+.answer-chip:hover { background: #dfe9e4; }
+.answer-chip[aria-pressed="true"] { color: #1f4a6b; background: #e1edf6; font-weight: 600; }
+.answer-chip:disabled { opacity: .45; cursor: not-allowed; }
+.choice-delete { margin-left: 6px; width: 20px; height: 20px; border-radius: 999px; font-size: 14px; line-height: 1; color: #8b5148; background: transparent; opacity: 0; transition: opacity .15s ease; cursor: pointer; }
+[data-choice-key]:hover .choice-delete, .choice-delete:focus-visible { opacity: 1; }
+.choice-delete:hover { background: #fbefec; }
+@media (hover: none) { .choice-delete { opacity: .6; } }
+
+/* T-128: compact Google Drive status in the header (import screen). */
+.drive-chip { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; min-height: 32px; padding: 3px 4px 3px 10px; border: 1px solid var(--ui-line); border-radius: 999px; background: #fbfaf6; font-size: 12px; color: var(--ui-ink-2); white-space: nowrap; }
+.drive-chip-dot { width: 8px; height: 8px; border-radius: 999px; background: #b8b2a2; flex: none; }
+.drive-chip[data-state="ready"] .drive-chip-dot { background: #3f8f6b; box-shadow: 0 0 0 3px rgba(63, 143, 107, .15); }
+.drive-chip[data-state="connect"] .drive-chip-dot, .drive-chip[data-state="folder"] .drive-chip-dot { background: #d29a2a; }
+.drive-chip[data-state="error"] .drive-chip-dot { background: #c2564a; }
+.drive-chip[data-state="checking"] .drive-chip-dot { animation: drive-pulse 1.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .drive-chip[data-state="checking"] .drive-chip-dot { animation: none; } }
+@keyframes drive-pulse { 50% { opacity: .35; } }
+.drive-chip-label { overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+.drive-chip-action { border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 600; color: #fff; background: var(--ui-teal); }
+.drive-chip-action:hover { background: #005a63; }
+.drive-chip-action:disabled { opacity: .5; }
+.drive-chip-quiet { color: var(--ui-ink-2); background: transparent; font-weight: 500; }
+.drive-chip-quiet:hover { background: #efe9dc; }
+.drive-chip-error { color: #a33b31; white-space: normal; }
+@media (max-width: 767px) { .drive-chip-label { display: none; } }
+
+/* T-128: draft progress chips and the duplicate-import dialog. */
+.draft-progress { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; padding: 0; list-style: none; }
+.draft-progress li { border-radius: 999px; padding: 1px 8px; font-size: 10.5px; color: #7a7464; background: #f1eee6; }
+.draft-progress li[data-done="true"] { color: #2f5c48; background: #e3efe8; }
+.duplicate-dialog { width: min(520px, 100%); border-radius: 16px; background: #fff; padding: 20px 22px; box-shadow: 0 24px 60px rgba(30, 27, 20, .22); color: var(--ui-ink); }
+.duplicate-dialog h2 { font-size: 16px; font-weight: 700; }
+.duplicate-dialog p { margin-top: 6px; font-size: 13px; line-height: 1.6; color: var(--ui-ink-2); }
+.duplicate-draft { margin-top: 12px; border: 1px solid var(--ui-line); border-radius: 12px; padding: 10px 12px; font-size: 12px; background: #fbfaf6; }
+.duplicate-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+
+/* T-129: statistics / download / case log live in one tools menu inside the header rail. */
+.ui-inline-rail { overflow: visible; }
+.tools-anchor { position: relative; display: inline-flex; }
+.tools-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 60; display: flex; min-width: 11rem; flex-direction: column; gap: 2px; border: 1px solid var(--ui-line, #e2ded3); border-radius: 10px; background: #fff; padding: 4px; box-shadow: 0 10px 28px rgba(30, 36, 30, .14); }
+.tools-menu[hidden] { display: none; }
+.tools-item { display: flex; height: 32px; align-items: center; gap: 8px; border-radius: 7px; padding: 0 10px; color: var(--ui-ink-2); font-size: 12.5px; font-weight: 500; white-space: nowrap; text-align: left; }
+.tools-item:hover, .tools-item:focus-visible { background: var(--ui-hover); color: var(--ui-ink); }
+.tools-item[aria-expanded="true"] { color: var(--ui-olive); }
+
+/* T-130: one Drive control: main action (lock / export / open in Drive) + small menu caret. */
+.ui-export-caret { display: inline-flex; align-items: center; padding: 0 7px; background: #cdb98d; color: #24302a; border-left: 1px solid rgba(36, 48, 42, .3); }
+.ui-export-caret:hover, .ui-export-caret[aria-expanded="true"] { background: #e4d4ae; }
+.ui-export.is-done .ui-export-link { background: #8fb3a0; color: #1f2a24; }
+.ui-export.is-done .ui-export-link:hover { background: #a3c4b2; }
+.ui-export[data-export-step="locked"] .ui-export-main, .ui-export[data-export-step="checking"] .ui-export-main { background: #e9e4d6; color: #4a554f; }
+.ui-export-phase { max-width: 14rem; overflow: hidden; text-overflow: ellipsis; font-size: 12px; font-weight: 500; }
+.ui-export-menu { min-width: 14rem; }
+.ui-export-menu .tools-item:disabled { opacity: .45; }
+/* T-130: compact Drive chip acts by itself (connect / choose folder); sign-out is a small icon. */
+.drive-chip-main { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 3px 10px 3px 4px; font-size: 12px; font-weight: 600; color: var(--ui-teal); }
+.drive-chip-main:hover { background: #e6f0ef; }
+.drive-chip-main:disabled { opacity: .5; }
+.drive-chip[data-state="connect"], .drive-chip[data-state="folder"] { padding-left: 4px; }
+.drive-chip-quiet { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 999px; color: var(--ui-ink-3); }
+/* The editor head is a dark rail that redefines --ui-* to light ink; the Drive menu is a white card, so use fixed ink. */
+.ui-export-menu { background: #fffdf8; border-color: #e4e0d6; }
+.ui-export-menu .tools-item { color: #3c4741; }
+.ui-export-menu .tools-item:hover:not(:disabled), .ui-export-menu .tools-item:focus-visible { background: #f4f1e8; color: #1f2a24; }

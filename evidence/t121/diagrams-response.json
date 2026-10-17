@@ -1,0 +1,26 @@
+[
+ {
+  "page": 1,
+  "body": {
+   "error": "Origin rejected"
+  }
+ },
+ {
+  "page": 2,
+  "body": {
+   "error": "Origin rejected"
+  }
+ },
+ {
+  "page": 3,
+  "body": {
+   "error": "Origin rejected"
+  }
+ },
+ {
+  "page": 4,
+  "body": {
+   "error": "Origin rejected"
+  }
+ }
+]

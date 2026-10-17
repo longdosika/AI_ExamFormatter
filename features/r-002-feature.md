@@ -1,5 +1,19 @@
 # แปลงเอกสารให้เข้ารูปแบบที่กำหนด
 
+### T-123 Contextual Source Repair
+Live-regression extension: recognize a known bare numbered stem as a crop anchor; bound refinement/padding at following prose even when the provider box ends just before it. Source4 live Q4/Q9 failures and passing focused geometry tests are recorded under `evidence/t123/live/`; full provider accuracy is not inferred from HTTP200.
+Four/five-choice completeness is owner-approved; preserve fifth text/media and unresolved answers. Figure enumerations and decimal table cells do not become fake questions; inferred OCR keys remain flagged. Unique local grids can still be captured when provider requests fail, but continuation lines bound crops and quota errors remain visible. Existing raw source is unchanged. Tests/limitations: [[../evidence/t123/verification]], [[../documents/conversion-review-guide]].
+
+### T-121 Fidelity Regression
+Resumed HTML is updated through lib/harvest-editor.ts so a new crop replaces old saved bytes while preserving live text, rich formatting and confirmed split choices. The automatic harvest save includes this edited HTML. A question-continuation line below an evidenced table bounds crop padding as well as its provider box.
+One choice per line supersedes compact two-column layout. Contextual ง/4 repairs avoid fake backwards questions; absent keys require confirmation. OCR-bounded figure crops and conservative ruled-grid refinement preserve table columns without certifying unreviewed images. Actual source3 has25 questions/five target figures; recorded-provider replay verifies geometry and real DOCX media. See evidence/t121/ and release_log.md for live versus replay boundaries.
+
+### T-115 Exact Source Check
+The owner-supplied 13-page scanned PDF is verified by SHA-256. Full relevant pages and production crops for chromatography guides, shared tables58-61/62-64 and Q66 table were visually inspected. Every pixel in each manually verified protected box survives cropping. These bounds are manual golden inputs, not a real-provider detection result. evidence/t115-verification.md and evidence/t115-crop-result.json separate these claims.
+
+### T-114 Captured Table Cleanup
+Captured question/shared tables no longer repeat recognized chromatography cell/header text. Cleanup is gated by a corresponding image and table-shaped context; ordinary prose stays. Existing HTML drafts are migrated without replacing styled narrative nodes. Original OCR/source is unchanged. Regression: scripts/test-parser.cjs and scripts/test-capture-editor.cjs; evidence/t114-verification.md.
+
 ### T-105 Workspace Navigation and Source Reference
 Original source media restores when reopening drafts, while legacy sources can be reattached without converting/OCRing again. Long question navigation uses first/decade/final anchors and circular expandable ranges. It preserves current-question indication, independent source scrolling, keyboard operation, responsive wrapping and reduced motion. Completed diagram/answer steps are subdued but remain repeatable. Evidence: evidence/t105-verification.md.
 
@@ -121,3 +135,9 @@ Resolved recurring over-crop (Q43 distillation setup capturing Q42 choices, Q80 
 ### T-092 Q80 figure boundary regression
 The production crop path now shares a row-density edge detector with its contract tests. It tolerates deeper raster padding, one-row antialiasing gaps, and text bands up to 54px, so unrelated question text above and answer-choice text below can be removed while the apparatus and both right-side solution labels remain. The Gemini prompt repeats this boundary rule and adds a Q80-specific exclusion guard. The fixture proves the boundary rule; the 80-question source still needs a provider-backed browser re-run before universal accuracy is claimed.
 
+
+- T-126 (2026-10-17): multiple correct answers per question ("ตอบได้หลายข้อ", several circled keys from the original, every correct choice starred in export) and add/delete choices with automatic re-lettering; regression scripts/test-t126-answers-choices.cjs.
+- T-127 (2026-10-17): the answer star is not editable, text typed after it joins the choice text, and a typed "*" only adds an answer; split rows keep their key. Regression scripts/test-t127-answer-star.cjs.
+- T-130 (2026-10-17): capture rule C-36: a table that only repeats the choices (rows ก-ง rebuilt as choice text) is never attached as รูปโจทย์; older drafts lose such images on reopen. Test scripts/test-t130-choice-table.cjs.
+- T-131 (2026-10-17): capture rule C-37: a question keeps all of its question figures (set 2 Q25 รูปที่ 1-4) in source order, through harvest, editor, drafts, reopen cleanup, re-crop and DOCX/Google export (one "รูปคำถาม:", one image paragraph each). Regression scripts/test-t131-multi-figure.cjs.
+- T-132 (2026-10-17): figures printed beside the question line (set 2 Q20/Q22) are cropped from the line top without the question number (C-10). Every capture rule is mapped to code and run tests; test-capture-rules.cjs fails the gate on drift.

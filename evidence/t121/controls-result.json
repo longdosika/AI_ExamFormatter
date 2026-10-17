@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "legacyMerge": true,
+  "explicitSpelling": true,
+  "cloud": "mocked Drive; backend hash/tamper guards separately tested",
+  "backupCount": 1,
+  "originalRestored": true,
+  "scriptAndRemoteMarkupBlocked": true,
+  "errors": []
+}

@@ -1,4 +1,4 @@
-import { ExamItem, ChoiceItem, FORMATTER_CONSTANTS, normalizeChoiceKey } from "./formatter-rules";
+import { ExamItem, ChoiceItem, FORMATTER_CONSTANTS, normalizeChoiceKey, THAI_CHOICE_KEYS } from "./formatter-rules";
 import { normalizeThaiOcrText } from "./text-normalization";
 
 /** Reconcile only answer evidence present in the source. */
@@ -32,10 +32,10 @@ export function splitInlineChoices(rawText: string): string[] {
     .replace(/<table\b[^>]*>([\s\S]*?)<\/table>/gi, (_table, body: string) => {
       const rows = Array.from(body.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)).map(row =>
         Array.from(row[1].matchAll(/<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]>/gi)).map(cell => cell[1].replace(/<[^>]+>/g, "").trim()));
-      const choiceRows = rows.filter(cells => /^[ก-งA-D]$/i.test(cells[0] || ""));
-      const isChoiceTable = choiceRows.some(cells => /^[ก-ง]$/.test(cells[0])) || choiceRows.length === 4;
-      const header = isChoiceTable && rows[0] && !/^[ก-งA-D]$/i.test(rows[0][0] || "") ? rows[0] : undefined;
-      return "\n" + rows.map(cells => isChoiceTable && /^[ก-งA-D]$/i.test(cells[0] || "")
+      const choiceRows = rows.filter(cells => /^[ก-จA-E]$/i.test(cells[0] || ""));
+      const isChoiceTable = choiceRows.some(cells => /^[ก-จ]$/.test(cells[0])) || choiceRows.length === 4 || choiceRows.length === 5;
+      const header = isChoiceTable && rows[0] && !/^[ก-จA-E]$/i.test(rows[0][0] || "") ? rows[0] : undefined;
+      return "\n" + rows.map(cells => isChoiceTable && /^[ก-จA-E]$/i.test(cells[0] || "")
         ? `${cells[0]}. ${cells.slice(1).map((value, index) => header?.[index + 1] ? `${header[index + 1]}: ${value}` : value).join(" | ")}`
         : cells === header ? `ตารางตัวเลือก: ${cells.slice(1).join(" | ")}`
         : `[ตาราง] ${cells.join(" | ")}`).join("\n") + "\n";
@@ -46,7 +46,7 @@ export function splitInlineChoices(rawText: string): string[] {
   const rawLines = cleaned.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
   const resultLines: string[] = [];
 
-  const choiceBoundary = /(?<=\S)\s+(?=(?:[-*+]\s+)?(?:\*{0,2}[ข-จB-Eb-e]\s*[.)]\*{0,2}|\([ข-จB-Eb-e]\))\s*)/gi;
+  const choiceBoundary = /(?<=\S)\s+(?=(?:[-*+]\s+)?(?:\*{0,2}[ข-จB-Eb-eชบ]\s*[.)]\*{0,2}|炅(?:[.)]|(?=\s))|\([ข-จB-Eb-e]\))\s*)/gi;
   const inlineFirstChoice = /(?<=\S)\s+(?=(?:[-*+]\s+)?(?:\*{0,2}[กAa]\s*[.)]\*{0,2}|\(([กAa])\))\s*)/gi;
   const subsequentChoiceTest = /(?<=\S)\s+(?:[-*+]\s+)?(?:\*{0,2}[ข-จB-Eb-e]\s*[.)]\*{0,2}|\([ข-จB-Eb-e]\))\s*/i;
 
@@ -61,11 +61,15 @@ export function splitInlineChoices(rawText: string): string[] {
 
     // If the line has an inline first choice (ก/A) followed later by a subsequent choice (ข/B)
     if (subsequentChoiceTest.test(current) && inlineFirstChoice.test(current)) {
-      current = current.replace(inlineFirstChoice, "\n");
+      current = current.replace(inlineFirstChoice, (gap, _key: string, offset: number, whole: string) =>
+        /^\([A-E]\)/i.test(whole.slice(offset + gap.length)) && /[ก-จ][.)]\s*$/.test(whole.slice(0, offset)) ? gap : "\n");
     }
 
     // Split on subsequent choice boundaries (ข-จ, B-E)
-    current = current.replace(choiceBoundary, "\n");
+    current = current.replace(choiceBoundary, (gap, offset: number, whole: string) => {
+      // ก. (A) is one Thai choice naming sample A, not a second English-key row.
+      return /^\([A-E]\)/i.test(whole.slice(offset + gap.length)) && /[ก-จ][.)]\s*$/.test(whole.slice(0, offset)) ? gap : "\n";
+    });
 
     // Split inline subsequent numeric choices when line starts with 1 or 3 and has 2 or 4
     if (/^\s*(?:[-*+]\s+)?(?:[13])\s*[.)]\s+/.test(current)) {
@@ -133,18 +137,28 @@ export function parseSharedContextHeader(line: string): { start: number; end: nu
 export function stripCapturedTableText(text: string): string {
   if (!text) return "";
   const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
+  const tableHeader = /^(?:สีตัวอย่าง|สีที่แยกได้|ระยะทางที่(?:สาร|ตัวทำละลาย)|ปริมาณ\s*สาร|สาร\s*สูตร|สาร\s+ผลการทดลอง\s*$|ผลการทดลอง|ลำดับที่|ชุดการทดลอง|ตาราง(?:\s|ที่|แสดง|สรุป|ข้อมูล))/;
+  const tablePresent = lines.some(line => tableHeader.test(line)) ||
+    lines.filter(line => /^[A-Za-z]\s+(?:ได้|เป็น|มี|\d)/.test(line)).length >= 2;
   const kept = lines.filter((line, idx) => {
     if (idx === 0) return true;
     if (parseSharedContextHeader(line)) return true;
     const t = line.trim();
     // Narrative passages that describe experiments or instructions are preserved
     if (/^(?:ทำการทดลอง|เมื่อนำ|นำสาร|พิจารณาข้อความ|จากการทดลอง|ให้นักเรียน|กำหนดให้)/i.test(t)) return true;
+    // Only remove cell-shaped fragments when the block has an identifiable table.
+    // Chemical names, numbers and A/B labels can also belong to ordinary prose.
+    if (!tablePresent) return true;
+    if (tableHeader.test(t)) return false;
+    if (/^(?:(?:cm|เซนติเมตร|เคลื่อนที่|R\s*[_f]?|[()])\s*)+$/i.test(t)) return false;
+    if (/^สี\s*[A-Za-zก-ฮ]?\s*$/.test(t)) return false;
+    if (/^(?:สี\s*[A-Za-z]\s+)?สี(?:แดง|น้ำเงิน|เหลือง|ม่วง|เขียว|ส้ม|ดำ|ขาว)\s*(?:\d+(?:\.\d+)?|X)(?:\s*(?:\d+(?:\.\d+)?|X))*$/i.test(t)) return false;
     // Table titles
     if (/^ตาราง(?:\s|ที่|แสดง|สรุป|ข้อมูล)/i.test(t)) return false;
     // Table column headers or cells (e.g. "สาร", "ผลการทดลอง", "ปริมาณสาร", etc.)
-    if (/^(?:สาร(?:\s|$)|ผลการทดลอง|ปริมาณ\s*สาร|สาร\s*สูตร|สารละลาย\s*สูตร|ลำดับที่|ตัวอย่าง|หลอดที่\s*\d+|ชุดการทดลอง)/i.test(t)) return false;
+    if (/^(?:สาร(?:\s+สูตร)?|ผลการทดลอง|สารละลาย\s*สูตร|ลำดับที่|ตัวอย่าง|ชุดการทดลอง)$/.test(t) || /^หลอดที่\s*\d+(?:\s|$)/.test(t)) return false;
 
-    if (/(?:NaCl|CuSO4|\b(?:g|กรัม)\s*ในน้ำ|\bg\/100\s*g\b)/i.test(t)) return false;
+    if (/^(?:เกลือแกง\s*|จุนสี\s*)?(?:NaCl|CuSO4)\s+[\d.\s]+$/i.test(t)) return false;
     // Table rows starting with chemical/sample identifiers (e.g. "A ได้...", "B ได้...", "C ได้...", "1 ได้...")
     if (/^[A-Za-zก-ฮ0-9]\s*(?:[:：|]|\s)\s*(?:ได้|เป็น|มี|สาร|ของเหลว|ตกผลึก|สี|ใส|\d)/i.test(t)) return false;
     if (/^[A-Za-z]\s*$/i.test(t)) return false;
@@ -160,7 +174,7 @@ export function stripCapturedTableText(text: string): string {
 
 /** Parse numbered questions without substituting generated content. */
 export function parseExamText(rawText: string, embeddedImages: { id: string; dataUrl: string }[] = [], _fileName = ""): ExamItem[] {
-  const lines = splitInlineChoices(normalizeThaiOcrText(rawText));
+  const lines = splitInlineChoices(normalizeChoiceKeyConfusions(normalizeThaiOcrText(rawText)));
   const items: ExamItem[] = [];
   let number = 0;
   let question = "";
@@ -171,7 +185,8 @@ export function parseExamText(rawText: string, embeddedImages: { id: string; dat
   let numericChoices = false;
   let currentPage: number | undefined;
   let questionSourcePage: number | undefined;
-  const numbered = /^(?:(?:ข้อ\s*(?:ที่)?\s*)?(\d+)\s*[.)]\s*|\((\d+)\)\s*)(.*)$/;
+  let pageStart = false;
+  const numbered = /^(?:(?:ข้อ\s*(?:ที่)?\s*)?(\d+)\s*[.)](?!\d)\s*|\((\d+)\)\s*)(.*)$/;
   const choicePattern = /^(?:([ก-จA-E1-5])\s*[.)]\s*|\(([ก-จA-E1-5])\)\s*)(.*)$/i;
   const sectionPattern = /^(?:ชุด|ตอน|แบบทดสอบ|ข้อสอบ)\s*(?:ที่)?\s*\d+/i;
 
@@ -231,6 +246,8 @@ export function parseExamText(rawText: string, embeddedImages: { id: string; dat
   };
 
   let inStemEnumeration = false;
+  // T-121 (B-18): OCR rows of a table that was not captured stay one row per line instead of one run-on stem.
+  let inStemTable = false;
   let pendingSharedContext: {
     start: number;
     end: number;
@@ -246,6 +263,7 @@ export function parseExamText(rawText: string, embeddedImages: { id: string; dat
 
   const finish = () => {
     if (number && question) {
+      choices = repairChoiceKeys(splitMergedChoices(choices));
       const isStart = Boolean(activeSharedRange && number === activeSharedRange.start);
       const isEnd = Boolean(activeSharedRange && number === activeSharedRange.end);
       const sharedContextRange = activeSharedRange ? { start: activeSharedRange.start, end: activeSharedRange.end } : undefined;
@@ -307,12 +325,16 @@ export function parseExamText(rawText: string, embeddedImages: { id: string; dat
     insideExplanation = false;
     numericChoices = false;
     inStemEnumeration = false;
+    inStemTable = false;
   };
 
   for (let index = 0; index < lines.length; index++) {
-    const line = lines[index];
+    // T-121: a graph axis label printed beside the choices ("อุณหภูมิ (°C) ก. ...") is figure text, not stem or choice text.
+    const line = lines[index].replace(AXIS_LABEL_BEFORE_KEY, "");
     const pageMarker = line.match(/^--- หน้าที่ (\d+) ---$/);
-    if (pageMarker) { currentPage = Number(pageMarker[1]); continue; }
+    if (pageMarker) { currentPage = Number(pageMarker[1]); pageStart = true; continue; }
+    const startsPage = pageStart;
+    pageStart = false;
     if (sectionPattern.test(line)) { finish(); continue; }
 
     // Check shared context delimiter "จบโจทย์ร่วม"
@@ -338,7 +360,26 @@ export function parseExamText(rawText: string, embeddedImages: { id: string; dat
       continue;
     }
 
-    const cMatch = line.match(choicePattern);
+    let cMatch = line.match(choicePattern);
+    let recoveredGlyph = false;
+    const confused = line.match(/^([ชบ])[.)]\s*(\S.*)$|^(炅)[.)]?\s+(\S.*)$/u);
+    const expected = THAI_CHOICE_KEYS[choices.length];
+    const recoveredKey = confused?.[1] ? "ข" : confused?.[3] ? "ค" : undefined;
+    const nextMarkedKey = confused ? (() => {
+      for (let cursor = index + 1; cursor < lines.length; cursor++) {
+        const candidate = lines[cursor];
+        if (numbered.test(candidate) || sectionPattern.test(candidate) || /^--- หน้าที่/.test(candidate)) return undefined;
+        const match = candidate.match(choicePattern);
+        if (match && /^[ก-จ]$/.test(match[1] || match[2])) return match;
+      }
+      return undefined;
+    })() : undefined;
+    if (confused && number && !insideExplanation && expected === recoveredKey &&
+      choices.every((choice, position) => choice.key === THAI_CHOICE_KEYS[position]) &&
+      (nextMarkedKey?.[1] || nextMarkedKey?.[2]) === THAI_CHOICE_KEYS[choices.length + 1]) {
+      cMatch = `${recoveredKey}. ${confused[2] || confused[4]}`.match(choicePattern);
+      recoveredGlyph = true;
+    }
     const qMatch = line.match(numbered);
     const cKey = cMatch ? (cMatch[1] || cMatch[2]) : null;
     const cText = cMatch ? cMatch[3] : "";
@@ -361,6 +402,14 @@ export function parseExamText(rawText: string, embeddedImages: { id: string; dat
 
     if (number && qMatch && qNum === 1 && !choices.length && isNumericChoiceBlockStart(index, number)) {
       numericChoices = true;
+    }
+
+    // Figure legends can start beside an axis label rather than at column one.
+    // Keep the entire enumeration as stem text until actual letter choices begin.
+    if (number && !choices.length && !numericChoices && !qMatch &&
+      /รูป|ภาพ|กราฟ|ได้ผลดังนี้/.test(question) && /\s1[.)]\s+/.test(line) &&
+      lines.slice(index + 1, index + 4).some(candidate => /(?:^|\s)2[.)]\s+/.test(candidate))) {
+      inStemEnumeration = true;
     }
 
     // Detect start of sub-enumeration list (1..N) inside question stem when letter choices follow ahead
@@ -397,6 +446,35 @@ export function parseExamText(rawText: string, embeddedImages: { id: string; dat
       }
     }
 
+    const presentKeys = choices.map(choice => choice.key).join("");
+    // A missing ค at a page boundary is position evidence, not an answer key.
+    // Require the next explicit key to be ง; leave ordinary continuations alone.
+    if (number && startsPage && !insideExplanation && !qMatch && !cMatch && presentKeys === "กข" &&
+      (() => {
+        for (const candidate of lines.slice(index + 1)) {
+          if (numbered.test(candidate) || sectionPattern.test(candidate)) return false;
+          const key = candidate.match(choicePattern);
+          if (key) return (key[1] || key[2]) === "ง";
+        }
+        return false;
+      })()) {
+      choices.push({ key: "ค", text: cleanChoiceText(line), isCorrect: false, keyInferred: true });
+      continue;
+    }
+    // T-121 (B-01): OCR reads a pen-crossed "ง." as "4." (or "3."). After ก ข ค it is the missing fourth
+    // choice, not a new question, unless it is the true next question with its own choices.
+    if (number && !insideExplanation && !numericChoices && presentKeys === "กขค" && cKey && /^[34]$/.test(cKey) &&
+      !(qNum !== null && qNum === number + 1 && hasFollowingChoices(index))) {
+      choices.push({ key: "ง", text: cleanChoiceText(cText), isCorrect: false, keyInferred: true });
+      continue;
+    }
+    // T-121 (B-03): a graph axis label followed by text after ก ข ค is a fourth choice whose key was lost in the figure.
+    const axisRest = number && !insideExplanation && presentKeys === "กขค" && !qMatch && !cMatch ? line.match(AXIS_LABEL_THEN_TEXT) : null;
+    if (axisRest) {
+      choices.push({ key: "ง", text: cleanChoiceText(axisRest[1]), isCorrect: false, keyInferred: true });
+      continue;
+    }
+
     const isChoice = cMatch && cKey && number && !insideExplanation &&
       // Numeric exams have four answer choices. Once 1..4 are present, a
       // following `5.` is a question boundary (or stem text), never a fifth
@@ -409,7 +487,7 @@ export function parseExamText(rawText: string, embeddedImages: { id: string; dat
       const key = normalizeChoiceKey(cKey);
       const text = cText;
       if (/^\*|\*$/.test(text.trim())) asteriskKeys.push(key);
-      choices.push({ key, text: text.replace(/^\s*\*|\*\s*$/g, "").trim(), isCorrect: false });
+      choices.push({ key, text: cleanChoiceText(text.replace(/^\s*\*|\*\s*$/g, "")), isCorrect: false, ...(recoveredGlyph ? { keyInferred: true } : {}) });
       continue;
     }
 
@@ -440,6 +518,13 @@ export function parseExamText(rawText: string, embeddedImages: { id: string; dat
       continue;
     }
 
+    // T-121 (B-04): a number that goes backwards after choices is OCR noise (a misread key or margin mark),
+    // not a new question, unless real choices follow it (for example a section that restarts at 1).
+    if (qMatch && qNum && qNum <= number && choices.length && !insideExplanation && !hasFollowingChoices(index)) {
+      choices[choices.length - 1].text += " " + line;
+      continue;
+    }
+
     if (qMatch && qNum && (!insideExplanation || hasFollowingChoices(index))) {
       finish();
       number = qNum;
@@ -459,9 +544,107 @@ export function parseExamText(rawText: string, embeddedImages: { id: string; dat
     if (/^ตัวเลือก\s*:$/.test(line)) continue;
     if (insideExplanation) explanation += " " + line;
     else if (number && choices.length) choices[choices.length - 1].text += " " + line;
-    else if (number) question += (inStemEnumeration ? "\n" : " ") + line;
+    else if (number) {
+      const tableRow: boolean = !choices.length && isStemTableRow(question, line, inStemTable);
+      question += (inStemEnumeration || tableRow || inStemTable ? "\n" : " ") + line;
+      inStemTable = tableRow;
+    }
   }
 
   finish();
   return items;
+}
+
+/** T-121: graph axis labels with a unit, e.g. "อุณหภูมิ (°C)" or "→ เวลา (นาที)". */
+const AXIS_LABEL = String.raw`^(?:[→←↑↓]\s*)?[ก-๙A-Za-z]{2,}\s*\((?:°\s*C|องศาเซลเซียส|นาที|วินาที|ชั่วโมง|cm|mL|ml|g|kg|s|min)\)\s*`;
+const AXIS_LABEL_BEFORE_KEY = new RegExp(AXIS_LABEL + String.raw`(?=[ก-ง]\s*[.)]\s)`, "u");
+const AXIS_LABEL_THEN_TEXT = new RegExp(AXIS_LABEL + String.raw`([ก-๙].{5,})$`, "u");
+/** T-121 (B-06): Latin look-alikes OCR uses for the Thai key ก at a key position ("À. ข้อ 1"). */
+export function normalizeChoiceKeyConfusions(text: string): string {
+  return splitInlineEnumerations(text).replace(/(^|\s)[ÀÁÂÃÄ]\s*\.(?=\s)/gmu, "$1ก.");
+}
+/**
+ * T-121 (B-18): a stem line is a table row when the stem announces a table and the line is a header of short
+ * cells right after it, a row with a number, or a single short sub-header inside the table.
+ */
+export function isStemTableRow(stem: string, line: string, inTable: boolean): boolean {
+  if (!/ตาราง/.test(stem)) return false;
+  const cells = line.trim().split(/\s+/);
+  const shortCells = cells.every(cell => cell.length <= 12);
+  if (inTable) return shortCells && (/\d/.test(line) || cells.length <= 2);
+  const lastLine = stem.split("\n").pop() || "";
+  return /ตาราง/.test(lastLine) && shortCells && cells.length >= 3;
+}
+/** T-121 (audit): an enumerated stem line holding the next item ("2. ละลาย… 3. ระเหยแห้ง") splits at that item. */
+export function splitInlineEnumerations(text: string): string {
+  return text.split("\n").map(line => {
+    const first = line.match(/^\s*(\d{1,2})\.\s+\S/);
+    if (!first) return line;
+    const parts: string[] = [];
+    let rest = line;
+    for (let expected = Number(first[1]) + 1; ; expected++) {
+      const next = rest.match(new RegExp(String.raw`^(.*\S)\s+(` + expected + String.raw`\.\s+[ก-๙A-Za-z].*)$`, "u"));
+      if (!next) break;
+      parts.push(next[1]);
+      rest = next[2];
+    }
+    return parts.length ? [...parts, rest].join("\n") : line;
+  }).join("\n");
+}
+/** T-121 (B-07): pen ticks OCR keeps in front of a choice ("ก./ น้ำมันดีเซล"). */
+export function cleanChoiceText(text: string): string {
+  return text.replace(/^\s*[/|\\]+\s*/u, "").trim();
+}
+/**
+ * Matches a missing next key that OCR glued into the previous choice: "เฮกเซน. ง แอลกอฮอล์".
+ * T-121 (B-02): ง is also matched as the digit OCR reads it as ("มะกรูด 4. กลิ่นกุหลาบ"); the dot is then required.
+ */
+export function mergedChoicePattern(nextKey: string) {
+  const key = nextKey === "ง" ? String.raw`(ง\.?|[34]\.(?=\s+[ก-๙]))` : `(${nextKey}` + String.raw`\.?)`;
+  return new RegExp(String.raw`(^|.*?\S)\s*(?:\.\s*|\s)` + key + String.raw`\s+(\S.*)$`, "u");
+}
+/** Groups of a mergedChoicePattern match: text before, the key as read, text after. */
+export function mergedChoiceParts(text: string, nextKey: string): { before: string; readKey: string; after: string } | null {
+  const match = text.match(mergedChoicePattern(nextKey));
+  if (!match || !match[1].trim()) return null;
+  return { before: match[1].replace(/[.\s]+$/u, "").trim(), readKey: match[2], after: match[3].trim() };
+}
+/** T-121 (B-03): a last choice holding two sentences ("…การกลั่น. การระเหย…") lost the next key entirely. */
+export function lostLastChoiceParts(text: string): [string, string] | null {
+  // Both halves must read like full choices (8+ letters) so a short abbreviation is never split.
+  const match = text.match(/^(.*[^\s.])\.\s+([ก-๙].{7,})$/u);
+  if (!match || match[1].replace(/\s/g, "").length < 8 || /\.\s+[ก-๙]/u.test(match[2])) return null;
+  return [match[1].trim(), match[2].trim()];
+}
+export function inferMissingLastChoice(choices: ChoiceItem[]): ChoiceItem[] {
+  if (choices.map(choice => choice.key).join("") !== "กขค" || choices[2].imageUrl) return choices;
+  const parts = lostLastChoiceParts(choices[2].text);
+  if (!parts) return choices;
+  return [...choices.slice(0, 2), { ...choices[2], text: parts[0] }, { key: "ง", text: parts[1], isCorrect: false, keyInferred: true }];
+}
+/** T-121 (B-06): four choices with exactly one out-of-place key ("ก ข ก ง") take the key of their position. */
+export function repairChoiceKeys(choices: ChoiceItem[]): ChoiceItem[] {
+  if (choices.length !== 4 || !choices.every(choice => THAI_CHOICE_KEYS.slice(0, 4).includes(choice.key))) return choices;
+  const wrong = choices.map((choice, index) => choice.key === THAI_CHOICE_KEYS[index] ? -1 : index).filter(index => index >= 0);
+  if (wrong.length !== 1) return choices;
+  return choices.map((choice, index) => index === wrong[0] ? { ...choice, key: THAI_CHOICE_KEYS[index], keyInferred: true } : choice);
+}
+/**
+ * T-119: when OCR merges two Thai choices into one row (the next key appears inside the
+ * previous choice's text and is otherwise missing), split them back. Only adjacent missing
+ * keys are restored, and only up to four choices, so ordinary text is left alone.
+ */
+export function splitMergedChoices(choices: ChoiceItem[]): ChoiceItem[] {
+  const result = choices.map(choice => ({ ...choice }));
+  for (let index = 0; index < result.length && result.length < 5; index++) {
+    const position = THAI_CHOICE_KEYS.indexOf(result[index].key);
+    const nextKey = THAI_CHOICE_KEYS[position + 1];
+    if (position < 0 || !nextKey || result.some(choice => choice.key === nextKey)) continue;
+    const parts = mergedChoiceParts(result[index].text, nextKey);
+    if (!parts) continue;
+    result[index] = { ...result[index], text: parts.before };
+    // A digit read in place of the key is a correction the owner should check; a literal key is not.
+    result.splice(index + 1, 0, { key: nextKey, text: parts.after, isCorrect: false, ...(/^\d/.test(parts.readKey) ? { keyInferred: true } : {}) });
+  }
+  return result;
 }

@@ -1,0 +1,176 @@
+[
+ {
+  "page": 1,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [
+    {
+     "id": "diag-p1-1",
+     "type": "shared_context",
+     "questionNumber": 5,
+     "description": "ตารางแสดงขั้นตอนการทำนาเกลือเปรียบเทียบระหว่างการระเหยและการตกผลึก สำหรับประกอบคำถามข้อ 5",
+     "bbox": [
+      681,
+      140,
+      818,
+      526
+     ],
+     "page": 1,
+     "confidence": 0.9
+    }
+   ],
+   "model": "gemini-flash-lite-latest",
+   "keyIndex": 0,
+   "totalKeys": 3
+  }
+ },
+ {
+  "page": 2,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [
+    {
+     "id": "diag-p2-1",
+     "type": "shared_context",
+     "questionNumber": 7,
+     "description": "ตารางแสดงการจำแนกสาร (ข้อ 7)",
+     "bbox": [
+      176,
+      171,
+      301,
+      821
+     ],
+     "page": 2,
+     "confidence": 0.9
+    },
+    {
+     "id": "diag-p2-2",
+     "type": "question",
+     "questionNumber": 8,
+     "description": "แผนภาพการจำแนกสาร (ข้อ 8)",
+     "bbox": [
+      341,
+      329,
+      423,
+      760
+     ],
+     "page": 2,
+     "confidence": 0.9
+    },
+    {
+     "id": "diag-p2-3",
+     "type": "shared_context",
+     "questionNumber": 8,
+     "description": "ตารางตัวเลือกสาร A, B, C, D (ข้อ 8)",
+     "bbox": [
+      503,
+      170,
+      626,
+      821
+     ],
+     "page": 2,
+     "confidence": 0.9
+    },
+    {
+     "id": "diag-p2-4",
+     "type": "shared_context",
+     "questionNumber": 10,
+     "description": "ตารางเกณฑ์การจัดจำแนกสารและตัวอย่างสาร (ข้อ 10)",
+     "bbox": [
+      816,
+      170,
+      930,
+      819
+     ],
+     "page": 2,
+     "confidence": 0.9
+    }
+   ],
+   "model": "gemini-flash-lite-latest",
+   "keyIndex": 0,
+   "totalKeys": 3
+  }
+ },
+ {
+  "page": 3,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [
+    {
+     "id": "diag-p3-1",
+     "type": "shared_context",
+     "questionNumber": 16,
+     "description": "ตารางแสดงสมบัติของสาร A, B และ C (จุดเดือด, จุดหลอมเหลว และการละลายน้ำ)",
+     "bbox": [
+      475,
+      137,
+      584,
+      665
+     ],
+     "page": 3,
+     "confidence": 0.9
+    },
+    {
+     "id": "diag-p3-2",
+     "type": "question",
+     "questionNumber": 20,
+     "description": "ภาพการทดลองแยกสีเขียวด้วยวิธีโครมาโทกราฟี แสดงจุด Z, Y, X และจุดสี",
+     "bbox": [
+      850,
+      151,
+      946,
+      290
+     ],
+     "page": 3,
+     "confidence": 0.9
+    }
+   ],
+   "model": "gemini-flash-lite-latest",
+   "keyIndex": 0,
+   "totalKeys": 3
+  }
+ },
+ {
+  "page": 4,
+  "status": 200,
+  "body": {
+   "success": true,
+   "diagrams": [
+    {
+     "id": "diag-p4-1",
+     "type": "question",
+     "questionNumber": 22,
+     "description": "รูปแสดงอุปกรณ์การกรองผ่านกระดาษกรองและเซลลูโลส หมายเลข 1, 2, 3",
+     "bbox": [
+      213,
+      219,
+      313,
+      423
+     ],
+     "page": 4,
+     "confidence": 0.9
+    },
+    {
+     "id": "diag-p4-2",
+     "type": "question",
+     "questionNumber": 25,
+     "description": "รูปชุดอุปกรณ์การกลั่น (รูปที่ 1) และอุปกรณ์การกรอง/แยกสาร (รูปที่ 2, 3, 4)",
+     "bbox": [
+      593,
+      137,
+      939,
+      878
+     ],
+     "page": 4,
+     "confidence": 0.9
+    }
+   ],
+   "model": "gemini-flash-lite-latest",
+   "keyIndex": 0,
+   "totalKeys": 3
+  }
+ }
+]
